@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { useAuth } from "./contexts/AuthContext";
 import "./home-style.css";
@@ -19,7 +19,8 @@ const games: Game[] = [
   {
     id: 1,
     title: "Snake Arcade",
-    description: "A cobrinha evoluída com poderes, frutas especiais, combo e frenesi.",
+    description:
+      "A cobrinha evoluída com poderes, frutas especiais, combo e frenesi.",
     emoji: "🐍",
     status: "available",
     requiredLevel: 1,
@@ -55,21 +56,31 @@ const games: Game[] = [
 ];
 
 function Home() {
-  const { user, isAuthenticated, login, logout } = useAuth();
-  const [showAuthWarning, setShowAuthWarning] = useState(!isAuthenticated);
+  const { user, isAuthenticated, isGuest, logout, continueAsGuest } = useAuth();
+
+  const [showAuthWarning, setShowAuthWarning] = useState(
+    !isAuthenticated && !isGuest
+  );
 
   const userLevel = user?.level ?? 0;
   const userPoints = user?.points ?? 0;
   const userName = user?.username ?? "";
 
-  function handleGuestLogin() {
-    // Usuário fake padrão para testar rapidamente.
-    login("player@retroarcade.com", "123456");
+  useEffect(() => {
+    // Se o usuário estiver logado ou em modo visitante, fechamos o aviso inicial.
+    if (isAuthenticated || isGuest) {
+      setShowAuthWarning(false);
+    }
+  }, [isAuthenticated, isGuest]);
+
+  function handleGuestMode() {
+    // Modo visitante: pode explorar a Home, mas não acessa Perfil ou Minha Conta.
+    continueAsGuest();
     setShowAuthWarning(false);
   }
 
   function handleProtectedAction() {
-    // Sempre que uma área exigir login, mostramos o aviso.
+    // Sempre que uma área exigir login real, mostramos o aviso.
     if (!isAuthenticated) {
       setShowAuthWarning(true);
     }
@@ -116,6 +127,21 @@ function Home() {
               <button className="btn btn-ghost" type="button" onClick={logout}>
                 Sair
               </button>
+            </>
+          ) : isGuest ? (
+            <>
+              <button
+                className="guest-pill"
+                type="button"
+                onClick={handleProtectedAction}
+              >
+                <span className="user-avatar">V</span>
+                <span>Visitante</span>
+              </button>
+
+              <Link className="btn btn-primary" to="/login">
+                Entrar
+              </Link>
             </>
           ) : (
             <>
@@ -223,7 +249,9 @@ function Home() {
 
       <section className="games-grid">
         {games.map((game) => {
-          const isLockedByLevel = !isAuthenticated || userLevel < game.requiredLevel;
+          const isLockedByLevel =
+            !isAuthenticated || userLevel < game.requiredLevel;
+
           const isComingSoon = game.status === "coming-soon";
           const canPlay = game.status === "available" && !isLockedByLevel;
 
@@ -237,7 +265,9 @@ function Home() {
               <div className="game-card-top">
                 <span className="game-icon">{game.emoji}</span>
 
-                <span className={`game-tag ${canPlay ? "tag-open" : "tag-locked"}`}>
+                <span
+                  className={`game-tag ${canPlay ? "tag-open" : "tag-locked"}`}
+                >
                   {canPlay ? "Liberado" : game.tag}
                 </span>
               </div>
@@ -311,10 +341,10 @@ function Home() {
 
             <span className="modal-icon">🔐</span>
 
-            <h2>Você ainda não está logado</h2>
+            <h2>Você precisa entrar na sua conta</h2>
 
             <p>
-              Para acessar sua conta, salvar pontos, subir de nível e
+              Para acessar Perfil, Minha Conta, salvar pontos, subir de nível e
               desbloquear jogos, você precisa entrar ou criar um cadastro.
             </p>
 
@@ -327,17 +357,20 @@ function Home() {
                 Criar conta
               </Link>
 
-              <button
-                className="btn btn-ghost"
-                type="button"
-                onClick={handleGuestLogin}
-              >
-                Entrar como usuário fake
-              </button>
+              {!isGuest && (
+                <button
+                  className="btn btn-ghost"
+                  type="button"
+                  onClick={handleGuestMode}
+                >
+                  Continuar como visitante
+                </button>
+              )}
             </div>
 
             <small>
-              Usuário fake rápido: player@retroarcade.com | senha: 123456
+              Como visitante, você pode explorar a Home, mas precisa entrar ou
+              criar conta para acessar Perfil e Minha Conta.
             </small>
           </div>
         </div>

@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
+import type { ReactNode } from "react";
 
 export type AuthUser = {
   id: string;
@@ -24,13 +25,16 @@ type RegisterData = {
 type AuthContextValue = {
   user: AuthUser | null;
   isAuthenticated: boolean;
+  isGuest: boolean;
   login: (email: string, password: string) => boolean;
   register: (data: RegisterData) => AuthUser;
   logout: () => void;
+  continueAsGuest: () => void;
 };
 
 const CURRENT_USER_KEY = "retroArcadeCurrentUser";
 const SAVED_ACCOUNT_KEY = "retroArcadeSavedAccount";
+const GUEST_MODE_KEY = "retroArcadeGuestMode";
 
 const defaultFakeAccount: SavedFakeAccount = {
   id: "fake-user-001",
@@ -66,6 +70,10 @@ function getStoredAccount(): SavedFakeAccount {
   return JSON.parse(storedAccount) as SavedFakeAccount;
 }
 
+function getStoredGuestMode() {
+  return localStorage.getItem(GUEST_MODE_KEY) === "true";
+}
+
 function saveCurrentUser(user: AuthUser) {
   localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
 }
@@ -74,13 +82,30 @@ function removeCurrentUser() {
   localStorage.removeItem(CURRENT_USER_KEY);
 }
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+function saveGuestMode() {
+  localStorage.setItem(GUEST_MODE_KEY, "true");
+}
+
+function removeGuestMode() {
+  localStorage.removeItem(GUEST_MODE_KEY);
+}
+
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [isGuest, setIsGuest] = useState(false);
 
   useEffect(() => {
-    // Ao abrir o site, tentamos recuperar o usuário logado anteriormente.
+    // Ao abrir o site, verificamos se existe usuário real salvo.
     const storedUser = getStoredCurrentUser();
-    setUser(storedUser);
+
+    if (storedUser) {
+      setUser(storedUser);
+      setIsGuest(false);
+      return;
+    }
+
+    // Se não tiver usuário real, verificamos se ele escolheu modo visitante.
+    setIsGuest(getStoredGuestMode());
   }, []);
 
   function login(email: string, password: string) {
@@ -106,8 +131,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       recentGames: savedAccount.recentGames,
     };
 
+    // Login real fake: agora o usuário deixa de ser visitante.
     setUser(loggedUser);
+    setIsGuest(false);
+
     saveCurrentUser(loggedUser);
+    removeGuestMode();
 
     return true;
   }
@@ -127,7 +156,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       recentGames: [],
     };
 
-    // Cadastro fake: salvamos apenas no navegador.
+    // Cadastro fake: salvamos apenas no navegador por enquanto.
     localStorage.setItem(SAVED_ACCOUNT_KEY, JSON.stringify(newAccount));
 
     const newUser: AuthUser = {
@@ -141,12 +170,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       recentGames: newAccount.recentGames,
     };
 
+    // Ao cadastrar, removemos o modo visitante.
+    setIsGuest(false);
+    removeGuestMode();
+
     return newUser;
   }
 
   function logout() {
+    // Logout remove usuário real e também remove modo visitante.
     setUser(null);
+    setIsGuest(false);
+
     removeCurrentUser();
+    removeGuestMode();
+  }
+
+  function continueAsGuest() {
+    // Visitante pode navegar pela Home, mas não acessa áreas protegidas.
+    setUser(null);
+    setIsGuest(true);
+
+    removeCurrentUser();
+    saveGuestMode();
   }
 
   return (
@@ -154,9 +200,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       value={{
         user,
         isAuthenticated: user !== null,
+        isGuest,
         login,
         register,
         logout,
+        continueAsGuest,
       }}
     >
       {children}
