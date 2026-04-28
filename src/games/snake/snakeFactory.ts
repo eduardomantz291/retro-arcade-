@@ -1,4 +1,4 @@
-import type { Fruits, GameRuntime } from "./snakeTypes";
+import type { Fruit, Fruits, GameRuntime } from "./snakeTypes";
 
 export function createFruits(): Fruits {
   return {
@@ -32,16 +32,6 @@ export function createFruits(): Fruits {
       glowSize: 30,
       points: 100,
     },
-    black: {
-      active: false,
-      x: 0,
-      y: 0,
-      radius: 7,
-      color: "#2f3542",
-      glow: "#000000",
-      glowSize: 10,
-      points: -20,
-    },
     hybrid: {
       active: false,
       x: 0,
@@ -64,6 +54,19 @@ export function createFruits(): Fruits {
       glowSize: 35,
       points: 250,
     },
+  };
+}
+
+export function createBlackFruit(x: number, y: number): Fruit {
+  return {
+    active: true,
+    x,
+    y,
+    radius: 7,
+    color: "#2f3542",
+    glow: "#000000",
+    glowSize: 10,
+    points: -20,
   };
 }
 
@@ -93,6 +96,8 @@ export function createInitialRuntime(): GameRuntime {
 
     greenMoveTimer: 0,
     extraFruits: [],
+
     fruits: createFruits(),
+    blackFruits: [],
   };
 }

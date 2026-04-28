@@ -37,7 +37,6 @@ export type Fruits = {
   normal: Fruit;
   golden: Fruit;
   purple: Fruit;
-  black: Fruit;
   hybrid: Fruit;
   wanderingGreen: Fruit;
 };
@@ -63,7 +62,12 @@ export type GameRuntime = {
 
   greenMoveTimer: number;
   extraFruits: Fruit[];
+
+  // Frutas especiais fixas do jogo
   fruits: Fruits;
+
+  // Agora temos várias frutas pretas no mapa
+  blackFruits: Fruit[];
 };
 
 export type SnakeScreenState = "start" | "countdown" | "playing" | "game-over";

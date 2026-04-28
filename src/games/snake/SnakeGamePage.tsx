@@ -128,60 +128,6 @@ function SnakeGamePage() {
             height={CANVAS_SIZE}
             className="snake-canvas"
           />
-
-          {screenState === "start" && (
-            <div className="snake-overlay glass-panel">
-              <h1>Snake Arcade</h1>
-
-              <p>
-                Domine os poderes, desvie das frutas pretas e sobreviva ao
-                frenesi verde.
-              </p>
-
-              <button
-                className="btn btn-primary"
-                type="button"
-                onClick={handleStartGame}
-              >
-                Iniciar jogo
-              </button>
-            </div>
-          )}
-
-          {screenState === "countdown" && (
-            <div className="snake-overlay glass-panel">
-              <strong className="snake-countdown">{countdownText}</strong>
-            </div>
-          )}
-
-          {screenState === "game-over" && (
-            <div className="snake-overlay glass-panel">
-              <h1 className="snake-game-over-title">Fim de jogo</h1>
-
-              <div className="snake-final-score">
-                <span>PONTOS</span>
-                <strong>{finalScore}</strong>
-              </div>
-
-              {!isAuthenticated && (
-                <p className="snake-save-warning">
-                  Como visitante, essa pontuação não foi salva.
-                </p>
-              )}
-
-              <button
-                className="btn btn-primary"
-                type="button"
-                onClick={handleStartGame}
-              >
-                Tentar novamente
-              </button>
-
-              <Link className="btn btn-secondary" to="/">
-                Voltar
-              </Link>
-            </div>
-          )}
         </div>
 
         <div className="snake-mobile-controls">
@@ -206,6 +152,70 @@ function SnakeGamePage() {
           </div>
         </div>
       </section>
+
+      {screenState === "start" && (
+        <div className="snake-screen-backdrop">
+          <div className="snake-screen-modal glass-panel">
+            <span className="snake-screen-icon">🐍</span>
+
+            <h1>Snake Arcade</h1>
+
+            <p>
+              Domine os poderes, desvie das frutas pretas e sobreviva ao frenesi
+              verde.
+            </p>
+
+            <button
+              className="btn btn-primary"
+              type="button"
+              onClick={handleStartGame}
+            >
+              Iniciar jogo
+            </button>
+          </div>
+        </div>
+      )}
+
+      {screenState === "countdown" && (
+        <div className="snake-screen-backdrop snake-countdown-backdrop">
+          <div className="snake-countdown-modal glass-panel">
+            <strong>{countdownText}</strong>
+          </div>
+        </div>
+      )}
+
+      {screenState === "game-over" && (
+        <div className="snake-screen-backdrop">
+          <div className="snake-screen-modal snake-game-over-modal glass-panel">
+            <h1 className="snake-game-over-title">Fim de jogo</h1>
+
+            <div className="snake-final-score">
+              <span>PONTOS</span>
+              <strong>{finalScore}</strong>
+            </div>
+
+            {!isAuthenticated && (
+              <p className="snake-save-warning">
+                Como visitante, essa pontuação não foi salva.
+              </p>
+            )}
+
+            <div className="snake-screen-actions">
+              <button
+                className="btn btn-primary"
+                type="button"
+                onClick={handleStartGame}
+              >
+                Tentar novamente
+              </button>
+
+              <Link className="btn btn-secondary" to="/">
+                Voltar
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showGuestWarning && (
         <div className="snake-modal-backdrop">

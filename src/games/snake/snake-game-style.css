@@ -375,3 +375,145 @@
     padding: 26px 22px;
   }
 }
+
+/* Novos overlays de estado do jogo.
+   Eles ficam fora do canvas para poder ocupar mais espaço na tela. */
+
+.snake-screen-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(10, 14, 18, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.snake-screen-modal {
+  width: min(560px, 100%);
+  max-height: calc(100dvh - 48px);
+  overflow-y: auto;
+  padding: clamp(28px, 5vw, 44px);
+  border-radius: 34px;
+  text-align: center;
+  animation: snakeModalEnter 0.35s ease forwards;
+}
+
+.snake-screen-icon {
+  display: grid;
+  place-items: center;
+  width: 92px;
+  height: 92px;
+  margin: 0 auto 20px;
+  border-radius: 30px;
+  font-size: 3.4rem;
+  background: radial-gradient(circle, rgba(56, 239, 125, 0.28), rgba(255, 255, 255, 0.07));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 0 40px rgba(56, 239, 125, 0.2);
+}
+
+.snake-screen-modal h1 {
+  margin-bottom: 14px;
+  font-size: clamp(2.7rem, 8vw, 5.4rem);
+  line-height: 0.95;
+  font-weight: 900;
+  background: linear-gradient(135deg, #ffffff, #4facfe, #38ef7d);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.snake-screen-modal p {
+  max-width: 420px;
+  margin: 0 auto 24px;
+  color: #bdc3c7;
+  line-height: 1.65;
+}
+
+.snake-screen-actions {
+  display: grid;
+  gap: 12px;
+  width: min(320px, 100%);
+  margin: 22px auto 0;
+}
+
+.snake-countdown-backdrop {
+  background: rgba(10, 14, 18, 0.44);
+}
+
+.snake-countdown-modal {
+  display: grid;
+  place-items: center;
+  width: min(260px, 80vw);
+  aspect-ratio: 1 / 1;
+  border-radius: 40px;
+  animation: snakePulse 0.5s ease;
+}
+
+.snake-countdown-modal strong {
+  font-size: clamp(4rem, 20vw, 8rem);
+  line-height: 1;
+  font-weight: 900;
+  text-shadow: 0 0 25px rgba(255, 255, 255, 0.55);
+}
+
+.snake-game-over-modal {
+  width: min(620px, 100%);
+}
+
+.snake-game-over-title {
+  color: #ff4757;
+  background: none !important;
+  -webkit-text-fill-color: #ff4757 !important;
+}
+
+.snake-final-score {
+  width: min(240px, 100%);
+  margin: 0 auto;
+}
+
+@media (max-width: 560px) {
+  .snake-screen-backdrop {
+    padding: 16px;
+  }
+
+  .snake-screen-modal {
+    border-radius: 26px;
+    padding: 28px 22px;
+  }
+
+  .snake-screen-modal h1 {
+    font-size: clamp(2.4rem, 14vw, 4rem);
+  }
+
+  .snake-screen-actions {
+    width: 100%;
+  }
+
+  .snake-screen-actions .btn,
+  .snake-screen-modal > .btn {
+    width: 100%;
+  }
+}
+
+@media (max-height: 620px) {
+  .snake-screen-modal {
+    padding: 22px;
+  }
+
+  .snake-screen-icon {
+    width: 70px;
+    height: 70px;
+    margin-bottom: 14px;
+    font-size: 2.5rem;
+  }
+
+  .snake-screen-modal h1 {
+    font-size: clamp(2.2rem, 10vw, 3.8rem);
+  }
+
+  .snake-screen-modal p {
+    margin-bottom: 16px;
+  }
+}

@@ -8,12 +8,16 @@ import {
   TICK_SPEED,
   TILE_SIZE,
 } from "./snakeConfig";
-import { createInitialRuntime } from "./snakeFactory";
-import type { Fruit, GameRuntime, SnakeScreenState } from "./snakeTypes";
+import { createBlackFruit, createInitialRuntime } from "./snakeFactory";
+import type { Fruit, GameRuntime, Point, SnakeScreenState } from "./snakeTypes";
 
 type UseSnakeGameParams = {
   isAuthenticated: boolean;
 };
+
+const BLACK_FRUIT_COUNT = 6;
+const MIN_BLACK_DISTANCE_FROM_PLAYER = 120;
+const MIN_DISTANCE_BETWEEN_BLACK_FRUITS = 70;
 
 export function useSnakeGame({ isAuthenticated }: UseSnakeGameParams) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -116,6 +120,10 @@ export function useSnakeGame({ isAuthenticated }: UseSnakeGameParams) {
     return Math.floor(Math.random() * (CANVAS_SIZE / TILE_SIZE)) * TILE_SIZE;
   }
 
+  function getDistance(first: Point, second: Point) {
+    return Math.hypot(first.x - second.x, first.y - second.y);
+  }
+
   function playEffect(soundName: string) {
     const sound = soundEffectsRef.current[soundName];
 
@@ -159,50 +167,143 @@ export function useSnakeGame({ isAuthenticated }: UseSnakeGameParams) {
     }
   }
 
-  function spawnNormalFruit(runtime: GameRuntime) {
+  function isPointOnSnake(runtime: GameRuntime, point: Point) {
+    return runtime.snake.some((piece) => piece.x === point.x && piece.y === point.y);
+  }
+
+  function isPointOnFruit(point: Point, fruit: Fruit) {
+    return fruit.active && fruit.x === point.x && fruit.y === point.y;
+  }
+
+  function isPointBusy(runtime: GameRuntime, point: Point) {
     const { fruits } = runtime;
 
-    fruits.normal.active = true;
-    fruits.normal.x = gridRandom();
-    fruits.normal.y = gridRandom();
+    if (isPointOnSnake(runtime, point)) {
+      return true;
+    }
 
-    const chance = Math.random();
+    if (Object.values(fruits).some((fruit) => isPointOnFruit(point, fruit))) {
+      return true;
+    }
 
-    fruits.golden.active = false;
-    fruits.purple.active = false;
-    fruits.hybrid.active = false;
-    fruits.wanderingGreen.active = false;
+    if (runtime.extraFruits.some((fruit) => isPointOnFruit(point, fruit))) {
+      return true;
+    }
 
-    if (runtime.score >= 150 && chance >= 0 && chance < 0.1) {
-      fruits.golden.active = true;
-      fruits.golden.x = gridRandom();
-      fruits.golden.y = gridRandom();
-    } else if (chance >= 0.1 && chance < 0.15) {
-      fruits.purple.active = true;
-      fruits.purple.x = gridRandom();
-      fruits.purple.y = gridRandom();
-    } else if (runtime.score >= 300 && chance >= 0.15 && chance < 0.2) {
-      fruits.hybrid.active = true;
-      fruits.hybrid.x = gridRandom();
-      fruits.hybrid.y = gridRandom();
-    } else if (chance >= 0.2 && chance < 0.25) {
-      fruits.wanderingGreen.active = true;
-      fruits.wanderingGreen.x = gridRandom();
-      fruits.wanderingGreen.y = gridRandom();
+    if (runtime.blackFruits.some((fruit) => isPointOnFruit(point, fruit))) {
+      return true;
+    }
+
+    return false;
+  }
+
+  function getSafeGridPoint(runtime: GameRuntime) {
+    for (let attempt = 0; attempt < 120; attempt++) {
+      const point = {
+        x: gridRandom(),
+        y: gridRandom(),
+      };
+
+      if (!isPointBusy(runtime, point)) {
+        return point;
+      }
+    }
+
+    return {
+      x: gridRandom(),
+      y: gridRandom(),
+    };
+  }
+
+  function placeFruit(runtime: GameRuntime, fruit: Fruit) {
+    const point = getSafeGridPoint(runtime);
+
+    fruit.active = true;
+    fruit.x = point.x;
+    fruit.y = point.y;
+  }
+
+  function spawnNormalFruit(runtime: GameRuntime) {
+    placeFruit(runtime, runtime.fruits.normal);
+  }
+
+  function trySpawnSpecialFruits(runtime: GameRuntime) {
+    const { fruits } = runtime;
+
+    // As frutas especiais são independentes.
+    // Se uma já estiver no mapa, ela não será removida nem reposicionada.
+    if (!fruits.golden.active && runtime.score >= 150 && Math.random() < 0.1) {
+      placeFruit(runtime, fruits.golden);
+    }
+
+    if (!fruits.purple.active && Math.random() < 0.06) {
+      placeFruit(runtime, fruits.purple);
+    }
+
+    if (!fruits.hybrid.active && runtime.score >= 300 && Math.random() < 0.06) {
+      placeFruit(runtime, fruits.hybrid);
+    }
+
+    if (!fruits.wanderingGreen.active && Math.random() < 0.05) {
+      placeFruit(runtime, fruits.wanderingGreen);
       runtime.greenMoveTimer = 0;
     }
+  }
 
-    if (Math.random() < 0.15) {
-      fruits.black.active = true;
-      fruits.black.x = gridRandom();
-      fruits.black.y = gridRandom();
+  function getSafeBlackFruitPoint(runtime: GameRuntime, spawnedBlackFruits: Fruit[]) {
+    const playerHead = runtime.snake[0];
+
+    for (let attempt = 0; attempt < 220; attempt++) {
+      const point = {
+        x: gridRandom(),
+        y: gridRandom(),
+      };
+
+      if (isPointBusy(runtime, point)) {
+        continue;
+      }
+
+      const isTooCloseToPlayer =
+        getDistance(point, playerHead) < MIN_BLACK_DISTANCE_FROM_PLAYER;
+
+      if (isTooCloseToPlayer) {
+        continue;
+      }
+
+      const isTooCloseToOtherBlackFruit = spawnedBlackFruits.some((fruit) => {
+        return getDistance(point, fruit) < MIN_DISTANCE_BETWEEN_BLACK_FRUITS;
+      });
+
+      if (isTooCloseToOtherBlackFruit) {
+        continue;
+      }
+
+      return point;
     }
+
+    return {
+      x: gridRandom(),
+      y: gridRandom(),
+    };
+  }
+
+  function respawnBlackFruits(runtime: GameRuntime) {
+    const nextBlackFruits: Fruit[] = [];
+
+    for (let index = 0; index < BLACK_FRUIT_COUNT; index++) {
+      const point = getSafeBlackFruitPoint(runtime, nextBlackFruits);
+      nextBlackFruits.push(createBlackFruit(point.x, point.y));
+    }
+
+    runtime.blackFruits = nextBlackFruits;
   }
 
   function resetGame() {
     const runtime = createInitialRuntime();
 
     spawnNormalFruit(runtime);
+    trySpawnSpecialFruits(runtime);
+    respawnBlackFruits(runtime);
 
     runtimeRef.current = runtime;
 
@@ -303,10 +404,7 @@ export function useSnakeGame({ isAuthenticated }: UseSnakeGameParams) {
     setGameScreen("game-over");
 
     // Visitante joga, mas não salva recorde.
-    if (
-      isAuthenticatedRef.current &&
-      runtime.score > highScoreRef.current
-    ) {
+    if (isAuthenticatedRef.current && runtime.score > highScoreRef.current) {
       localStorage.setItem(HIGH_SCORE_KEY, String(runtime.score));
       setHighScore(runtime.score);
     }
@@ -362,6 +460,14 @@ export function useSnakeGame({ isAuthenticated }: UseSnakeGameParams) {
     }
   }
 
+  function handleFruitWasEaten(runtime: GameRuntime) {
+    // Sempre que qualquer fruta for comida, as frutas pretas somem e renascem.
+    respawnBlackFruits(runtime);
+
+    // Tentamos criar novas frutas especiais sem apagar as que já existem.
+    trySpawnSpecialFruits(runtime);
+  }
+
   function moveSnake() {
     const runtime = runtimeRef.current;
     const { fruits } = runtime;
@@ -381,13 +487,17 @@ export function useSnakeGame({ isAuthenticated }: UseSnakeGameParams) {
 
     let ateSomething = false;
 
-    if (checkFruitCollision(nextX, nextY, fruits.black)) {
-      updateScore(fruits.black.points);
-      createExplosion(fruits.black.x, fruits.black.y, fruits.black.glow);
+    const blackFruitIndex = runtime.blackFruits.findIndex((fruit) =>
+      checkFruitCollision(nextX, nextY, fruit)
+    );
+
+    if (blackFruitIndex >= 0) {
+      const blackFruit = runtime.blackFruits[blackFruitIndex];
+
+      updateScore(blackFruit.points);
+      createExplosion(blackFruit.x, blackFruit.y, blackFruit.glow);
       applyScreenShake(8);
       playEffect("damage");
-
-      fruits.black.active = false;
 
       runtime.snake.pop();
       runtime.snake.pop();
@@ -537,6 +647,10 @@ export function useSnakeGame({ isAuthenticated }: UseSnakeGameParams) {
       ateSomething = true;
     }
 
+    if (ateSomething) {
+      handleFruitWasEaten(runtime);
+    }
+
     if (!ateSomething) {
       runtime.snake.pop();
     }
@@ -591,6 +705,10 @@ export function useSnakeGame({ isAuthenticated }: UseSnakeGameParams) {
     }
 
     moveSnake();
+
+    if (screenStateRef.current !== "playing") {
+      return;
+    }
 
     gameLoopTimerRef.current = window.setTimeout(gameLoop, TICK_SPEED);
   }
@@ -746,6 +864,10 @@ export function useSnakeGame({ isAuthenticated }: UseSnakeGameParams) {
       }
     });
 
+    runtime.blackFruits.forEach((blackFruit) => {
+      drawCircle(ctx, blackFruit);
+    });
+
     runtime.extraFruits.forEach((extraFruit) => {
       drawCircle(ctx, extraFruit);
     });
@@ -860,8 +982,6 @@ export function useSnakeGame({ isAuthenticated }: UseSnakeGameParams) {
 
       setGameScreen("playing");
 
-      // Aqui está a correção principal: o loop lê screenStateRef,
-      // então ele começa corretamente mesmo após mudança de estado.
       gameLoop();
       drawGame();
     }, 1000);
