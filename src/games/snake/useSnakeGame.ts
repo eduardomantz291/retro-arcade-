@@ -33,7 +33,8 @@ export function useSnakeGame({ isAuthenticated }: UseSnakeGameParams) {
   const touchStartXRef = useRef(0);
   const touchStartYRef = useRef(0);
 
-  const musicRef = useRef<HTMLAudioElement | null>(null);
+  const titleMusicRef = useRef<HTMLAudioElement | null>(null);
+  const gameMusicRef = useRef<HTMLAudioElement | null>(null);
   const soundEffectsRef = useRef<Record<string, HTMLAudioElement>>({});
 
   const [screenState, setScreenState] = useState<SnakeScreenState>("start");
@@ -69,9 +70,18 @@ export function useSnakeGame({ isAuthenticated }: UseSnakeGameParams) {
       death: new Audio("/audio/morte.wav"),
     };
 
-    musicRef.current = new Audio("/audio/musica-tema.mp3");
-    musicRef.current.volume = 0.3;
-    musicRef.current.loop = true;
+    // Música da tela inicial do jogo.
+    titleMusicRef.current = new Audio("/audio/music-title.mp3");
+    titleMusicRef.current.volume = 0.35;
+    titleMusicRef.current.loop = true;
+
+    // Música principal da partida.
+    gameMusicRef.current = new Audio("/audio/musica-tema.mp3");
+    gameMusicRef.current.volume = 0.3;
+    gameMusicRef.current.loop = true;
+
+    // Alguns navegadores podem bloquear até o primeiro clique do usuário.
+    startTitleMusic();
   }, []);
 
   useEffect(() => {
@@ -108,7 +118,8 @@ export function useSnakeGame({ isAuthenticated }: UseSnakeGameParams) {
       document.removeEventListener("touchend", handleTouchEnd);
 
       stopGameTimers();
-      stopMusic();
+      stopTitleMusic();
+      stopGameMusic();
     };
   }, []);
 
@@ -139,17 +150,30 @@ export function useSnakeGame({ isAuthenticated }: UseSnakeGameParams) {
     soundClone.play().catch(() => undefined);
   }
 
-  function startMusic() {
-    musicRef.current?.play().catch(() => undefined);
+  function startTitleMusic() {
+    titleMusicRef.current?.play().catch(() => undefined);
   }
 
-  function stopMusic() {
-    if (!musicRef.current) {
+  function stopTitleMusic() {
+    if (!titleMusicRef.current) {
       return;
     }
 
-    musicRef.current.pause();
-    musicRef.current.currentTime = 0;
+    titleMusicRef.current.pause();
+    titleMusicRef.current.currentTime = 0;
+  }
+
+  function startGameMusic() {
+    gameMusicRef.current?.play().catch(() => undefined);
+  }
+
+  function stopGameMusic() {
+    if (!gameMusicRef.current) {
+      return;
+    }
+
+    gameMusicRef.current.pause();
+    gameMusicRef.current.currentTime = 0;
   }
 
   function stopGameTimers() {
@@ -409,7 +433,8 @@ export function useSnakeGame({ isAuthenticated }: UseSnakeGameParams) {
   function showGameOver() {
     const runtime = runtimeRef.current;
 
-    stopMusic();
+    stopGameMusic();
+    startTitleMusic();
     playEffect("death");
     applyScreenShake(15);
 
@@ -991,7 +1016,8 @@ export function useSnakeGame({ isAuthenticated }: UseSnakeGameParams) {
     setGameScreen("countdown");
     setCountdownText("3");
 
-    startMusic();
+    stopTitleMusic();
+    startGameMusic();
 
     let count = 3;
 

@@ -155,23 +155,78 @@ function SnakeGamePage() {
 
       {screenState === "start" && (
         <div className="snake-screen-backdrop">
-          <div className="snake-screen-modal glass-panel">
-            <span className="snake-screen-icon">🐍</span>
+          <div className="snake-start-modal glass-panel">
+            <div className="snake-start-left">
+              <span className="snake-screen-icon">🐍</span>
 
-            <h1>Snake Arcade</h1>
+              <span className="snake-start-kicker">Arcade Challenge</span>
 
-            <p>
-              Domine os poderes, desvie das frutas pretas e sobreviva ao frenesi
-              verde.
-            </p>
+              <h1>Snake Arcade</h1>
 
-            <button
-              className="btn btn-primary"
-              type="button"
-              onClick={handleStartGame}
-            >
-              Iniciar jogo
-            </button>
+              <p>
+                Controle a cobrinha, colete frutas, ative poderes especiais e
+                tente sobreviver o máximo possível sem perder o ritmo.
+              </p>
+
+              <div className="snake-start-summary">
+                <strong>Objetivo</strong>
+                <span>
+                  Faça pontos com frutas vermelhas, aproveite os poderes raros e
+                  cuidado com as frutas pretas.
+                </span>
+              </div>
+            </div>
+
+            <div className="snake-start-right">
+              <div className="snake-tutorial-card">
+                <h2>Como jogar</h2>
+
+                <ul>
+                  <li>
+                    <strong>Movimento:</strong> use as setas, WASD ou os botões
+                    no celular.
+                  </li>
+
+                  <li>
+                    <strong>Fruta vermelha:</strong> dá pontos e aumenta sua
+                    cobrinha.
+                  </li>
+
+                  <li>
+                    <strong>Fruta amarela:</strong> ativa proteção completa por
+                    um tempo.
+                  </li>
+
+                  <li>
+                    <strong>Fruta roxa:</strong> ativa o ímã e atrai frutas
+                    próximas.
+                  </li>
+
+                  <li>
+                    <strong>Fruta verde:</strong> ativa o frenesi, remove frutas
+                    pretas temporariamente e espalha frutas extras.
+                  </li>
+
+                  <li>
+                    <strong>Fruta preta:</strong> causa dano se você estiver sem
+                    proteção.
+                  </li>
+                </ul>
+              </div>
+
+              <button
+                className="btn btn-primary snake-start-button"
+                type="button"
+                onClick={handleStartGame}
+              >
+                Iniciar jogo
+              </button>
+
+              <small>
+                Dica: pegue a fruta roxa antes de tentar alcançar a verde. O ímã
+                pode mudar totalmente a partida.
+              </small>
+            </div>
           </div>
         </div>
       )}
