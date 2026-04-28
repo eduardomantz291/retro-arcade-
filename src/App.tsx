@@ -4,6 +4,7 @@ import Home from "./Home";
 import LoginPage from "./pages/Auth/LoginPage";
 import RegisterPage from "./pages/Auth/RegisterPage";
 import ProfilePage from "./pages/Profile/ProfilePage";
+import SnakeGamePage from "./games/snake/SnakeGamePage";
 
 function App() {
   return (
@@ -22,6 +23,8 @@ function App() {
           </RequireAuth>
         }
       />
+
+      <Route path="/games/snake" element={<SnakeGamePage />} />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

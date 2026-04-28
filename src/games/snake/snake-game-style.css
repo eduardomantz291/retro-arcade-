@@ -1,0 +1,377 @@
+.snake-page {
+  position: relative;
+  min-height: 100vh;
+  padding: 24px;
+  display: grid;
+  place-items: center;
+  overflow-x: hidden;
+  background: radial-gradient(circle at top, #2c3e50 0%, #1a252f 48%, #111820 100%);
+  color: #ffffff;
+}
+
+.snake-shell {
+  width: min(460px, 100%);
+}
+
+.snake-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding: 14px;
+  border-radius: 22px;
+}
+
+.snake-back-link {
+  color: #bdc3c7;
+  text-decoration: none;
+  font-size: 0.86rem;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.snake-back-link:hover {
+  color: #ffffff;
+  transform: translateX(-3px);
+}
+
+.snake-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.snake-title > span {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #11998e, #38ef7d);
+  box-shadow: 0 8px 24px rgba(56, 239, 125, 0.3);
+  font-size: 1.5rem;
+}
+
+.snake-title strong {
+  display: block;
+  font-weight: 900;
+}
+
+.snake-title p {
+  color: #bdc3c7;
+  font-size: 0.76rem;
+}
+
+.snake-scoreboard {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.snake-score-box {
+  flex: 1;
+  padding: 10px 14px;
+  border-radius: 14px;
+  color: #bdc3c7;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.snake-score-box span {
+  color: #ffffff;
+  font-size: 1.35rem;
+  font-weight: 900;
+  margin-left: 6px;
+}
+
+.snake-power-area {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 48px;
+  margin-bottom: 14px;
+}
+
+.snake-power-ui {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 11px;
+  font-size: 0.8rem;
+  font-weight: 900;
+  letter-spacing: 1px;
+}
+
+.snake-bar-bg {
+  width: 150px;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.5);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.snake-bar-fill {
+  height: 100%;
+  transition: width 0.1s linear;
+}
+
+.snake-bar-golden {
+  background: #f1c40f;
+  box-shadow: 0 0 10px #f1c40f;
+}
+
+.snake-bar-purple {
+  background: #9b59b6;
+  box-shadow: 0 0 10px #9b59b6;
+}
+
+.snake-canvas-wrapper {
+  position: relative;
+  width: min(400px, 100%);
+  aspect-ratio: 1 / 1;
+  margin: 0 auto;
+  overflow: hidden;
+  border-radius: 18px;
+  box-shadow: 0 20px 55px rgba(0, 0, 0, 0.48);
+}
+
+.snake-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: #1e272e;
+}
+
+.snake-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 28px;
+  text-align: center;
+  background: rgba(30, 39, 46, 0.76);
+  animation: snakeOverlayEnter 0.35s ease forwards;
+}
+
+.snake-overlay h1 {
+  font-size: clamp(2.2rem, 10vw, 4rem);
+  line-height: 0.95;
+  font-weight: 900;
+  background: linear-gradient(135deg, #ffffff, #4facfe, #38ef7d);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.snake-overlay p {
+  max-width: 300px;
+  color: #bdc3c7;
+  line-height: 1.6;
+}
+
+.snake-countdown {
+  font-size: 6rem;
+  font-weight: 900;
+  text-shadow: 0 0 25px rgba(255, 255, 255, 0.5);
+  animation: snakePulse 0.5s ease;
+}
+
+.snake-game-over-title {
+  color: #ff4757;
+  -webkit-text-fill-color: #ff4757 !important;
+  background: none !important;
+}
+
+.snake-final-score {
+  min-width: 180px;
+  padding: 16px 30px;
+  border-radius: 18px;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.snake-final-score span {
+  display: block;
+  color: #bdc3c7;
+  font-size: 0.8rem;
+  letter-spacing: 2px;
+}
+
+.snake-final-score strong {
+  display: block;
+  color: #ffffff;
+  font-size: 3rem;
+  line-height: 1;
+}
+
+.snake-save-warning {
+  color: #f1c40f !important;
+  font-size: 0.9rem;
+}
+
+.snake-mobile-controls {
+  display: none;
+  position: fixed;
+  left: 0;
+  bottom: 5vh;
+  z-index: 15;
+  width: 100vw;
+  justify-content: space-between;
+  padding: 0 5vw;
+  pointer-events: none;
+}
+
+.snake-pad-left,
+.snake-pad-right {
+  display: flex;
+  gap: 15px;
+  pointer-events: auto;
+}
+
+.snake-pad-right {
+  flex-direction: column;
+}
+
+.snake-mobile-controls button {
+  width: 65px;
+  height: 65px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 24px;
+  color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.snake-mobile-controls button:active {
+  transform: scale(0.9);
+  color: #ffffff;
+  border-color: #38ef7d;
+  background: rgba(56, 239, 125, 0.2);
+  box-shadow: 0 0 20px rgba(56, 239, 125, 0.4);
+}
+
+.snake-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(10, 14, 18, 0.72);
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+}
+
+.snake-warning-modal {
+  width: min(440px, 100%);
+  padding: 32px;
+  border-radius: 30px;
+  text-align: center;
+  animation: snakeModalEnter 0.35s ease forwards;
+}
+
+.snake-modal-icon {
+  display: grid;
+  place-items: center;
+  width: 78px;
+  height: 78px;
+  margin: 0 auto 18px;
+  border-radius: 26px;
+  font-size: 2.8rem;
+  background: radial-gradient(circle, rgba(241, 196, 15, 0.22), rgba(255, 255, 255, 0.06));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.snake-warning-modal h2 {
+  margin-bottom: 12px;
+  font-size: 2rem;
+}
+
+.snake-warning-modal p {
+  color: #bdc3c7;
+  line-height: 1.65;
+}
+
+.snake-modal-actions {
+  display: grid;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+@keyframes snakeOverlayEnter {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes snakeModalEnter {
+  from {
+    opacity: 0;
+    transform: translateY(22px) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes snakePulse {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (pointer: coarse) {
+  .snake-mobile-controls {
+    display: flex;
+  }
+}
+
+@media (max-width: 620px) {
+  .snake-page {
+    padding: 12px;
+    align-items: start;
+  }
+
+  .snake-topbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .snake-scoreboard {
+    flex-direction: column;
+  }
+
+  .snake-canvas-wrapper {
+    width: min(100%, 400px);
+  }
+
+  .snake-warning-modal {
+    padding: 26px 22px;
+  }
+}

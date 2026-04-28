@@ -29,7 +29,8 @@ const games: Game[] = [
   {
     id: 2,
     title: "Number Merge",
-    description: "Combine números, faça combos e tente alcançar a maior pontuação.",
+    description:
+      "Combine números, faça combos e tente alcançar a maior pontuação.",
     emoji: "🧩",
     status: "locked",
     requiredLevel: 3,
@@ -225,13 +226,19 @@ function Home() {
             </div>
           </div>
 
-          <button
-            className="btn btn-primary full-width"
-            type="button"
-            onClick={handleProtectedAction}
-          >
-            Jogar agora
-          </button>
+          {isAuthenticated || isGuest ? (
+            <Link className="btn btn-primary full-width" to="/games/snake">
+              Jogar agora
+            </Link>
+          ) : (
+            <button
+              className="btn btn-primary full-width"
+              type="button"
+              onClick={handleProtectedAction}
+            >
+              Jogar agora
+            </button>
+          )}
         </aside>
       </section>
 
@@ -249,9 +256,12 @@ function Home() {
 
       <section className="games-grid">
         {games.map((game) => {
-          const isLockedByLevel =
-            !isAuthenticated || userLevel < game.requiredLevel;
+          // Usuário logado usa o nível real.
+          // Visitante recebe nível 1 apenas para testar o Snake.
+          // Usuário sem login e sem modo visitante fica com nível 0.
+          const effectiveLevel = isAuthenticated ? userLevel : isGuest ? 1 : 0;
 
+          const isLockedByLevel = effectiveLevel < game.requiredLevel;
           const isComingSoon = game.status === "coming-soon";
           const canPlay = game.status === "available" && !isLockedByLevel;
 
@@ -279,14 +289,20 @@ function Home() {
               <div className="game-card-footer">
                 <span>Nível mínimo: {game.requiredLevel}</span>
 
-                <button
-                  className="btn btn-small"
-                  type="button"
-                  disabled={isComingSoon}
-                  onClick={canPlay ? undefined : handleProtectedAction}
-                >
-                  {canPlay ? "Jogar" : isComingSoon ? "Em breve" : "Bloqueado"}
-                </button>
+                {canPlay && game.id === 1 ? (
+                  <Link className="btn btn-small" to="/games/snake">
+                    Jogar
+                  </Link>
+                ) : (
+                  <button
+                    className="btn btn-small"
+                    type="button"
+                    disabled={isComingSoon}
+                    onClick={handleProtectedAction}
+                  >
+                    {isComingSoon ? "Em breve" : "Bloqueado"}
+                  </button>
+                )}
               </div>
             </article>
           );
@@ -369,8 +385,8 @@ function Home() {
             </div>
 
             <small>
-              Como visitante, você pode explorar a Home, mas precisa entrar ou
-              criar conta para acessar Perfil e Minha Conta.
+              Como visitante, você pode explorar a Home e jogar, mas precisa
+              entrar ou criar conta para salvar progresso e acessar Perfil.
             </small>
           </div>
         </div>
