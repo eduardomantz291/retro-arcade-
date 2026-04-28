@@ -15,7 +15,7 @@ type UseSnakeGameParams = {
   isAuthenticated: boolean;
 };
 
-const BLACK_FRUIT_COUNT = 6;
+const BLACK_FRUIT_COUNT = 5;
 const MIN_BLACK_DISTANCE_FROM_PLAYER = 120;
 const MIN_DISTANCE_BETWEEN_BLACK_FRUITS = 70;
 
@@ -97,7 +97,9 @@ export function useSnakeGame({ isAuthenticated }: UseSnakeGameParams) {
     }
 
     document.addEventListener("keydown", handleKeyDown);
-    document.addEventListener("touchstart", handleTouchStart, { passive: true });
+    document.addEventListener("touchstart", handleTouchStart, {
+      passive: true,
+    });
     document.addEventListener("touchend", handleTouchEnd);
 
     return () => {
@@ -168,7 +170,9 @@ export function useSnakeGame({ isAuthenticated }: UseSnakeGameParams) {
   }
 
   function isPointOnSnake(runtime: GameRuntime, point: Point) {
-    return runtime.snake.some((piece) => piece.x === point.x && piece.y === point.y);
+    return runtime.snake.some(
+      (piece) => piece.x === point.x && piece.y === point.y
+    );
   }
 
   function isPointOnFruit(point: Point, fruit: Fruit) {
@@ -250,7 +254,10 @@ export function useSnakeGame({ isAuthenticated }: UseSnakeGameParams) {
     }
   }
 
-  function getSafeBlackFruitPoint(runtime: GameRuntime, spawnedBlackFruits: Fruit[]) {
+  function getSafeBlackFruitPoint(
+    runtime: GameRuntime,
+    spawnedBlackFruits: Fruit[]
+  ) {
     const playerHead = runtime.snake[0];
 
     for (let attempt = 0; attempt < 220; attempt++) {
@@ -288,6 +295,12 @@ export function useSnakeGame({ isAuthenticated }: UseSnakeGameParams) {
   }
 
   function respawnBlackFruits(runtime: GameRuntime) {
+    // Durante o frenesi, as frutas pretas não podem aparecer.
+    if (runtime.frenzyActive) {
+      runtime.blackFruits = [];
+      return;
+    }
+
     const nextBlackFruits: Fruit[] = [];
 
     for (let index = 0; index < BLACK_FRUIT_COUNT; index++) {
@@ -461,11 +474,18 @@ export function useSnakeGame({ isAuthenticated }: UseSnakeGameParams) {
   }
 
   function handleFruitWasEaten(runtime: GameRuntime) {
-    // Sempre que qualquer fruta for comida, as frutas pretas somem e renascem.
-    respawnBlackFruits(runtime);
-
     // Tentamos criar novas frutas especiais sem apagar as que já existem.
     trySpawnSpecialFruits(runtime);
+
+    // Durante o frenesi verde, as frutas pretas não aparecem.
+    if (runtime.frenzyActive) {
+      runtime.blackFruits = [];
+      return;
+    }
+
+    // Fora do frenesi, sempre que qualquer fruta for comida,
+    // as frutas pretas somem e renascem em posições seguras.
+    respawnBlackFruits(runtime);
   }
 
   function moveSnake() {
@@ -494,20 +514,27 @@ export function useSnakeGame({ isAuthenticated }: UseSnakeGameParams) {
     if (blackFruitIndex >= 0) {
       const blackFruit = runtime.blackFruits[blackFruitIndex];
 
-      updateScore(blackFruit.points);
-      createExplosion(blackFruit.x, blackFruit.y, blackFruit.glow);
-      applyScreenShake(8);
-      playEffect("damage");
+      if (runtime.invincible) {
+        // A fruta amarela dá proteção completa.
+        // Encostar em fruta preta durante a proteção não causa dano.
+        createExplosion(blackFruit.x, blackFruit.y, "#f1c40f");
+        applyScreenShake(2);
+      } else {
+        updateScore(blackFruit.points);
+        createExplosion(blackFruit.x, blackFruit.y, blackFruit.glow);
+        applyScreenShake(8);
+        playEffect("damage");
 
-      runtime.snake.pop();
-      runtime.snake.pop();
-      runtime.snake.pop();
+        runtime.snake.pop();
+        runtime.snake.pop();
+        runtime.snake.pop();
 
-      ateSomething = true;
+        ateSomething = true;
 
-      if (runtime.snake.length < 3) {
-        showGameOver();
-        return;
+        if (runtime.snake.length < 3) {
+          showGameOver();
+          return;
+        }
       }
     }
 
@@ -630,6 +657,9 @@ export function useSnakeGame({ isAuthenticated }: UseSnakeGameParams) {
       runtime.frenzyActive = true;
       runtime.frenzyTime = Math.max(MAX_GOLDEN_TIME, MAX_MAGNET_TIME);
 
+      // Durante o frenesi, as frutas pretas somem completamente.
+      runtime.blackFruits = [];
+
       for (let index = 0; index < 7; index++) {
         runtime.extraFruits.push({
           active: true,
@@ -676,6 +706,9 @@ export function useSnakeGame({ isAuthenticated }: UseSnakeGameParams) {
 
       if (runtime.frenzyTime <= 0) {
         runtime.frenzyActive = false;
+
+        // Quando o frenesi acaba, as frutas pretas voltam ao mapa.
+        respawnBlackFruits(runtime);
       }
     }
 
