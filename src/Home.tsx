@@ -1,5 +1,6 @@
 import { useState } from "react";
-import "./App.css";
+import { Link } from "react-router";
+import "./home-style.css";
 
 type User = {
   name: string;
@@ -7,12 +8,14 @@ type User = {
   points: number;
 } | null;
 
+type GameStatus = "available" | "coming-soon" | "locked";
+
 type Game = {
   id: number;
   title: string;
   description: string;
   emoji: string;
-  status: "available" | "coming-soon" | "locked";
+  status: GameStatus;
   requiredLevel: number;
   tag: string;
 };
@@ -56,13 +59,18 @@ const games: Game[] = [
   },
 ];
 
-function App() {
+function Home() {
   const [user, setUser] = useState<User>(null);
   const [showAuthWarning, setShowAuthWarning] = useState(true);
 
   const isLoggedIn = user !== null;
+  const userLevel = user?.level ?? 0;
+  const userPoints = user?.points ?? 0;
+  const userName = user?.name ?? "";
 
   function handleGuestLogin() {
+    // Login temporário apenas para testar a interface.
+    // Depois isso será substituído pela autenticação real do backend.
     setUser({
       name: "Jogador Visitante",
       level: 1,
@@ -73,6 +81,7 @@ function App() {
   }
 
   function handleOpenAuthWarning() {
+    // Se o usuário ainda não estiver logado, mostramos o aviso.
     if (!isLoggedIn) {
       setShowAuthWarning(true);
     }
@@ -103,18 +112,18 @@ function App() {
         <div className="header-actions">
           {isLoggedIn ? (
             <div className="user-pill">
-              <span>{user.name}</span>
-              <strong>Lv. {user.level}</strong>
+              <span>{userName}</span>
+              <strong>Lv. {userLevel}</strong>
             </div>
           ) : (
             <>
-              <button className="btn btn-ghost" onClick={handleOpenAuthWarning}>
+              <Link className="btn btn-ghost" to="/login">
                 Entrar
-              </button>
+              </Link>
 
-              <button className="btn btn-primary" onClick={handleOpenAuthWarning}>
+              <Link className="btn btn-primary" to="/register">
                 Criar conta
-              </button>
+              </Link>
             </>
           )}
         </div>
@@ -141,9 +150,15 @@ function App() {
               Ver jogos
             </a>
 
-            <button className="btn btn-secondary" onClick={handleOpenAuthWarning}>
-              Minha conta
-            </button>
+            {isLoggedIn ? (
+              <a href="#profile" className="btn btn-secondary">
+                Minha conta
+              </a>
+            ) : (
+              <Link className="btn btn-secondary" to="/login">
+                Minha conta
+              </Link>
+            )}
           </div>
         </div>
 
@@ -178,7 +193,11 @@ function App() {
             </div>
           </div>
 
-          <button className="btn btn-primary full-width">
+          <button
+            className="btn btn-primary full-width"
+            type="button"
+            onClick={handleOpenAuthWarning}
+          >
             Jogar agora
           </button>
         </aside>
@@ -198,16 +217,15 @@ function App() {
 
       <section className="games-grid">
         {games.map((game) => {
-          const isLockedByLevel =
-            !isLoggedIn || (user && user.level < game.requiredLevel);
-
+          const isLockedByLevel = !isLoggedIn || userLevel < game.requiredLevel;
           const isComingSoon = game.status === "coming-soon";
           const canPlay = game.status === "available" && !isLockedByLevel;
 
           return (
             <article
-              className={`game-card glass-panel ${canPlay ? "game-card-active" : "game-card-locked"
-                }`}
+              className={`game-card glass-panel ${
+                canPlay ? "game-card-active" : "game-card-locked"
+              }`}
               key={game.id}
             >
               <div className="game-card-top">
@@ -227,6 +245,7 @@ function App() {
 
                 <button
                   className="btn btn-small"
+                  type="button"
                   disabled={!canPlay || isComingSoon}
                   onClick={handleOpenAuthWarning}
                 >
@@ -244,7 +263,7 @@ function App() {
 
           <h2>
             {isLoggedIn
-              ? `Bem-vindo, ${user.name}`
+              ? `Bem-vindo, ${userName}`
               : "Entre para salvar sua evolução"}
           </h2>
 
@@ -256,12 +275,12 @@ function App() {
 
         <div className="profile-stats">
           <div>
-            <strong>{isLoggedIn ? user.points : 0}</strong>
+            <strong>{userPoints}</strong>
             <span>Pontos</span>
           </div>
 
           <div>
-            <strong>{isLoggedIn ? user.level : 0}</strong>
+            <strong>{userLevel}</strong>
             <span>Nível</span>
           </div>
 
@@ -277,6 +296,7 @@ function App() {
           <div className="auth-modal glass-panel">
             <button
               className="modal-close"
+              type="button"
               onClick={() => setShowAuthWarning(false)}
               aria-label="Fechar aviso"
             >
@@ -293,12 +313,20 @@ function App() {
             </p>
 
             <div className="modal-actions">
-              <button className="btn btn-primary" onClick={handleGuestLogin}>
-                Entrar como visitante
-              </button>
+              <Link className="btn btn-primary" to="/login">
+                Entrar
+              </Link>
 
-              <button className="btn btn-secondary">
+              <Link className="btn btn-secondary" to="/register">
                 Criar conta
+              </Link>
+
+              <button
+                className="btn btn-ghost"
+                type="button"
+                onClick={handleGuestLogin}
+              >
+                Entrar como visitante
               </button>
             </div>
 
@@ -313,4 +341,4 @@ function App() {
   );
 }
 
-export default App;
+export default Home;
