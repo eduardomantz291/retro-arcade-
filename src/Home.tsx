@@ -1,12 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router";
+import { useAuth } from "./contexts/AuthContext";
 import "./home-style.css";
-
-type User = {
-  name: string;
-  level: number;
-  points: number;
-} | null;
 
 type GameStatus = "available" | "coming-soon" | "locked";
 
@@ -60,29 +55,22 @@ const games: Game[] = [
 ];
 
 function Home() {
-  const [user, setUser] = useState<User>(null);
-  const [showAuthWarning, setShowAuthWarning] = useState(true);
+  const { user, isAuthenticated, login, logout } = useAuth();
+  const [showAuthWarning, setShowAuthWarning] = useState(!isAuthenticated);
 
-  const isLoggedIn = user !== null;
   const userLevel = user?.level ?? 0;
   const userPoints = user?.points ?? 0;
-  const userName = user?.name ?? "";
+  const userName = user?.username ?? "";
 
   function handleGuestLogin() {
-    // Login temporário apenas para testar a interface.
-    // Depois isso será substituído pela autenticação real do backend.
-    setUser({
-      name: "Jogador Visitante",
-      level: 1,
-      points: 0,
-    });
-
+    // Usuário fake padrão para testar rapidamente.
+    login("player@retroarcade.com", "123456");
     setShowAuthWarning(false);
   }
 
-  function handleOpenAuthWarning() {
-    // Se o usuário ainda não estiver logado, mostramos o aviso.
-    if (!isLoggedIn) {
+  function handleProtectedAction() {
+    // Sempre que uma área exigir login, mostramos o aviso.
+    if (!isAuthenticated) {
       setShowAuthWarning(true);
     }
   }
@@ -106,15 +94,29 @@ function Home() {
         <nav className="main-nav">
           <a href="#games">Jogos</a>
           <a href="#ranking">Ranking</a>
-          <a href="#profile">Perfil</a>
+
+          {isAuthenticated ? (
+            <Link to="/profile">Perfil</Link>
+          ) : (
+            <button type="button" onClick={handleProtectedAction}>
+              Perfil
+            </button>
+          )}
         </nav>
 
         <div className="header-actions">
-          {isLoggedIn ? (
-            <div className="user-pill">
-              <span>{userName}</span>
-              <strong>Lv. {userLevel}</strong>
-            </div>
+          {isAuthenticated && user ? (
+            <>
+              <Link className="user-pill" to="/profile">
+                <span className="user-avatar">{user.avatarInitial}</span>
+                <span>{userName}</span>
+                <strong>Lv. {userLevel}</strong>
+              </Link>
+
+              <button className="btn btn-ghost" type="button" onClick={logout}>
+                Sair
+              </button>
+            </>
           ) : (
             <>
               <Link className="btn btn-ghost" to="/login">
@@ -150,14 +152,18 @@ function Home() {
               Ver jogos
             </a>
 
-            {isLoggedIn ? (
-              <a href="#profile" className="btn btn-secondary">
-                Minha conta
-              </a>
-            ) : (
-              <Link className="btn btn-secondary" to="/login">
+            {isAuthenticated ? (
+              <Link className="btn btn-secondary" to="/profile">
                 Minha conta
               </Link>
+            ) : (
+              <button
+                className="btn btn-secondary"
+                type="button"
+                onClick={handleProtectedAction}
+              >
+                Minha conta
+              </button>
             )}
           </div>
         </div>
@@ -196,7 +202,7 @@ function Home() {
           <button
             className="btn btn-primary full-width"
             type="button"
-            onClick={handleOpenAuthWarning}
+            onClick={handleProtectedAction}
           >
             Jogar agora
           </button>
@@ -217,7 +223,7 @@ function Home() {
 
       <section className="games-grid">
         {games.map((game) => {
-          const isLockedByLevel = !isLoggedIn || userLevel < game.requiredLevel;
+          const isLockedByLevel = !isAuthenticated || userLevel < game.requiredLevel;
           const isComingSoon = game.status === "coming-soon";
           const canPlay = game.status === "available" && !isLockedByLevel;
 
@@ -246,8 +252,8 @@ function Home() {
                 <button
                   className="btn btn-small"
                   type="button"
-                  disabled={!canPlay || isComingSoon}
-                  onClick={handleOpenAuthWarning}
+                  disabled={isComingSoon}
+                  onClick={canPlay ? undefined : handleProtectedAction}
                 >
                   {canPlay ? "Jogar" : isComingSoon ? "Em breve" : "Bloqueado"}
                 </button>
@@ -262,7 +268,7 @@ function Home() {
           <span className="section-kicker">Perfil</span>
 
           <h2>
-            {isLoggedIn
+            {isAuthenticated
               ? `Bem-vindo, ${userName}`
               : "Entre para salvar sua evolução"}
           </h2>
@@ -285,13 +291,13 @@ function Home() {
           </div>
 
           <div>
-            <strong>{isLoggedIn ? 1 : 0}</strong>
+            <strong>{isAuthenticated ? user?.gamesUnlocked : 0}</strong>
             <span>Jogos liberados</span>
           </div>
         </div>
       </section>
 
-      {!isLoggedIn && showAuthWarning && (
+      {!isAuthenticated && showAuthWarning && (
         <div className="auth-modal-backdrop">
           <div className="auth-modal glass-panel">
             <button
@@ -308,8 +314,8 @@ function Home() {
             <h2>Você ainda não está logado</h2>
 
             <p>
-              Para salvar pontos, subir de nível e desbloquear novos jogos,
-              você vai precisar entrar ou criar uma conta.
+              Para acessar sua conta, salvar pontos, subir de nível e
+              desbloquear jogos, você precisa entrar ou criar um cadastro.
             </p>
 
             <div className="modal-actions">
@@ -326,13 +332,12 @@ function Home() {
                 type="button"
                 onClick={handleGuestLogin}
               >
-                Entrar como visitante
+                Entrar como usuário fake
               </button>
             </div>
 
             <small>
-              Por enquanto isso é só visual. A autenticação real entra quando
-              fizermos o backend.
+              Usuário fake rápido: player@retroarcade.com | senha: 123456
             </small>
           </div>
         </div>

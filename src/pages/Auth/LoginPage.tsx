@@ -1,12 +1,36 @@
-import { Link } from "react-router";
+import { useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router";
+import { useAuth } from "../../contexts/AuthContext";
 import "./auth-style.css";
 
 function LoginPage() {
+  const { login } = useAuth();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  const initialEmail = searchParams.get("email") ?? "";
+
+  const [email, setEmail] = useState(initialEmail);
+  const [password, setPassword] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const wasRegistered = searchParams.get("registered") === "true";
+
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    // Futuramente essa função vai chamar a API de login.
-    console.log("Login submitted");
+    // Login fake: validamos os dados salvos no localStorage.
+    const hasLoggedIn = login(email, password);
+
+    if (!hasLoggedIn) {
+      setErrorMessage(
+        "Email ou senha inválidos. Se quiser testar rápido, use player@retroarcade.com e senha 123456."
+      );
+
+      return;
+    }
+
+    navigate("/");
   }
 
   return (
@@ -33,6 +57,19 @@ function LoginPage() {
           </p>
         </div>
 
+        {wasRegistered && (
+          <div className="auth-success-message">
+            Conta criada com sucesso. Agora entre usando o email e a senha
+            cadastrados.
+          </div>
+        )}
+
+        {errorMessage && (
+          <div className="auth-error-message">
+            {errorMessage}
+          </div>
+        )}
+
         <form className="auth-form" onSubmit={handleSubmit}>
           <label className="auth-field">
             <span>Email</span>
@@ -42,6 +79,8 @@ function LoginPage() {
               name="email"
               placeholder="seuemail@email.com"
               autoComplete="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
               required
             />
           </label>
@@ -54,6 +93,8 @@ function LoginPage() {
               name="password"
               placeholder="Digite sua senha"
               autoComplete="current-password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
               required
             />
           </label>

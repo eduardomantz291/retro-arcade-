@@ -1,12 +1,39 @@
-import { Link } from "react-router";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router";
+import { useAuth } from "../../contexts/AuthContext";
 import "./auth-style.css";
 
 function RegisterPage() {
+  const { register } = useAuth();
+  const navigate = useNavigate();
+
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    // Futuramente essa função vai chamar a API de cadastro.
-    console.log("Register submitted");
+    if (password !== confirmPassword) {
+      setErrorMessage("As senhas não são iguais.");
+      return;
+    }
+
+    if (password.length < 6) {
+      setErrorMessage("A senha precisa ter pelo menos 6 caracteres.");
+      return;
+    }
+
+    // Cadastro fake: salvamos o usuário no localStorage.
+    register({
+      username,
+      email,
+      password,
+    });
+
+    navigate(`/login?registered=true&email=${encodeURIComponent(email)}`);
   }
 
   return (
@@ -33,6 +60,12 @@ function RegisterPage() {
           </p>
         </div>
 
+        {errorMessage && (
+          <div className="auth-error-message">
+            {errorMessage}
+          </div>
+        )}
+
         <form className="auth-form" onSubmit={handleSubmit}>
           <label className="auth-field">
             <span>Nome de jogador</span>
@@ -42,6 +75,8 @@ function RegisterPage() {
               name="username"
               placeholder="Ex: ArcadeMaster"
               autoComplete="username"
+              value={username}
+              onChange={(event) => setUsername(event.target.value)}
               required
             />
           </label>
@@ -54,6 +89,8 @@ function RegisterPage() {
               name="email"
               placeholder="seuemail@email.com"
               autoComplete="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
               required
             />
           </label>
@@ -66,6 +103,8 @@ function RegisterPage() {
               name="password"
               placeholder="Crie uma senha forte"
               autoComplete="new-password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
               required
             />
           </label>
@@ -78,6 +117,8 @@ function RegisterPage() {
               name="confirmPassword"
               placeholder="Repita sua senha"
               autoComplete="new-password"
+              value={confirmPassword}
+              onChange={(event) => setConfirmPassword(event.target.value)}
               required
             />
           </label>

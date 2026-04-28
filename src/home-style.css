@@ -716,3 +716,29 @@ a {
     max-width: 48vw;
   }
 }
+
+.main-nav button {
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.main-nav button:hover {
+  color: white;
+  transform: translateY(-2px);
+}
+
+.user-avatar {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  color: #111820;
+  font-weight: 900;
+  background: linear-gradient(135deg, #f1c40f, #38ef7d);
+}

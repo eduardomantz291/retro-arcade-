@@ -404,3 +404,24 @@
     width: 100%;
   }
 }
+
+.auth-error-message,
+.auth-success-message {
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  line-height: 1.5;
+  font-size: 0.9rem;
+}
+
+.auth-error-message {
+  color: #ffffff;
+  background: rgba(255, 71, 87, 0.14);
+  border: 1px solid rgba(255, 71, 87, 0.32);
+}
+
+.auth-success-message {
+  color: #ffffff;
+  background: rgba(56, 239, 125, 0.12);
+  border: 1px solid rgba(56, 239, 125, 0.32);
+}
