@@ -15,6 +15,10 @@ type Game = {
   status: GameStatus;
   requiredLevel: number;
   tag: string;
+  highlightLabel: string;
+  bonusLabel: string;
+  powerUps: string;
+  replayValue: string;
 };
 
 const games: Game[] = [
@@ -27,6 +31,10 @@ const games: Game[] = [
     status: "available",
     requiredLevel: 1,
     tag: "Disponível",
+    highlightLabel: "Jogo em destaque",
+    bonusLabel: "250+",
+    powerUps: "5",
+    replayValue: "∞",
   },
   {
     id: 2,
@@ -37,6 +45,10 @@ const games: Game[] = [
     status: "locked",
     requiredLevel: 3,
     tag: "Nível 3",
+    highlightLabel: "Próximo desafio",
+    bonusLabel: "Combo",
+    powerUps: "Merge",
+    replayValue: "Score",
   },
   {
     id: 3,
@@ -46,6 +58,10 @@ const games: Game[] = [
     status: "locked",
     requiredLevel: 5,
     tag: "Nível 5",
+    highlightLabel: "Mistério retrô",
+    bonusLabel: "Maze",
+    powerUps: "Ghost",
+    replayValue: "Skill",
   },
   {
     id: 4,
@@ -55,6 +71,10 @@ const games: Game[] = [
     status: "coming-soon",
     requiredLevel: 8,
     tag: "Em breve",
+    highlightLabel: "Em desenvolvimento",
+    bonusLabel: "Wave",
+    powerUps: "Laser",
+    replayValue: "Boss",
   },
 ];
 
@@ -70,9 +90,12 @@ function Home() {
   const [activeContentView, setActiveContentView] =
     useState<HomeContentView>("games");
 
+  const [featuredGameIndex, setFeaturedGameIndex] = useState(0);
+
   const userLevel = user?.level ?? 0;
   const userPoints = user?.points ?? 0;
   const userName = user?.username ?? "";
+  const featuredGame = games[featuredGameIndex];
 
   useEffect(() => {
     // Se o usuário estiver logado ou em modo visitante,
@@ -89,6 +112,19 @@ function Home() {
       setActiveContentView("games");
     }
   }, [isAuthenticated, activeContentView]);
+
+  useEffect(() => {
+    // Troca o jogo em destaque automaticamente a cada 10 segundos.
+    const intervalId = window.setInterval(() => {
+      setFeaturedGameIndex((currentIndex) => {
+        return (currentIndex + 1) % games.length;
+      });
+    }, 10000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, []);
 
   function scrollToContentSection() {
     window.setTimeout(() => {
@@ -126,6 +162,12 @@ function Home() {
 
     setActiveContentView("account");
     scrollToContentSection();
+  }
+
+  function handleNextFeaturedGame() {
+    setFeaturedGameIndex((currentIndex) => {
+      return (currentIndex + 1) % games.length;
+    });
   }
 
   function getEffectiveLevel() {
@@ -292,35 +334,68 @@ function Home() {
           <div className="hero-card-glow" />
 
           <div className="hero-card-content">
-            <span className="arcade-label">Jogo em destaque</span>
+            <div className="featured-game-swap" key={featuredGame.id}>
+              <div className="featured-card-header">
+                <span className="arcade-label">
+                  {featuredGame.highlightLabel}
+                </span>
 
-            <div className="featured-game-icon">🐍</div>
-
-            <h2>Snake Arcade</h2>
-
-            <p>
-              Sobreviva, colete frutas especiais, ative poderes e tente bater
-              seu recorde.
-            </p>
-
-            <div className="stats-row">
-              <div>
-                <strong>250+</strong>
-                <span>Pontos bônus</span>
+                <button
+                  className="featured-card-change-button"
+                  type="button"
+                  onClick={handleNextFeaturedGame}
+                >
+                  Trocar
+                </button>
               </div>
 
-              <div>
-                <strong>5</strong>
-                <span>Power-ups</span>
+              <div className="featured-game-icon">{featuredGame.emoji}</div>
+
+              <h2>{featuredGame.title}</h2>
+
+              <p>{featuredGame.description}</p>
+
+              <div className="featured-game-status">
+                <span>
+                  {featuredGame.status === "available"
+                    ? "Disponível"
+                    : featuredGame.tag}
+                </span>
+
+                <strong>Nível {featuredGame.requiredLevel}</strong>
               </div>
 
-              <div>
-                <strong>∞</strong>
-                <span>Replay</span>
+              <div className="stats-row">
+                <div>
+                  <strong>{featuredGame.bonusLabel}</strong>
+                  <span>Pontos bônus</span>
+                </div>
+
+                <div>
+                  <strong>{featuredGame.powerUps}</strong>
+                  <span>Power-ups</span>
+                </div>
+
+                <div>
+                  <strong>{featuredGame.replayValue}</strong>
+                  <span>Replay</span>
+                </div>
               </div>
+
+              {featuredGame.id === 1 ? (
+                renderFeaturedGameAction()
+              ) : (
+                <button
+                  className="btn btn-primary full-width"
+                  type="button"
+                  disabled
+                >
+                  {featuredGame.status === "coming-soon"
+                    ? "Em breve"
+                    : "Bloqueado"}
+                </button>
+              )}
             </div>
-
-            {renderFeaturedGameAction()}
           </div>
         </aside>
       </section>
@@ -367,7 +442,9 @@ function Home() {
                   <span className="game-icon">{game.emoji}</span>
 
                   <span
-                    className={`game-tag ${canPlay ? "tag-open" : "tag-locked"}`}
+                    className={`game-tag ${
+                      canPlay ? "tag-open" : "tag-locked"
+                    }`}
                   >
                     {canPlay ? "Liberado" : game.tag}
                   </span>
