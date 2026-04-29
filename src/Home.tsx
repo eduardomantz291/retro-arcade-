@@ -1,9 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import { useAuth } from "./contexts/AuthContext";
 import "./home-style.css";
 
 type GameStatus = "available" | "coming-soon" | "locked";
+
+type HomeContentView = "games" | "account";
 
 type Game = {
   id: number;
@@ -59,23 +61,47 @@ const games: Game[] = [
 function Home() {
   const { user, isAuthenticated, isGuest, logout, continueAsGuest } = useAuth();
 
+  const contentSectionRef = useRef<HTMLElement | null>(null);
+
   const [showAuthWarning, setShowAuthWarning] = useState(
     !isAuthenticated && !isGuest
   );
+
+  const [activeContentView, setActiveContentView] =
+    useState<HomeContentView>("games");
 
   const userLevel = user?.level ?? 0;
   const userPoints = user?.points ?? 0;
   const userName = user?.username ?? "";
 
   useEffect(() => {
-    // Se o usuário estiver logado ou em modo visitante, fechamos o aviso inicial.
+    // Se o usuário estiver logado ou em modo visitante,
+    // fechamos o aviso inicial.
     if (isAuthenticated || isGuest) {
       setShowAuthWarning(false);
     }
   }, [isAuthenticated, isGuest]);
 
+  useEffect(() => {
+    // Se o usuário sair da conta enquanto estiver vendo Minha Conta,
+    // voltamos automaticamente para a lista de jogos.
+    if (!isAuthenticated && activeContentView === "account") {
+      setActiveContentView("games");
+    }
+  }, [isAuthenticated, activeContentView]);
+
+  function scrollToContentSection() {
+    window.setTimeout(() => {
+      contentSectionRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 80);
+  }
+
   function handleGuestMode() {
-    // Modo visitante: pode explorar a Home, mas não acessa Perfil ou Minha Conta.
+    // Modo visitante: pode explorar a Home e jogar,
+    // mas não acessa áreas protegidas como Perfil e Minha Conta.
     continueAsGuest();
     setShowAuthWarning(false);
   }
@@ -85,6 +111,62 @@ function Home() {
     if (!isAuthenticated) {
       setShowAuthWarning(true);
     }
+  }
+
+  function handleShowGames() {
+    setActiveContentView("games");
+    scrollToContentSection();
+  }
+
+  function handleShowAccount() {
+    if (!isAuthenticated) {
+      handleProtectedAction();
+      return;
+    }
+
+    setActiveContentView("account");
+    scrollToContentSection();
+  }
+
+  function getEffectiveLevel() {
+    // Usuário logado usa o nível real.
+    // Visitante recebe nível 1 apenas para testar o Snake.
+    // Usuário sem login e sem modo visitante fica com nível 0.
+    if (isAuthenticated) {
+      return userLevel;
+    }
+
+    if (isGuest) {
+      return 1;
+    }
+
+    return 0;
+  }
+
+  function canPlayGame(game: Game) {
+    const effectiveLevel = getEffectiveLevel();
+
+    return game.status === "available" && effectiveLevel >= game.requiredLevel;
+  }
+
+  function renderFeaturedGameAction() {
+    if (isAuthenticated || isGuest) {
+      return (
+        <Link className="btn btn-primary full-width" to="/games/snake">
+          Jogar agora
+        </Link>
+      );
+    }
+
+    return (
+      <button
+        className="btn btn-primary full-width"
+        type="button"
+        onClick={handleProtectedAction}
+      >
+        Jogar agora
+      </button>
+    );
   }
 
   return (
@@ -104,7 +186,10 @@ function Home() {
         </div>
 
         <nav className="main-nav">
-          <a href="#games">Jogos</a>
+          <button type="button" onClick={handleShowGames}>
+            Jogos
+          </button>
+
           <a href="#ranking">Ranking</a>
 
           {isAuthenticated ? (
@@ -120,7 +205,17 @@ function Home() {
           {isAuthenticated && user ? (
             <>
               <Link className="user-pill" to="/profile">
-                <span className="user-avatar">{user.avatarInitial}</span>
+                <span className="user-avatar">
+                  {user.avatarUrl ? (
+                    <img
+                      src={user.avatarUrl}
+                      alt={`Avatar de ${user.username}`}
+                    />
+                  ) : (
+                    user.avatarInitial
+                  )}
+                </span>
+
                 <span>{userName}</span>
                 <strong>Lv. {userLevel}</strong>
               </Link>
@@ -170,144 +265,192 @@ function Home() {
           </h1>
 
           <p>
-            Jogue, acumule pontos, suba de nível e desbloqueie novos games dentro
-            da sua própria central arcade.
+            Jogue, acumule pontos, suba de nível e desbloqueie novos games
+            dentro da sua própria central arcade.
           </p>
 
           <div className="hero-actions">
-            <a href="#games" className="btn btn-primary">
+            <button
+              className="btn btn-primary"
+              type="button"
+              onClick={handleShowGames}
+            >
               Ver jogos
-            </a>
+            </button>
 
-            {isAuthenticated ? (
-              <Link className="btn btn-secondary" to="/profile">
-                Minha conta
-              </Link>
-            ) : (
-              <button
-                className="btn btn-secondary"
-                type="button"
-                onClick={handleProtectedAction}
-              >
-                Minha conta
-              </button>
-            )}
+            <button
+              className="btn btn-secondary"
+              type="button"
+              onClick={handleShowAccount}
+            >
+              Minha conta
+            </button>
           </div>
         </div>
 
         <aside className="hero-card glass-panel">
           <div className="hero-card-glow" />
 
-          <span className="arcade-label">Jogo em destaque</span>
+          <div className="hero-card-content">
+            <span className="arcade-label">Jogo em destaque</span>
 
-          <div className="featured-game-icon">🐍</div>
+            <div className="featured-game-icon">🐍</div>
 
-          <h2>Snake Arcade</h2>
+            <h2>Snake Arcade</h2>
 
-          <p>
-            Poderes especiais, frutas raras, frenesi verde, música e aquele caos
-            gostoso de arcade.
-          </p>
+            <p>
+              Sobreviva, colete frutas especiais, ative poderes e tente bater
+              seu recorde.
+            </p>
 
-          <div className="stats-row">
-            <div>
-              <strong>250+</strong>
-              <span>Pontos bônus</span>
+            <div className="stats-row">
+              <div>
+                <strong>250+</strong>
+                <span>Pontos bônus</span>
+              </div>
+
+              <div>
+                <strong>5</strong>
+                <span>Power-ups</span>
+              </div>
+
+              <div>
+                <strong>∞</strong>
+                <span>Replay</span>
+              </div>
             </div>
 
-            <div>
-              <strong>5</strong>
-              <span>Power-ups</span>
-            </div>
-
-            <div>
-              <strong>∞</strong>
-              <span>Replay</span>
-            </div>
+            {renderFeaturedGameAction()}
           </div>
-
-          {isAuthenticated || isGuest ? (
-            <Link className="btn btn-primary full-width" to="/games/snake">
-              Jogar agora
-            </Link>
-          ) : (
-            <button
-              className="btn btn-primary full-width"
-              type="button"
-              onClick={handleProtectedAction}
-            >
-              Jogar agora
-            </button>
-          )}
         </aside>
       </section>
 
-      <section className="section-header" id="games">
+      <section
+        ref={contentSectionRef}
+        className="section-header home-switch-header"
+        id="games"
+      >
         <div>
-          <span className="section-kicker">Biblioteca</span>
-          <h2>Escolha seu próximo jogo</h2>
+          <span className="section-kicker">
+            {activeContentView === "games" ? "Biblioteca" : "Minha conta"}
+          </span>
+
+          <h2>
+            {activeContentView === "games"
+              ? "Escolha seu próximo jogo"
+              : "Resumo da sua conta"}
+          </h2>
         </div>
 
         <p>
-          Alguns jogos estarão bloqueados por nível. Quando o backend entrar,
-          isso vai vir da conta real do usuário.
+          {activeContentView === "games"
+            ? "Alguns jogos estarão bloqueados por nível. Quando o backend entrar, isso vai vir da conta real do usuário."
+            : "Veja rapidamente seus dados principais sem sair da página inicial."}
         </p>
       </section>
 
-      <section className="games-grid">
-        {games.map((game) => {
-          // Usuário logado usa o nível real.
-          // Visitante recebe nível 1 apenas para testar o Snake.
-          // Usuário sem login e sem modo visitante fica com nível 0.
-          const effectiveLevel = isAuthenticated ? userLevel : isGuest ? 1 : 0;
+      {activeContentView === "games" && (
+        <section className="games-grid home-view-enter">
+          {games.map((game) => {
+            const isLockedByLevel = getEffectiveLevel() < game.requiredLevel;
+            const isComingSoon = game.status === "coming-soon";
+            const canPlay = game.status === "available" && !isLockedByLevel;
 
-          const isLockedByLevel = effectiveLevel < game.requiredLevel;
-          const isComingSoon = game.status === "coming-soon";
-          const canPlay = game.status === "available" && !isLockedByLevel;
+            return (
+              <article
+                className={`game-card glass-panel ${
+                  canPlay ? "game-card-active" : "game-card-locked"
+                }`}
+                key={game.id}
+              >
+                <div className="game-card-top">
+                  <span className="game-icon">{game.emoji}</span>
 
-          return (
-            <article
-              className={`game-card glass-panel ${
-                canPlay ? "game-card-active" : "game-card-locked"
-              }`}
-              key={game.id}
-            >
-              <div className="game-card-top">
-                <span className="game-icon">{game.emoji}</span>
-
-                <span
-                  className={`game-tag ${canPlay ? "tag-open" : "tag-locked"}`}
-                >
-                  {canPlay ? "Liberado" : game.tag}
-                </span>
-              </div>
-
-              <h3>{game.title}</h3>
-
-              <p>{game.description}</p>
-
-              <div className="game-card-footer">
-                <span>Nível mínimo: {game.requiredLevel}</span>
-
-                {canPlay && game.id === 1 ? (
-                  <Link className="btn btn-small" to="/games/snake">
-                    Jogar
-                  </Link>
-                ) : (
-                  <button
-                    className="btn btn-small"
-                    type="button"
-                    disabled={isComingSoon}
-                    onClick={handleProtectedAction}
+                  <span
+                    className={`game-tag ${canPlay ? "tag-open" : "tag-locked"}`}
                   >
-                    {isComingSoon ? "Em breve" : "Bloqueado"}
-                  </button>
-                )}
-              </div>
-            </article>
-          );
-        })}
-      </section>
+                    {canPlay ? "Liberado" : game.tag}
+                  </span>
+                </div>
+
+                <h3>{game.title}</h3>
+
+                <p>{game.description}</p>
+
+                <div className="game-card-footer">
+                  <span>Nível mínimo: {game.requiredLevel}</span>
+
+                  {canPlay && game.id === 1 ? (
+                    <Link className="btn btn-small" to="/games/snake">
+                      Jogar
+                    </Link>
+                  ) : (
+                    <button
+                      className="btn btn-small"
+                      type="button"
+                      disabled={isComingSoon}
+                      onClick={handleProtectedAction}
+                    >
+                      {isComingSoon ? "Em breve" : "Bloqueado"}
+                    </button>
+                  )}
+                </div>
+              </article>
+            );
+          })}
+        </section>
+      )}
+
+      {activeContentView === "account" && user && (
+        <section className="home-account-summary glass-panel home-view-enter">
+          <div className="home-account-main">
+            <div className="home-account-avatar">
+              {user.avatarUrl ? (
+                <img src={user.avatarUrl} alt={`Avatar de ${user.username}`} />
+              ) : (
+                <span>{user.avatarInitial}</span>
+              )}
+            </div>
+
+            <div>
+              <span className="section-kicker">Player Summary</span>
+              <h3>{user.username}</h3>
+              <p>{user.email}</p>
+            </div>
+          </div>
+
+          <div className="home-account-stats">
+            <div>
+              <strong>{user.points}</strong>
+              <span>Pontos</span>
+            </div>
+
+            <div>
+              <strong>{user.level}</strong>
+              <span>Nível</span>
+            </div>
+
+            <div>
+              <strong>{user.gamesUnlocked}</strong>
+              <span>Jogos liberados</span>
+            </div>
+          </div>
+
+          <div className="home-account-actions">
+            <button
+              className="btn btn-secondary"
+              type="button"
+              onClick={handleShowGames}
+            >
+              Voltar para jogos
+            </button>
+
+            <Link className="btn btn-primary" to="/profile">
+              Abrir dashboard completo
+            </Link>
+          </div>
+        </section>
+      )}
 
       <section className="profile-preview glass-panel" id="profile">
         <div>
