@@ -433,8 +433,11 @@ export function useSnakeGame({ isAuthenticated }: UseSnakeGameParams) {
   function showGameOver() {
     const runtime = runtimeRef.current;
 
+    // Ao morrer, paramos todas as músicas.
+    // A tela de Game Over fica sem música, apenas com o efeito de morte.
     stopGameMusic();
-    startTitleMusic();
+    stopTitleMusic();
+
     playEffect("death");
     applyScreenShake(15);
 

@@ -18,7 +18,6 @@ function SnakeGamePage() {
     goldenPercent,
     magnetPercent,
     startGame,
-    changeDirection,
   } = useSnakeGame({ isAuthenticated });
 
   const [showGuestWarning, setShowGuestWarning] = useState(isGuest);
@@ -129,28 +128,6 @@ function SnakeGamePage() {
             className="snake-canvas"
           />
         </div>
-
-        <div className="snake-mobile-controls">
-          <div className="snake-pad-left">
-            <button type="button" onClick={() => changeDirection("left")}>
-              ⬅️
-            </button>
-
-            <button type="button" onClick={() => changeDirection("right")}>
-              ➡️
-            </button>
-          </div>
-
-          <div className="snake-pad-right">
-            <button type="button" onClick={() => changeDirection("up")}>
-              ⬆️
-            </button>
-
-            <button type="button" onClick={() => changeDirection("down")}>
-              ⬇️
-            </button>
-          </div>
-        </div>
       </section>
 
       {screenState === "start" && (
@@ -183,8 +160,8 @@ function SnakeGamePage() {
 
                 <ul>
                   <li>
-                    <strong>Movimento:</strong> use as setas, WASD ou os botões
-                    no celular.
+                    <strong>Movimento:</strong> use as setas, WASD ou deslize o
+                    dedo na tela.
                   </li>
 
                   <li>
