@@ -76,6 +76,20 @@ const games: Game[] = [
     powerUps: "Laser",
     replayValue: "Boss",
   },
+  {
+    id: 5,
+    title: "Brick Breaker",
+    description:
+      "Rebata a bolinha, quebre blocos e avance por níveis cada vez mais difíceis.",
+    emoji: "🧱",
+    status: "available",
+    requiredLevel: 1,
+    tag: "Disponível",
+    highlightLabel: "Novo no arcade",
+    bonusLabel: "Combo",
+    powerUps: "Paddle",
+    replayValue: "Level",
+  },
 ];
 
 function Home() {
@@ -384,15 +398,17 @@ function Home() {
 
               {featuredGame.id === 1 ? (
                 renderFeaturedGameAction()
+              ) : featuredGame.id === 5 && canPlayGame(featuredGame) ? (
+                <Link className="btn btn-primary full-width" to="/games/breakout">
+                  Jogar agora
+                </Link>
               ) : (
                 <button
                   className="btn btn-primary full-width"
                   type="button"
                   disabled
                 >
-                  {featuredGame.status === "coming-soon"
-                    ? "Em breve"
-                    : "Bloqueado"}
+                  {featuredGame.status === "coming-soon" ? "Em breve" : "Bloqueado"}
                 </button>
               )}
             </div>
@@ -433,18 +449,16 @@ function Home() {
 
             return (
               <article
-                className={`game-card glass-panel ${
-                  canPlay ? "game-card-active" : "game-card-locked"
-                }`}
+                className={`game-card glass-panel ${canPlay ? "game-card-active" : "game-card-locked"
+                  }`}
                 key={game.id}
               >
                 <div className="game-card-top">
                   <span className="game-icon">{game.emoji}</span>
 
                   <span
-                    className={`game-tag ${
-                      canPlay ? "tag-open" : "tag-locked"
-                    }`}
+                    className={`game-tag ${canPlay ? "tag-open" : "tag-locked"
+                      }`}
                   >
                     {canPlay ? "Liberado" : game.tag}
                   </span>
@@ -459,6 +473,10 @@ function Home() {
 
                   {canPlay && game.id === 1 ? (
                     <Link className="btn btn-small" to="/games/snake">
+                      Jogar
+                    </Link>
+                  ) : canPlay && game.id === 5 ? (
+                    <Link className="btn btn-small" to="/games/breakout">
                       Jogar
                     </Link>
                   ) : (
