@@ -232,7 +232,7 @@ function Home() {
             Jogos
           </button>
 
-          <a href="#ranking">Ranking</a>
+          <a href="/ranking">Ranking</a>
 
           {isAuthenticated ? (
             <Link to="/profile">Perfil</Link>
