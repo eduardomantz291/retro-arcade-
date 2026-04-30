@@ -2,13 +2,19 @@ import { useEffect, useRef, useState } from "react";
 import {
   CANVAS_HEIGHT,
   CANVAS_WIDTH,
+  HEART_BONUS_POINTS,
+  HEART_DROP_CHANCE,
   INITIAL_LIVES,
+  MAX_LIVES,
+  POWER_UP_FALL_SPEED,
+  POWER_UP_RADIUS,
 } from "./breakoutConfig";
 import { createBricks, createInitialRuntime } from "./breakoutFactory";
 import type {
   BreakoutRuntime,
   BreakoutScreenState,
   Brick,
+  FallingPowerUp,
 } from "./breakoutTypes";
 
 export function useBreakoutGame() {
@@ -16,6 +22,7 @@ export function useBreakoutGame() {
   const frameRef = useRef<number | null>(null);
   const runtimeRef = useRef<BreakoutRuntime>(createInitialRuntime());
   const screenStateRef = useRef<BreakoutScreenState>("start");
+  const powerUpIdRef = useRef(0);
 
   const [screenState, setScreenState] =
     useState<BreakoutScreenState>("start");
@@ -138,6 +145,87 @@ export function useBreakoutGame() {
     }
   }
 
+  function createHeartPowerUp(x: number, y: number): FallingPowerUp {
+    powerUpIdRef.current += 1;
+
+    return {
+      id: powerUpIdRef.current,
+      type: "heart",
+      x,
+      y,
+      vy: POWER_UP_FALL_SPEED,
+      radius: POWER_UP_RADIUS,
+      emoji: "❤️",
+      color: "#ff4757",
+      glow: "#ff6b81",
+      active: true,
+    };
+  }
+
+  function tryDropHeartFromBrick(brick: Brick) {
+    const runtime = runtimeRef.current;
+
+    // O coração pode cair de qualquer bloco destruído.
+    // Futuramente, quando a TNT destruir blocos, podemos chamar essa função
+    // para cada bloco destruído pela explosão também.
+    if (Math.random() > HEART_DROP_CHANCE) {
+      return;
+    }
+
+    runtime.powerUps.push(
+      createHeartPowerUp(
+        brick.x + brick.width / 2,
+        brick.y + brick.height / 2
+      )
+    );
+  }
+
+  function collectHeartPowerUp(powerUp: FallingPowerUp) {
+    const runtime = runtimeRef.current;
+
+    powerUp.active = false;
+
+    if (runtime.lives < MAX_LIVES) {
+      runtime.lives += 1;
+      setLives(runtime.lives);
+
+      createExplosion(powerUp.x, powerUp.y, "#ff6b81");
+      return;
+    }
+
+    runtime.score += HEART_BONUS_POINTS;
+    setScore(runtime.score);
+
+    createExplosion(powerUp.x, powerUp.y, "#f1c40f");
+  }
+
+  function updatePowerUps() {
+    const runtime = runtimeRef.current;
+    const { paddle } = runtime;
+
+    for (let index = runtime.powerUps.length - 1; index >= 0; index--) {
+      const powerUp = runtime.powerUps[index];
+
+      powerUp.y += powerUp.vy;
+
+      const isTouchingPaddle =
+        powerUp.y + powerUp.radius >= paddle.y &&
+        powerUp.y - powerUp.radius <= paddle.y + paddle.height &&
+        powerUp.x + powerUp.radius >= paddle.x &&
+        powerUp.x - powerUp.radius <= paddle.x + paddle.width;
+
+      if (isTouchingPaddle) {
+        collectHeartPowerUp(powerUp);
+        runtime.powerUps.splice(index, 1);
+        continue;
+      }
+
+      if (powerUp.y - powerUp.radius > CANVAS_HEIGHT) {
+        runtime.powerUps.splice(index, 1);
+      }
+    }
+  }
+
   function hitBrick(brick: Brick) {
     const runtime = runtimeRef.current;
 
@@ -155,6 +243,8 @@ export function useBreakoutGame() {
     if (brick.hits <= 0) {
       brick.active = false;
       runtime.score += 15;
+
+      tryDropHeartFromBrick(brick);
     }
 
     runtime.ball.vy *= -1;
@@ -170,6 +260,7 @@ export function useBreakoutGame() {
       runtime.level += 1;
       runtime.bricks = createBricks(runtime.level);
       runtime.particles = [];
+      runtime.powerUps = [];
       runtime.shake = 10;
 
       resetBall();
@@ -237,6 +328,8 @@ export function useBreakoutGame() {
       }
     }
 
+    updatePowerUps();
+
     if (ball.y - ball.radius > CANVAS_HEIGHT) {
       runtime.lives -= 1;
       runtime.shake = 12;
@@ -285,6 +378,25 @@ export function useBreakoutGame() {
     ctx.beginPath();
     ctx.roundRect(x, y, width, height, radius);
     ctx.fill();
+  }
+
+  function drawPowerUp(ctx: CanvasRenderingContext2D, powerUp: FallingPowerUp) {
+    const pulse = Math.abs(Math.sin(Date.now() / 180)) * 4;
+
+    ctx.shadowBlur = 18 + pulse;
+    ctx.shadowColor = powerUp.glow;
+    ctx.fillStyle = powerUp.color;
+
+    ctx.beginPath();
+    ctx.arc(powerUp.x, powerUp.y, powerUp.radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "18px system-ui, Apple Color Emoji, Segoe UI Emoji";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(powerUp.emoji, powerUp.x, powerUp.y + 1);
   }
 
   function drawGame() {
@@ -355,6 +467,12 @@ export function useBreakoutGame() {
       ctx.shadowBlur = 0;
     }
 
+    for (const powerUp of runtime.powerUps) {
+      if (powerUp.active) {
+        drawPowerUp(ctx, powerUp);
+      }
+    }
+
     ctx.shadowBlur = 18;
     ctx.shadowColor = "#38ef7d";
     ctx.fillStyle = "#38ef7d";
@@ -415,6 +533,7 @@ export function useBreakoutGame() {
     score,
     lives,
     level,
+    maxLives: MAX_LIVES,
     startGame,
     restartGame,
     handlePointerMove,

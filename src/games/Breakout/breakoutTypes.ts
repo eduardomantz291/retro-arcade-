@@ -1,3 +1,4 @@
+
 export type BreakoutScreenState = "start" | "playing" | "game-over";
 
 export type Brick = {
@@ -21,6 +22,21 @@ export type Particle = {
   color: string;
 };
 
+export type PowerUpType = "heart";
+
+export type FallingPowerUp = {
+  id: number;
+  type: PowerUpType;
+  x: number;
+  y: number;
+  vy: number;
+  radius: number;
+  emoji: string;
+  color: string;
+  glow: string;
+  active: boolean;
+};
+
 export type BreakoutRuntime = {
   paddle: {
     x: number;
@@ -41,6 +57,7 @@ export type BreakoutRuntime = {
 
   bricks: Brick[];
   particles: Particle[];
+  powerUps: FallingPowerUp[];
 
   score: number;
   lives: number;

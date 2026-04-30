@@ -1,8 +1,5 @@
 import { Link } from "react-router";
-import {
-  CANVAS_HEIGHT,
-  CANVAS_WIDTH,
-} from "./breakoutConfig";
+import { CANVAS_HEIGHT, CANVAS_WIDTH } from "./breakoutConfig";
 import { useBreakoutGame } from "./useBreakoutGame";
 import "./breakout-game-style.css";
 
@@ -13,6 +10,7 @@ function BreakoutGamePage() {
     score,
     lives,
     level,
+    maxLives,
     startGame,
     restartGame,
     handlePointerMove,
@@ -46,7 +44,7 @@ function BreakoutGamePage() {
           </div>
 
           <div className="breakout-score-box breakout-glass-panel">
-            Vidas <span>{lives}</span>
+            Vidas <span>{lives}/{maxLives}</span>
           </div>
 
           <div className="breakout-score-box breakout-glass-panel">
@@ -83,6 +81,7 @@ function BreakoutGamePage() {
                 <div className="breakout-tips">
                   <span>Mouse ou toque para mover</span>
                   <span>Setas ou A/D também funcionam</span>
+                  <span>❤️ Pegue corações para recuperar vidas</span>
                   <span>Blocos dourados precisam de mais de uma batida</span>
                 </div>
 
@@ -131,7 +130,8 @@ function BreakoutGamePage() {
           <strong>Como jogar:</strong>
           <span>
             Mova a raquete, rebata a bolinha e quebre todos os blocos. Se a
-            bolinha cair, você perde uma vida.
+            bolinha cair, você perde uma vida. Corações podem cair dos blocos e
+            recuperam vida até o limite máximo.
           </span>
         </footer>
       </section>

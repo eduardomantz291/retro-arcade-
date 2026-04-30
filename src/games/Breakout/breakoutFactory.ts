@@ -3,6 +3,7 @@ import {
   BRICK_COLUMNS,
   BRICK_GAP,
   BRICK_HEIGHT,
+  BRICK_ROWS,
   BRICK_SIDE,
   BRICK_TOP,
   CANVAS_HEIGHT,
@@ -21,7 +22,7 @@ export function createBricks(level: number) {
 
   const bricks: Brick[] = [];
 
-  for (let row = 0; row < 5; row++) {
+  for (let row = 0; row < BRICK_ROWS; row++) {
     for (let column = 0; column < BRICK_COLUMNS; column++) {
       const palette = brickColors[row % brickColors.length];
 
@@ -67,6 +68,7 @@ export function createInitialRuntime(level = 1): BreakoutRuntime {
 
     bricks: createBricks(level),
     particles: [],
+    powerUps: [],
 
     score: 0,
     lives: INITIAL_LIVES,
