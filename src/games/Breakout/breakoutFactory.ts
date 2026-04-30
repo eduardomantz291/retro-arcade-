@@ -15,7 +15,7 @@ import {
 } from "./breakoutConfig";
 import type { BreakoutRuntime, Brick } from "./breakoutTypes";
 
-export function createBricks(level: number) {
+export function createBricks(wave: number) {
   const brickWidth =
     (CANVAS_WIDTH - BRICK_SIDE * 2 - BRICK_GAP * (BRICK_COLUMNS - 1)) /
     BRICK_COLUMNS;
@@ -26,8 +26,8 @@ export function createBricks(level: number) {
     for (let column = 0; column < BRICK_COLUMNS; column++) {
       const palette = brickColors[row % brickColors.length];
 
-      // A partir do nível 2, os blocos de cima ficam mais resistentes.
-      const hasExtraLife = level >= 2 && row <= 1;
+      // Conforme o jogo continua, os blocos superiores ficam mais resistentes.
+      const hasExtraLife = wave >= 2 && row <= Math.min(2, wave - 1);
       const maxHits = hasExtraLife ? 2 : 1;
 
       bricks.push({
@@ -47,7 +47,7 @@ export function createBricks(level: number) {
   return bricks;
 }
 
-export function createInitialRuntime(level = 1): BreakoutRuntime {
+export function createInitialRuntime(wave = 1): BreakoutRuntime {
   return {
     paddle: {
       x: CANVAS_WIDTH / 2 - PADDLE_WIDTH / 2,
@@ -64,15 +64,23 @@ export function createInitialRuntime(level = 1): BreakoutRuntime {
       vy: -4.6,
       radius: BALL_RADIUS,
       speed: 1,
+      stuckToPaddle: false,
     },
 
-    bricks: createBricks(level),
+    bricks: createBricks(wave),
     particles: [],
     powerUps: [],
 
     score: 0,
     lives: INITIAL_LIVES,
-    level,
+    wave,
     shake: 0,
+
+    rebuild: {
+      active: false,
+      startedAt: 0,
+      nextBrickIndex: 0,
+      releaseAt: 0,
+    },
   };
 }

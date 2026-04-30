@@ -16,16 +16,17 @@ export const BRICK_HEIGHT = 22;
 export const INITIAL_LIVES = 3;
 export const MAX_LIVES = 6;
 
-// Chance do coração aparecer quando um bloco é destruído.
-// 0.14 = 14%. Dá para ajustar depois se ficar fácil ou difícil demais.
 export const HEART_DROP_CHANCE = 0.14;
-
-// Se o jogador pegar um coração já estando com vida máxima,
-// ele recebe pontos bônus.
 export const HEART_BONUS_POINTS = 50;
 
 export const POWER_UP_RADIUS = 14;
 export const POWER_UP_FALL_SPEED = 2.1;
+
+// Tempo entre cada bloco aparecendo durante o respawn.
+export const BRICK_REBUILD_INTERVAL = 26;
+
+// Pequena pausa depois que todos os blocos voltam, antes da bolinha sair.
+export const BRICK_REBUILD_RELEASE_DELAY = 550;
 
 export const brickColors = [
   { color: "#4facfe", glow: "#4facfe" },

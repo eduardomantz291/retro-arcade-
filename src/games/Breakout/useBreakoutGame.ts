@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
+  BRICK_REBUILD_INTERVAL,
+  BRICK_REBUILD_RELEASE_DELAY,
   CANVAS_HEIGHT,
   CANVAS_WIDTH,
   HEART_BONUS_POINTS,
@@ -17,19 +19,30 @@ import type {
   FallingPowerUp,
 } from "./breakoutTypes";
 
+function formatSurvivalTime(totalSeconds: number) {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(
+    2,
+    "0"
+  )}`;
+}
+
 export function useBreakoutGame() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const frameRef = useRef<number | null>(null);
   const runtimeRef = useRef<BreakoutRuntime>(createInitialRuntime());
   const screenStateRef = useRef<BreakoutScreenState>("start");
   const powerUpIdRef = useRef(0);
+  const gameStartedAtRef = useRef(0);
 
   const [screenState, setScreenState] =
     useState<BreakoutScreenState>("start");
 
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(INITIAL_LIVES);
-  const [level, setLevel] = useState(1);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
   useEffect(() => {
     drawGame();
@@ -79,20 +92,47 @@ export function useBreakoutGame() {
 
     setScore(runtime.score);
     setLives(runtime.lives);
-    setLevel(runtime.level);
   }
 
-  function resetBall() {
+  function updateElapsedTime() {
+    if (gameStartedAtRef.current <= 0) {
+      return;
+    }
+
+    const nextElapsedSeconds = Math.floor(
+      (performance.now() - gameStartedAtRef.current) / 1000
+    );
+
+    setElapsedSeconds(nextElapsedSeconds);
+  }
+
+  function keepBallOnPaddle() {
     const runtime = runtimeRef.current;
 
-    runtime.ball.x = CANVAS_WIDTH / 2;
-    runtime.ball.y = CANVAS_HEIGHT - 68;
+    runtime.ball.x = runtime.paddle.x + runtime.paddle.width / 2;
+    runtime.ball.y = runtime.paddle.y - runtime.ball.radius - 1;
+  }
+
+  function resetBall(stuckToPaddle = false) {
+    const runtime = runtimeRef.current;
+
+    runtime.ball.x = runtime.paddle.x + runtime.paddle.width / 2;
+    runtime.ball.y = runtime.paddle.y - runtime.ball.radius - 1;
     runtime.ball.vx = Math.random() > 0.5 ? 4 : -4;
     runtime.ball.vy = -4.6;
     runtime.ball.speed = 1;
+    runtime.ball.stuckToPaddle = stuckToPaddle;
+  }
 
-    runtime.paddle.x = CANVAS_WIDTH / 2 - runtime.paddle.width / 2;
-    runtime.paddle.targetX = runtime.paddle.x;
+  function releaseBallFromPaddle() {
+    const runtime = runtimeRef.current;
+
+    runtime.ball.stuckToPaddle = false;
+    runtime.ball.vx = Math.random() > 0.5 ? 4 : -4;
+    runtime.ball.vy = -4.8;
+    runtime.ball.speed = Math.min(1 + runtime.wave * 0.025, 1.22);
+
+    createExplosion(runtime.ball.x, runtime.ball.y, "#4facfe");
   }
 
   function startGame() {
@@ -101,6 +141,10 @@ export function useBreakoutGame() {
     }
 
     runtimeRef.current = createInitialRuntime(1);
+    powerUpIdRef.current = 0;
+    gameStartedAtRef.current = performance.now();
+
+    setElapsedSeconds(0);
     syncStateFromRuntime();
 
     setGameScreen("playing");
@@ -165,9 +209,6 @@ export function useBreakoutGame() {
   function tryDropHeartFromBrick(brick: Brick) {
     const runtime = runtimeRef.current;
 
-    // O coração pode cair de qualquer bloco destruído.
-    // Futuramente, quando a TNT destruir blocos, podemos chamar essa função
-    // para cada bloco destruído pela explosão também.
     if (Math.random() > HEART_DROP_CHANCE) {
       return;
     }
@@ -226,6 +267,75 @@ export function useBreakoutGame() {
     }
   }
 
+  function beginBrickRebuild() {
+    const runtime = runtimeRef.current;
+
+    runtime.wave += 1;
+    runtime.bricks = createBricks(runtime.wave).map((brick) => ({
+      ...brick,
+      active: false,
+      spawnedAt: undefined,
+    }));
+
+    runtime.powerUps = [];
+    runtime.rebuild = {
+      active: true,
+      startedAt: performance.now(),
+      nextBrickIndex: 0,
+      releaseAt: 0,
+    };
+
+    runtime.shake = 10;
+    runtime.ball.stuckToPaddle = true;
+
+    keepBallOnPaddle();
+  }
+
+  function updateBrickRebuild() {
+    const runtime = runtimeRef.current;
+
+    if (!runtime.rebuild.active) {
+      return;
+    }
+
+    const now = performance.now();
+    const elapsed = now - runtime.rebuild.startedAt;
+
+    const targetBrickIndex = Math.min(
+      runtime.bricks.length,
+      Math.floor(elapsed / BRICK_REBUILD_INTERVAL) + 1
+    );
+
+    while (runtime.rebuild.nextBrickIndex < targetBrickIndex) {
+      const brick = runtime.bricks[runtime.rebuild.nextBrickIndex];
+
+      if (brick) {
+        brick.active = true;
+        brick.spawnedAt = now;
+      }
+
+      runtime.rebuild.nextBrickIndex += 1;
+    }
+
+    const allBricksSpawned =
+      runtime.rebuild.nextBrickIndex >= runtime.bricks.length;
+
+    if (!allBricksSpawned) {
+      return;
+    }
+
+    if (runtime.rebuild.releaseAt === 0) {
+      runtime.rebuild.releaseAt = now + BRICK_REBUILD_RELEASE_DELAY;
+      return;
+    }
+
+    if (now >= runtime.rebuild.releaseAt) {
+      runtime.rebuild.active = false;
+      runtime.rebuild.releaseAt = 0;
+      releaseBallFromPaddle();
+    }
+  }
+
   function hitBrick(brick: Brick) {
     const runtime = runtimeRef.current;
 
@@ -257,14 +367,32 @@ export function useBreakoutGame() {
     });
 
     if (!hasActiveBricks) {
-      runtime.level += 1;
-      runtime.bricks = createBricks(runtime.level);
-      runtime.particles = [];
-      runtime.powerUps = [];
-      runtime.shake = 10;
+      beginBrickRebuild();
+    }
+  }
 
-      resetBall();
-      syncStateFromRuntime();
+  function updatePaddle() {
+    const runtime = runtimeRef.current;
+
+    runtime.paddle.x +=
+      (runtime.paddle.targetX - runtime.paddle.x) * 0.24;
+
+    runtime.paddle.x = clampPaddle(runtime.paddle.x);
+  }
+
+  function updateParticles() {
+    const runtime = runtimeRef.current;
+
+    for (let index = runtime.particles.length - 1; index >= 0; index--) {
+      const particle = runtime.particles[index];
+
+      particle.x += particle.vx;
+      particle.y += particle.vy;
+      particle.life -= 0.045;
+
+      if (particle.life <= 0) {
+        runtime.particles.splice(index, 1);
+      }
     }
   }
 
@@ -272,11 +400,28 @@ export function useBreakoutGame() {
     const runtime = runtimeRef.current;
     const { paddle, ball } = runtime;
 
-    paddle.x += (paddle.targetX - paddle.x) * 0.24;
-    paddle.x = clampPaddle(paddle.x);
+    updateElapsedTime();
+    updatePaddle();
 
-    ball.x += ball.vx * ball.speed;
-    ball.y += ball.vy * ball.speed;
+    if (ball.stuckToPaddle) {
+      keepBallOnPaddle();
+    }
+
+    if (runtime.rebuild.active) {
+      updateBrickRebuild();
+      updateParticles();
+
+      if (runtime.shake > 0) {
+        runtime.shake -= 0.5;
+      }
+
+      return;
+    }
+
+    if (!ball.stuckToPaddle) {
+      ball.x += ball.vx * ball.speed;
+      ball.y += ball.vy * ball.speed;
+    }
 
     if (ball.x - ball.radius <= 0) {
       ball.x = ball.radius;
@@ -347,20 +492,10 @@ export function useBreakoutGame() {
         return;
       }
 
-      resetBall();
+      resetBall(false);
     }
 
-    for (let index = runtime.particles.length - 1; index >= 0; index--) {
-      const particle = runtime.particles[index];
-
-      particle.x += particle.vx;
-      particle.y += particle.vy;
-      particle.life -= 0.045;
-
-      if (particle.life <= 0) {
-        runtime.particles.splice(index, 1);
-      }
-    }
+    updateParticles();
 
     if (runtime.shake > 0) {
       runtime.shake -= 0.5;
@@ -413,6 +548,7 @@ export function useBreakoutGame() {
     }
 
     const runtime = runtimeRef.current;
+    const now = performance.now();
 
     ctx.save();
 
@@ -454,6 +590,12 @@ export function useBreakoutGame() {
       }
 
       const opacity = brick.hits / brick.maxHits;
+      const spawnAge = brick.spawnedAt ? now - brick.spawnedAt : 999;
+      const spawnProgress = Math.min(spawnAge / 240, 1);
+      const yOffset =
+        runtime.rebuild.active && spawnProgress < 1
+          ? -(1 - spawnProgress) * 42
+          : 0;
 
       ctx.shadowBlur = 14;
       ctx.shadowColor = brick.glow;
@@ -462,7 +604,14 @@ export function useBreakoutGame() {
           ? `rgba(241, 196, 15, ${0.55 + opacity * 0.45})`
           : brick.color;
 
-      drawRoundedRect(ctx, brick.x, brick.y, brick.width, brick.height, 8);
+      drawRoundedRect(
+        ctx,
+        brick.x,
+        brick.y + yOffset,
+        brick.width,
+        brick.height,
+        8
+      );
 
       ctx.shadowBlur = 0;
     }
@@ -532,8 +681,9 @@ export function useBreakoutGame() {
     screenState,
     score,
     lives,
-    level,
     maxLives: MAX_LIVES,
+    elapsedSeconds,
+    elapsedTimeLabel: formatSurvivalTime(elapsedSeconds),
     startGame,
     restartGame,
     handlePointerMove,

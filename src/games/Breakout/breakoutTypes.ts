@@ -1,4 +1,3 @@
-
 export type BreakoutScreenState = "start" | "playing" | "game-over";
 
 export type Brick = {
@@ -11,6 +10,9 @@ export type Brick = {
   maxHits: number;
   color: string;
   glow: string;
+
+  // Usado só para animar o bloco "caindo" quando ele respawna.
+  spawnedAt?: number;
 };
 
 export type Particle = {
@@ -53,6 +55,7 @@ export type BreakoutRuntime = {
     vy: number;
     radius: number;
     speed: number;
+    stuckToPaddle: boolean;
   };
 
   bricks: Brick[];
@@ -61,6 +64,16 @@ export type BreakoutRuntime = {
 
   score: number;
   lives: number;
-  level: number;
+
+  // Wave é interno. Não aparece mais na UI como level.
+  wave: number;
+
   shake: number;
+
+  rebuild: {
+    active: boolean;
+    startedAt: number;
+    nextBrickIndex: number;
+    releaseAt: number;
+  };
 };

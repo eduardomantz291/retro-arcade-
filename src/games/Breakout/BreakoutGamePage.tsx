@@ -9,8 +9,8 @@ function BreakoutGamePage() {
     screenState,
     score,
     lives,
-    level,
     maxLives,
+    elapsedTimeLabel,
     startGame,
     restartGame,
     handlePointerMove,
@@ -33,7 +33,7 @@ function BreakoutGamePage() {
 
             <div>
               <strong>Brick Breaker</strong>
-              <p>Quebre blocos, faça pontos e avance de nível.</p>
+              <p>Quebre blocos, sobreviva e bata seu tempo.</p>
             </div>
           </div>
         </header>
@@ -48,7 +48,7 @@ function BreakoutGamePage() {
           </div>
 
           <div className="breakout-score-box breakout-glass-panel">
-            Level <span>{level}</span>
+            Tempo <span>{elapsedTimeLabel}</span>
           </div>
         </section>
 
@@ -74,15 +74,15 @@ function BreakoutGamePage() {
                 <h1>Brick Breaker</h1>
 
                 <p>
-                  Controle a raquete, rebata a bolinha e destrua todos os blocos
-                  para avançar de nível.
+                  Controle a raquete, rebata a bolinha, quebre todos os blocos e
+                  tente sobreviver pelo máximo de tempo possível.
                 </p>
 
                 <div className="breakout-tips">
                   <span>Mouse ou toque para mover</span>
                   <span>Setas ou A/D também funcionam</span>
                   <span>❤️ Pegue corações para recuperar vidas</span>
-                  <span>Blocos dourados precisam de mais de uma batida</span>
+                  <span>Ao limpar a tela, os blocos voltam e o jogo continua</span>
                 </div>
 
                 <button
@@ -104,8 +104,8 @@ function BreakoutGamePage() {
                 <h1>Game Over</h1>
 
                 <p>
-                  Você fez <strong>{score}</strong> pontos e chegou ao level{" "}
-                  <strong>{level}</strong>.
+                  Você fez <strong>{score}</strong> pontos e sobreviveu por{" "}
+                  <strong>{elapsedTimeLabel}</strong>.
                 </p>
 
                 <div className="breakout-modal-actions">
@@ -129,9 +129,9 @@ function BreakoutGamePage() {
         <footer className="breakout-help breakout-glass-panel">
           <strong>Como jogar:</strong>
           <span>
-            Mova a raquete, rebata a bolinha e quebre todos os blocos. Se a
-            bolinha cair, você perde uma vida. Corações podem cair dos blocos e
-            recuperam vida até o limite máximo.
+            Mova a raquete, rebata a bolinha e quebre todos os blocos. Quando
+            todos forem destruídos, novos blocos aparecem e a bolinha pausa na
+            raquete antes de continuar.
           </span>
         </footer>
       </section>
