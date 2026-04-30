@@ -10,6 +10,9 @@ import {
   MAX_LIVES,
   POWER_UP_FALL_SPEED,
   POWER_UP_RADIUS,
+  TNT_BRICK_POINTS,
+  TNT_EXPLOSION_BRICK_POINTS,
+  TNT_EXPLOSION_RADIUS,
 } from "./breakoutConfig";
 import { createBricks, createInitialRuntime } from "./breakoutFactory";
 import type {
@@ -27,6 +30,13 @@ function formatSurvivalTime(totalSeconds: number) {
     2,
     "0"
   )}`;
+}
+
+function getBrickCenter(brick: Brick) {
+  return {
+    x: brick.x + brick.width / 2,
+    y: brick.y + brick.height / 2,
+  };
 }
 
 export function useBreakoutGame() {
@@ -174,19 +184,38 @@ export function useBreakoutGame() {
     runtime.paddle.targetX = clampPaddle(x - runtime.paddle.width / 2);
   }
 
-  function createExplosion(x: number, y: number, color: string) {
+  function createExplosion(
+    x: number,
+    y: number,
+    color: string,
+    amount = 10,
+    force = 5
+  ) {
     const runtime = runtimeRef.current;
 
-    for (let index = 0; index < 10; index++) {
+    for (let index = 0; index < amount; index++) {
       runtime.particles.push({
         x,
         y,
-        vx: (Math.random() - 0.5) * 5,
-        vy: (Math.random() - 0.5) * 5,
+        vx: (Math.random() - 0.5) * force,
+        vy: (Math.random() - 0.5) * force,
         life: 1,
         color,
       });
     }
+  }
+
+  function createShockwave(x: number, y: number, color: string) {
+    const runtime = runtimeRef.current;
+
+    runtime.shockwaves.push({
+      x,
+      y,
+      radius: 8,
+      maxRadius: TNT_EXPLOSION_RADIUS,
+      life: 1,
+      color,
+    });
   }
 
   function createHeartPowerUp(x: number, y: number): FallingPowerUp {
@@ -336,8 +365,70 @@ export function useBreakoutGame() {
     }
   }
 
+  function checkIfScreenWasCleared() {
+    const runtime = runtimeRef.current;
+
+    const hasActiveBricks = runtime.bricks.some((currentBrick) => {
+      return currentBrick.active;
+    });
+
+    if (!hasActiveBricks) {
+      beginBrickRebuild();
+    }
+  }
+
+  function explodeTntBrick(tntBrick: Brick) {
+    const runtime = runtimeRef.current;
+    const tntCenter = getBrickCenter(tntBrick);
+
+    tntBrick.active = false;
+
+    runtime.score += TNT_BRICK_POINTS;
+    runtime.shake = 18;
+
+    createShockwave(tntCenter.x, tntCenter.y, "#ff6b6b");
+    createExplosion(tntCenter.x, tntCenter.y, "#ff4757", 34, 10);
+    createExplosion(tntCenter.x, tntCenter.y, "#f1c40f", 20, 8);
+
+    for (const brick of runtime.bricks) {
+      if (!brick.active || brick === tntBrick) {
+        continue;
+      }
+
+      const brickCenter = getBrickCenter(brick);
+      const distance = Math.hypot(
+        brickCenter.x - tntCenter.x,
+        brickCenter.y - tntCenter.y
+      );
+
+      if (distance > TNT_EXPLOSION_RADIUS) {
+        continue;
+      }
+
+      brick.active = false;
+      brick.hits = 0;
+
+      runtime.score += TNT_EXPLOSION_BRICK_POINTS;
+
+      createExplosion(brickCenter.x, brickCenter.y, brick.glow, 12, 6);
+      tryDropHeartFromBrick(brick);
+    }
+
+    setScore(runtime.score);
+    checkIfScreenWasCleared();
+  }
+
   function hitBrick(brick: Brick) {
     const runtime = runtimeRef.current;
+
+    if (brick.type === "tnt") {
+      explodeTntBrick(brick);
+
+      runtime.ball.vy *= -1;
+      runtime.ball.speed = Math.min(runtime.ball.speed + 0.035, 1.45);
+
+      return;
+    }
 
     brick.hits -= 1;
 
@@ -361,14 +452,7 @@ export function useBreakoutGame() {
     runtime.ball.speed = Math.min(runtime.ball.speed + 0.025, 1.45);
 
     setScore(runtime.score);
-
-    const hasActiveBricks = runtime.bricks.some((currentBrick) => {
-      return currentBrick.active;
-    });
-
-    if (!hasActiveBricks) {
-      beginBrickRebuild();
-    }
+    checkIfScreenWasCleared();
   }
 
   function updatePaddle() {
@@ -396,6 +480,24 @@ export function useBreakoutGame() {
     }
   }
 
+  function updateShockwaves() {
+    const runtime = runtimeRef.current;
+
+    for (let index = runtime.shockwaves.length - 1; index >= 0; index--) {
+      const shockwave = runtime.shockwaves[index];
+
+      shockwave.radius += 5.6;
+      shockwave.life -= 0.045;
+
+      if (
+        shockwave.life <= 0 ||
+        shockwave.radius >= shockwave.maxRadius
+      ) {
+        runtime.shockwaves.splice(index, 1);
+      }
+    }
+  }
+
   function updateGame() {
     const runtime = runtimeRef.current;
     const { paddle, ball } = runtime;
@@ -410,6 +512,7 @@ export function useBreakoutGame() {
     if (runtime.rebuild.active) {
       updateBrickRebuild();
       updateParticles();
+      updateShockwaves();
 
       if (runtime.shake > 0) {
         runtime.shake -= 0.5;
@@ -496,6 +599,7 @@ export function useBreakoutGame() {
     }
 
     updateParticles();
+    updateShockwaves();
 
     if (runtime.shake > 0) {
       runtime.shake -= 0.5;
@@ -532,6 +636,63 @@ export function useBreakoutGame() {
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(powerUp.emoji, powerUp.x, powerUp.y + 1);
+  }
+
+  function drawTntBrick(
+    ctx: CanvasRenderingContext2D,
+    brick: Brick,
+    yOffset: number
+  ) {
+    const pulse = Math.abs(Math.sin(Date.now() / 150)) * 8;
+    const x = brick.x;
+    const y = brick.y + yOffset;
+
+    ctx.shadowBlur = 18 + pulse;
+    ctx.shadowColor = "#ff4757";
+    ctx.fillStyle = "#ff3838";
+
+    drawRoundedRect(ctx, x, y, brick.width, brick.height, 8);
+
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = "rgba(0, 0, 0, 0.22)";
+    drawRoundedRect(ctx, x + 4, y + 4, brick.width - 8, brick.height - 8, 6);
+
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "900 12px Poppins, system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("TNT", x + brick.width / 2, y + brick.height / 2 + 1);
+
+    ctx.strokeStyle = "rgba(241, 196, 15, 0.95)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x + brick.width - 12, y + 3);
+    ctx.lineTo(x + brick.width - 5, y - 5);
+    ctx.stroke();
+
+    ctx.fillStyle = "#f1c40f";
+    ctx.beginPath();
+    ctx.arc(x + brick.width - 4, y - 6, 3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function drawShockwaves(ctx: CanvasRenderingContext2D) {
+    const runtime = runtimeRef.current;
+
+    for (const shockwave of runtime.shockwaves) {
+      ctx.globalAlpha = Math.max(0, shockwave.life);
+      ctx.strokeStyle = shockwave.color;
+      ctx.lineWidth = 4;
+      ctx.shadowBlur = 22;
+      ctx.shadowColor = shockwave.color;
+
+      ctx.beginPath();
+      ctx.arc(shockwave.x, shockwave.y, shockwave.radius, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.globalAlpha = 1;
+      ctx.shadowBlur = 0;
+    }
   }
 
   function drawGame() {
@@ -597,6 +758,11 @@ export function useBreakoutGame() {
           ? -(1 - spawnProgress) * 42
           : 0;
 
+      if (brick.type === "tnt") {
+        drawTntBrick(ctx, brick, yOffset);
+        continue;
+      }
+
       ctx.shadowBlur = 14;
       ctx.shadowColor = brick.glow;
       ctx.fillStyle =
@@ -615,6 +781,8 @@ export function useBreakoutGame() {
 
       ctx.shadowBlur = 0;
     }
+
+    drawShockwaves(ctx);
 
     for (const powerUp of runtime.powerUps) {
       if (powerUp.active) {

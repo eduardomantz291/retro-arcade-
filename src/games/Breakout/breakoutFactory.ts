@@ -15,6 +15,19 @@ import {
 } from "./breakoutConfig";
 import type { BreakoutRuntime, Brick } from "./breakoutTypes";
 
+function chooseTntBrickIndex(totalBricks: number) {
+  // Mantém apenas 1 TNT por tela.
+  // Evitamos os cantos extremos para ela ter mais chance de explodir blocos ao redor.
+  const safeStart = BRICK_COLUMNS + 1;
+  const safeEnd = totalBricks - BRICK_COLUMNS - 2;
+
+  if (safeEnd <= safeStart) {
+    return Math.floor(totalBricks / 2);
+  }
+
+  return Math.floor(Math.random() * (safeEnd - safeStart + 1)) + safeStart;
+}
+
 export function createBricks(wave: number) {
   const brickWidth =
     (CANVAS_WIDTH - BRICK_SIDE * 2 - BRICK_GAP * (BRICK_COLUMNS - 1)) /
@@ -26,7 +39,6 @@ export function createBricks(wave: number) {
     for (let column = 0; column < BRICK_COLUMNS; column++) {
       const palette = brickColors[row % brickColors.length];
 
-      // Conforme o jogo continua, os blocos superiores ficam mais resistentes.
       const hasExtraLife = wave >= 2 && row <= Math.min(2, wave - 1);
       const maxHits = hasExtraLife ? 2 : 1;
 
@@ -40,8 +52,23 @@ export function createBricks(wave: number) {
         maxHits,
         color: palette.color,
         glow: palette.glow,
+        type: "normal",
       });
     }
+  }
+
+  const tntIndex = chooseTntBrickIndex(bricks.length);
+  const tntBrick = bricks[tntIndex];
+
+  if (tntBrick) {
+    bricks[tntIndex] = {
+      ...tntBrick,
+      type: "tnt",
+      hits: 1,
+      maxHits: 1,
+      color: "#ff3838",
+      glow: "#ff6b6b",
+    };
   }
 
   return bricks;
@@ -69,6 +96,7 @@ export function createInitialRuntime(wave = 1): BreakoutRuntime {
 
     bricks: createBricks(wave),
     particles: [],
+    shockwaves: [],
     powerUps: [],
 
     score: 0,

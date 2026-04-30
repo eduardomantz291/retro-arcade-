@@ -1,5 +1,7 @@
 export type BreakoutScreenState = "start" | "playing" | "game-over";
 
+export type BrickType = "normal" | "tnt";
+
 export type Brick = {
   x: number;
   y: number;
@@ -10,8 +12,7 @@ export type Brick = {
   maxHits: number;
   color: string;
   glow: string;
-
-  // Usado só para animar o bloco "caindo" quando ele respawna.
+  type: BrickType;
   spawnedAt?: number;
 };
 
@@ -20,6 +21,15 @@ export type Particle = {
   y: number;
   vx: number;
   vy: number;
+  life: number;
+  color: string;
+};
+
+export type Shockwave = {
+  x: number;
+  y: number;
+  radius: number;
+  maxRadius: number;
   life: number;
   color: string;
 };
@@ -60,14 +70,12 @@ export type BreakoutRuntime = {
 
   bricks: Brick[];
   particles: Particle[];
+  shockwaves: Shockwave[];
   powerUps: FallingPowerUp[];
 
   score: number;
   lives: number;
-
-  // Wave é interno. Não aparece mais na UI como level.
   wave: number;
-
   shake: number;
 
   rebuild: {

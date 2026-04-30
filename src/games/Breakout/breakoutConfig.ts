@@ -22,11 +22,13 @@ export const HEART_BONUS_POINTS = 50;
 export const POWER_UP_RADIUS = 14;
 export const POWER_UP_FALL_SPEED = 2.1;
 
-// Tempo entre cada bloco aparecendo durante o respawn.
 export const BRICK_REBUILD_INTERVAL = 26;
-
-// Pequena pausa depois que todos os blocos voltam, antes da bolinha sair.
 export const BRICK_REBUILD_RELEASE_DELAY = 550;
+
+// TNT
+export const TNT_EXPLOSION_RADIUS = 92;
+export const TNT_BRICK_POINTS = 60;
+export const TNT_EXPLOSION_BRICK_POINTS = 35;
 
 export const brickColors = [
   { color: "#4facfe", glow: "#4facfe" },
