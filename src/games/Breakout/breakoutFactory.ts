@@ -136,6 +136,7 @@ export function createInitialRuntime(wave = 1): BreakoutRuntime {
       active: false,
       charge: 0,
       activatedAt: 0,
+      paddleBounceCombo: 0,
     },
 
     bricks: createBricks(wave),

@@ -96,6 +96,7 @@ export type BreakoutRuntime = {
     active: boolean;
     charge: number;
     activatedAt: number;
+    paddleBounceCombo: number;
   };
 
   bricks: Brick[];

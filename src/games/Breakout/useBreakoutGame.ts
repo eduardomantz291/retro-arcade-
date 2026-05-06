@@ -488,6 +488,7 @@ export function useBreakoutGame() {
     runtime.ultimatePower.active = true;
     runtime.ultimatePower.activatedAt = performance.now();
     runtime.ultimatePower.charge = ULTIMATE_MAX_CHARGE;
+    runtime.ultimatePower.paddleBounceCombo = 0;
 
     runtime.shake = 18;
 
@@ -503,6 +504,7 @@ export function useBreakoutGame() {
     runtime.ultimatePower.active = false;
     runtime.ultimatePower.charge = 0;
     runtime.ultimatePower.activatedAt = 0;
+    runtime.ultimatePower.paddleBounceCombo = 0;
     runtime.ultimateExtraBalls = [];
 
     runtime.bricks = createBricks(runtime.wave).map((brick) => ({
@@ -551,7 +553,7 @@ export function useBreakoutGame() {
     startUltimateMode();
   }
 
-  function createUltimateExtraBall(hitPosition: number) {
+  function createUltimateExtraBall(hitPosition: number, index: number, total: number) {
     const runtime = runtimeRef.current;
 
     if (!runtime.ultimatePower.active) {
@@ -559,28 +561,54 @@ export function useBreakoutGame() {
     }
 
     if (runtime.ultimateExtraBalls.length >= ULTIMATE_EXTRA_BALL_MAX) {
-      runtime.ultimateExtraBalls.shift();
+      return;
     }
 
     ultimateExtraBallIdRef.current += 1;
 
     const mainDirection = runtime.ball.vx >= 0 ? 1 : -1;
     const extraDirection = -mainDirection;
-    const verticalSpeed = Math.max(5.2, Math.abs(runtime.ball.vy) * 0.75);
-    const horizontalSpeed = Math.max(3.2, Math.abs(hitPosition * 6));
+    const spread = total <= 1 ? 0 : index - (total - 1) / 2;
+    const verticalSpeed = Math.max(5.8, Math.abs(runtime.ball.vy) * 0.78);
+    const horizontalBase = Math.max(3.6, Math.abs(hitPosition * 6.4));
+    const horizontalSpeed = horizontalBase + Math.abs(spread) * 0.75;
 
     runtime.ultimateExtraBalls.push({
       id: ultimateExtraBallIdRef.current,
       x: runtime.ball.x,
       y: runtime.ball.y,
-      vx: extraDirection * horizontalSpeed,
-      vy: -verticalSpeed,
+      vx: extraDirection * horizontalSpeed + spread * 0.85,
+      vy: -verticalSpeed - Math.abs(spread) * 0.22,
       radius: 6,
       speed: 1,
       active: true,
     });
+  }
 
-    createExplosion(runtime.ball.x, runtime.ball.y, "#38ef7d", 10, 5);
+  function spawnUltimateExtraBalls(hitPosition: number) {
+    const runtime = runtimeRef.current;
+
+    if (!runtime.ultimatePower.active) {
+      return;
+    }
+
+    const availableSlots =
+      ULTIMATE_EXTRA_BALL_MAX - runtime.ultimateExtraBalls.length;
+
+    if (availableSlots <= 0) {
+      return;
+    }
+
+    const amountToSpawn = Math.min(
+      runtime.ultimatePower.paddleBounceCombo,
+      availableSlots
+    );
+
+    for (let index = 0; index < amountToSpawn; index++) {
+      createUltimateExtraBall(hitPosition, index, amountToSpawn);
+    }
+
+    createExplosion(runtime.ball.x, runtime.ball.y, "#38ef7d", 8 + amountToSpawn, 5);
   }
 
   function findNearestActiveBrick() {
@@ -1245,8 +1273,6 @@ export function useBreakoutGame() {
     brick: Brick,
     extraBall: UltimateExtraBall
   ) {
-    const runtime = runtimeRef.current;
-
     if (brick.type !== "ultimate") {
       extraBall.vy *= -1;
       return;
@@ -1374,6 +1400,7 @@ export function useBreakoutGame() {
     runtime.ball.vy = -Math.abs(runtime.ball.vy);
     runtime.ball.speed = ULTIMATE_BALL_SPEED;
 
+    runtime.ultimatePower.paddleBounceCombo = 0;
     runtime.shake = 6;
 
     createExplosion(runtime.ball.x, runtime.ball.y, "#38ef7d", 14, 6);
@@ -1439,11 +1466,13 @@ export function useBreakoutGame() {
       const hitPosition = (ball.x - paddleCenter) / (paddle.width / 2);
 
       if (runtime.ultimatePower.active) {
-        ball.vx = hitPosition * 5.8;
+        runtime.ultimatePower.paddleBounceCombo += 1;
+
+        ball.vx = hitPosition * 6.4;
         ball.vy = -Math.abs(ball.vy);
         ball.speed = ULTIMATE_BALL_SPEED;
 
-        createUltimateExtraBall(hitPosition);
+        spawnUltimateExtraBalls(hitPosition);
         createExplosion(ball.x, ball.y, "#38ef7d", 18, 7);
       } else if (ball.arrowPierceHits > 0) {
         const directionX = hitPosition * ARROW_POWER_MAX_HORIZONTAL_FORCE;
