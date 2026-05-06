@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { Link } from "react-router";
 import { CANVAS_HEIGHT, CANVAS_WIDTH } from "./breakoutConfig";
 import { useBreakoutGame } from "./useBreakoutGame";
@@ -12,10 +13,26 @@ function BreakoutGamePage() {
     maxLives,
     elapsedTimeLabel,
     bombCharges,
+    isArrowAiming,
+    isArrowReady,
+    arrowCooldownProgress,
     startGame,
     restartGame,
     handlePointerMove,
+    handleArrowPowerAction,
   } = useBreakoutGame();
+
+  const arrowButtonStyle = {
+    "--arrow-charge": arrowCooldownProgress,
+  } as CSSProperties;
+
+  const arrowButtonClassName = [
+    "breakout-arrow-power-button",
+    isArrowReady ? "breakout-arrow-ready" : "breakout-arrow-cooldown",
+    isArrowAiming ? "breakout-arrow-aiming" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <main className="breakout-page">
@@ -71,6 +88,28 @@ function BreakoutGamePage() {
             />
           </div>
 
+          {screenState === "playing" && (
+            <button
+              className={arrowButtonClassName}
+              style={arrowButtonStyle}
+              type="button"
+              onClick={handleArrowPowerAction}
+              aria-label="Usar poder de flecha"
+            >
+              <span className="breakout-arrow-icon">
+                {isArrowAiming ? "🎯" : "🏹"}
+              </span>
+
+              <small>
+                {isArrowAiming
+                  ? "ATIRAR"
+                  : isArrowReady
+                    ? "FLECHA"
+                    : "CARREGANDO"}
+              </small>
+            </button>
+          )}
+
           {screenState === "start" && (
             <div className="breakout-overlay">
               <div className="breakout-modal breakout-glass-panel">
@@ -86,6 +125,7 @@ function BreakoutGamePage() {
                 <div className="breakout-tips">
                   <span>Mouse ou toque para mover</span>
                   <span>Setas ou A/D também funcionam</span>
+                  <span>Espaço ou botão 🏹 ativa o poder de mira</span>
                   <span>❤️ Pegue corações para recuperar vidas</span>
                   <span>💣 Pegue bombas para deixar a bolinha explosiva</span>
                   <span>TNT explode blocos próximos e gera muitos pontos</span>
@@ -135,9 +175,9 @@ function BreakoutGamePage() {
         <footer className="breakout-help breakout-glass-panel">
           <strong>Como jogar:</strong>
           <span>
-            Mova a raquete, rebata a bolinha e quebre todos os blocos. Corações
-            recuperam vida, bombas deixam a bolinha explosiva por 2 impactos e a
-            TNT causa grandes explosões.
+            Mova a raquete, rebata a bolinha e quebre todos os blocos. Use
+            espaço ou o botão de flecha para puxar a bolinha para a raquete,
+            mirar e disparar com muita força.
           </span>
         </footer>
       </section>

@@ -328,3 +328,255 @@
     font-size: clamp(2.4rem, 14vw, 3.6rem);
   }
 }
+
+/* ==========================================
+   Poder de flecha / mira
+   ========================================== */
+
+.breakout-arrow-power-button {
+  --arrow-charge: 1;
+
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  gap: 2px;
+  width: 82px;
+  height: 82px;
+  overflow: hidden;
+  border-radius: 999px;
+  color: #ffffff;
+  cursor: pointer;
+  background: rgba(10, 14, 18, 0.78);
+  border: 1px solid rgba(79, 172, 254, 0.28);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.38);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.breakout-arrow-power-button::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  transform: scaleY(var(--arrow-charge));
+  transform-origin: bottom;
+  background:
+    radial-gradient(circle at 50% 15%, rgba(255, 255, 255, 0.2), transparent 34%),
+    linear-gradient(180deg, rgba(79, 172, 254, 0.86), rgba(56, 239, 125, 0.78));
+  transition: transform 0.25s linear;
+}
+
+.breakout-arrow-power-button::after {
+  content: "";
+  position: absolute;
+  inset: 7px;
+  z-index: 1;
+  border-radius: inherit;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(17, 24, 32, 0.2);
+}
+
+.breakout-arrow-power-button:hover {
+  transform: translateY(-3px) scale(1.03);
+}
+
+.breakout-arrow-icon,
+.breakout-arrow-power-button small {
+  position: relative;
+  z-index: 2;
+}
+
+.breakout-arrow-icon {
+  font-size: 1.8rem;
+  line-height: 1;
+}
+
+.breakout-arrow-power-button small {
+  font-size: 0.58rem;
+  font-weight: 900;
+  letter-spacing: 0.8px;
+}
+
+.breakout-arrow-cooldown {
+  filter: grayscale(0.4) brightness(0.72);
+}
+
+.breakout-arrow-ready {
+  border-color: rgba(56, 239, 125, 0.55);
+  box-shadow:
+    0 0 24px rgba(56, 239, 125, 0.3),
+    0 12px 30px rgba(0, 0, 0, 0.38);
+  animation: arrowReadyPulse 1.2s ease-in-out infinite alternate;
+}
+
+.breakout-arrow-aiming {
+  border-color: rgba(241, 196, 15, 0.8);
+  box-shadow:
+    0 0 28px rgba(241, 196, 15, 0.42),
+    0 12px 30px rgba(0, 0, 0, 0.38);
+}
+
+.breakout-arrow-aiming::before {
+  background:
+    radial-gradient(circle at 50% 15%, rgba(255, 255, 255, 0.28), transparent 34%),
+    linear-gradient(180deg, rgba(241, 196, 15, 0.95), rgba(255, 159, 26, 0.88));
+}
+
+@keyframes arrowReadyPulse {
+  from {
+    transform: scale(1);
+  }
+
+  to {
+    transform: scale(1.04);
+  }
+}
+
+@media (max-width: 520px) {
+  .breakout-arrow-power-button {
+    right: 12px;
+    bottom: 12px;
+    width: 72px;
+    height: 72px;
+  }
+
+  .breakout-arrow-icon {
+    font-size: 1.55rem;
+  }
+
+  .breakout-arrow-power-button small {
+    font-size: 0.52rem;
+  }
+}/* ==========================================
+   Poder de flecha / mira
+   ========================================== */
+
+.breakout-arrow-power-button {
+  --arrow-charge: 1;
+
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  gap: 2px;
+  width: 82px;
+  height: 82px;
+  overflow: hidden;
+  border-radius: 999px;
+  color: #ffffff;
+  cursor: pointer;
+  background: rgba(10, 14, 18, 0.78);
+  border: 1px solid rgba(79, 172, 254, 0.28);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.38);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.breakout-arrow-power-button::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  transform: scaleY(var(--arrow-charge));
+  transform-origin: bottom;
+  background:
+    radial-gradient(circle at 50% 15%, rgba(255, 255, 255, 0.2), transparent 34%),
+    linear-gradient(180deg, rgba(79, 172, 254, 0.86), rgba(56, 239, 125, 0.78));
+  transition: transform 0.25s linear;
+}
+
+.breakout-arrow-power-button::after {
+  content: "";
+  position: absolute;
+  inset: 7px;
+  z-index: 1;
+  border-radius: inherit;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(17, 24, 32, 0.2);
+}
+
+.breakout-arrow-power-button:hover {
+  transform: translateY(-3px) scale(1.03);
+}
+
+.breakout-arrow-icon,
+.breakout-arrow-power-button small {
+  position: relative;
+  z-index: 2;
+}
+
+.breakout-arrow-icon {
+  font-size: 1.8rem;
+  line-height: 1;
+}
+
+.breakout-arrow-power-button small {
+  font-size: 0.58rem;
+  font-weight: 900;
+  letter-spacing: 0.8px;
+}
+
+.breakout-arrow-cooldown {
+  filter: grayscale(0.4) brightness(0.72);
+}
+
+.breakout-arrow-ready {
+  border-color: rgba(56, 239, 125, 0.55);
+  box-shadow:
+    0 0 24px rgba(56, 239, 125, 0.3),
+    0 12px 30px rgba(0, 0, 0, 0.38);
+  animation: arrowReadyPulse 1.2s ease-in-out infinite alternate;
+}
+
+.breakout-arrow-aiming {
+  border-color: rgba(241, 196, 15, 0.8);
+  box-shadow:
+    0 0 28px rgba(241, 196, 15, 0.42),
+    0 12px 30px rgba(0, 0, 0, 0.38);
+}
+
+.breakout-arrow-aiming::before {
+  background:
+    radial-gradient(circle at 50% 15%, rgba(255, 255, 255, 0.28), transparent 34%),
+    linear-gradient(180deg, rgba(241, 196, 15, 0.95), rgba(255, 159, 26, 0.88));
+}
+
+@keyframes arrowReadyPulse {
+  from {
+    transform: scale(1);
+  }
+
+  to {
+    transform: scale(1.04);
+  }
+}
+
+@media (max-width: 520px) {
+  .breakout-arrow-power-button {
+    right: 12px;
+    bottom: 12px;
+    width: 72px;
+    height: 72px;
+  }
+
+  .breakout-arrow-icon {
+    font-size: 1.55rem;
+  }
+
+  .breakout-arrow-power-button small {
+    font-size: 0.52rem;
+  }
+}
