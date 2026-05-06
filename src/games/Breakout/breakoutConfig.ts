@@ -43,6 +43,12 @@ export const ARROW_POWER_SHOT_SPEED = 15.5;
 export const ARROW_POWER_MAX_HORIZONTAL_FORCE = 13.2;
 export const ARROW_POWER_PIERCE_HITS = 9;
 
+// Poder teleguiado
+export const HOMING_POWER_COOLDOWN_MS = 35000;
+export const HOMING_POWER_DURATION_MS = 8000;
+export const HOMING_POWER_STRENGTH = 0.075;
+export const HOMING_POWER_MAX_TURN = 0.36;
+
 export const brickColors = [
   { color: "#4facfe", glow: "#4facfe" },
   { color: "#38ef7d", glow: "#38ef7d" },

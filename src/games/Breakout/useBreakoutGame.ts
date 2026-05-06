@@ -15,6 +15,10 @@ import {
   CANVAS_WIDTH,
   HEART_BONUS_POINTS,
   HEART_DROP_CHANCE,
+  HOMING_POWER_COOLDOWN_MS,
+  HOMING_POWER_DURATION_MS,
+  HOMING_POWER_MAX_TURN,
+  HOMING_POWER_STRENGTH,
   INITIAL_LIVES,
   MAX_LIVES,
   POWER_UP_FALL_SPEED,
@@ -68,6 +72,10 @@ export function useBreakoutGame() {
   const [isArrowReady, setIsArrowReady] = useState(true);
   const [arrowCooldownProgress, setArrowCooldownProgress] = useState(1);
 
+  const [isHomingActive, setIsHomingActive] = useState(false);
+  const [isHomingReady, setIsHomingReady] = useState(true);
+  const [homingCooldownProgress, setHomingCooldownProgress] = useState(1);
+
   useEffect(() => {
     drawGame();
 
@@ -81,6 +89,12 @@ export function useBreakoutGame() {
       if (event.code === "Space") {
         event.preventDefault();
         handleArrowPowerAction();
+        return;
+      }
+
+      if (event.code === "ShiftLeft" || event.code === "ShiftRight") {
+        event.preventDefault();
+        handleHomingPowerAction();
         return;
       }
 
@@ -124,6 +138,7 @@ export function useBreakoutGame() {
     setLives(runtime.lives);
     setBombCharges(runtime.ball.bombCharges);
     syncArrowPowerState();
+    syncHomingPowerState();
   }
 
   function updateElapsedTime() {
@@ -158,6 +173,36 @@ export function useBreakoutGame() {
     setIsArrowAiming(false);
     setIsArrowReady(progress >= 1);
     setArrowCooldownProgress(progress);
+  }
+
+  function syncHomingPowerState() {
+    const runtime = runtimeRef.current;
+    const now = performance.now();
+
+    if (runtime.homingPower.active) {
+      const activeElapsed = now - runtime.homingPower.activatedAt;
+
+      if (activeElapsed >= HOMING_POWER_DURATION_MS) {
+        runtime.homingPower.active = false;
+      }
+    }
+
+    if (runtime.homingPower.active) {
+      setIsHomingActive(true);
+      setIsHomingReady(false);
+      setHomingCooldownProgress(1);
+      return;
+    }
+
+    const elapsedCooldown = now - runtime.homingPower.lastUsedAt;
+    const progress = Math.min(
+      1,
+      Math.max(0, elapsedCooldown / HOMING_POWER_COOLDOWN_MS)
+    );
+
+    setIsHomingActive(false);
+    setIsHomingReady(progress >= 1);
+    setHomingCooldownProgress(progress);
   }
 
   function keepBallOnPaddle() {
@@ -199,7 +244,6 @@ export function useBreakoutGame() {
     // raquete para direita mira para esquerda.
     const paddleProgress = paddleCenter / CANVAS_WIDTH;
     const invertedAimProgress = 1 - paddleProgress;
-
     const aimOffset = (invertedAimProgress - 0.5) * 2;
 
     const rawVx = aimOffset * ARROW_POWER_MAX_HORIZONTAL_FORCE;
@@ -271,6 +315,123 @@ export function useBreakoutGame() {
     activateArrowAim();
   }
 
+  function handleHomingPowerAction() {
+    const runtime = runtimeRef.current;
+
+    if (screenStateRef.current !== "playing") {
+      return;
+    }
+
+    if (runtime.rebuild.active) {
+      return;
+    }
+
+    if (runtime.homingPower.active) {
+      return;
+    }
+
+    const now = performance.now();
+    const isCooldownReady =
+      now - runtime.homingPower.lastUsedAt >= HOMING_POWER_COOLDOWN_MS;
+
+    if (!isCooldownReady) {
+      syncHomingPowerState();
+      return;
+    }
+
+    runtime.homingPower.active = true;
+    runtime.homingPower.activatedAt = now;
+    runtime.homingPower.lastUsedAt = now;
+
+    createExplosion(runtime.ball.x, runtime.ball.y, "#9b59b6", 18, 6);
+    createShockwave(runtime.ball.x, runtime.ball.y, "#9b59b6", 48);
+
+    syncHomingPowerState();
+  }
+
+  function findNearestActiveBrick() {
+    const runtime = runtimeRef.current;
+    let nearestBrick: Brick | null = null;
+    let nearestDistance = Infinity;
+
+    for (const brick of runtime.bricks) {
+      if (!brick.active) {
+        continue;
+      }
+
+      const brickCenter = getBrickCenter(brick);
+      const distance = Math.hypot(
+        brickCenter.x - runtime.ball.x,
+        brickCenter.y - runtime.ball.y
+      );
+
+      if (distance < nearestDistance) {
+        nearestDistance = distance;
+        nearestBrick = brick;
+      }
+    }
+
+    return nearestBrick;
+  }
+
+  function applyHomingToBall() {
+    const runtime = runtimeRef.current;
+
+    if (!runtime.homingPower.active) {
+      return;
+    }
+
+    if (runtime.ball.stuckToPaddle) {
+      return;
+    }
+
+    const targetBrick = findNearestActiveBrick();
+
+    if (!targetBrick) {
+      return;
+    }
+
+    const targetCenter = getBrickCenter(targetBrick);
+
+    const currentSpeed = Math.max(
+      6,
+      Math.hypot(runtime.ball.vx, runtime.ball.vy)
+    );
+
+    const directionX = targetCenter.x - runtime.ball.x;
+    const directionY = targetCenter.y - runtime.ball.y;
+    const directionLength = Math.max(1, Math.hypot(directionX, directionY));
+
+    const desiredVx = (directionX / directionLength) * currentSpeed;
+    const desiredVy = (directionY / directionLength) * currentSpeed;
+
+    const nextVx =
+      runtime.ball.vx + (desiredVx - runtime.ball.vx) * HOMING_POWER_STRENGTH;
+    const nextVy =
+      runtime.ball.vy + (desiredVy - runtime.ball.vy) * HOMING_POWER_STRENGTH;
+
+    const turnX = Math.max(
+      -HOMING_POWER_MAX_TURN,
+      Math.min(HOMING_POWER_MAX_TURN, nextVx - runtime.ball.vx)
+    );
+
+    const turnY = Math.max(
+      -HOMING_POWER_MAX_TURN,
+      Math.min(HOMING_POWER_MAX_TURN, nextVy - runtime.ball.vy)
+    );
+
+    runtime.ball.vx += turnX;
+    runtime.ball.vy += turnY;
+
+    const normalizedSpeed = Math.max(
+      6,
+      Math.hypot(runtime.ball.vx, runtime.ball.vy)
+    );
+
+    runtime.ball.vx = (runtime.ball.vx / normalizedSpeed) * currentSpeed;
+    runtime.ball.vy = (runtime.ball.vy / normalizedSpeed) * currentSpeed;
+  }
+
   function startGame() {
     if (frameRef.current !== null) {
       cancelAnimationFrame(frameRef.current);
@@ -331,7 +492,12 @@ export function useBreakoutGame() {
     }
   }
 
-  function createShockwave(x: number, y: number, color: string, maxRadius: number) {
+  function createShockwave(
+    x: number,
+    y: number,
+    color: string,
+    maxRadius: number
+  ) {
     const runtime = runtimeRef.current;
 
     runtime.shockwaves.push({
@@ -505,6 +671,7 @@ export function useBreakoutGame() {
 
     runtime.powerUps = [];
     runtime.arrowPower.aiming = false;
+    runtime.homingPower.active = false;
 
     runtime.rebuild = {
       active: true,
@@ -518,6 +685,7 @@ export function useBreakoutGame() {
 
     keepBallOnPaddle();
     syncArrowPowerState();
+    syncHomingPowerState();
   }
 
   function updateBrickRebuild() {
@@ -822,6 +990,7 @@ export function useBreakoutGame() {
 
     updateElapsedTime();
     syncArrowPowerState();
+    syncHomingPowerState();
     updatePaddle();
 
     if (ball.stuckToPaddle) {
@@ -841,6 +1010,8 @@ export function useBreakoutGame() {
     }
 
     if (!ball.stuckToPaddle) {
+      applyHomingToBall();
+
       ball.x += ball.vx * ball.speed;
       ball.y += ball.vy * ball.speed;
     }
@@ -901,9 +1072,11 @@ export function useBreakoutGame() {
       runtime.lives -= 1;
       runtime.shake = 12;
       runtime.arrowPower.aiming = false;
+      runtime.homingPower.active = false;
 
       setLives(runtime.lives);
       syncArrowPowerState();
+      syncHomingPowerState();
 
       if (runtime.lives <= 0) {
         setGameScreen("game-over");
@@ -1061,6 +1234,60 @@ export function useBreakoutGame() {
       const trailX = runtime.ball.x - runtime.ball.vx * index * 2.2;
       const trailY = runtime.ball.y - runtime.ball.vy * index * 2.2;
       const trailRadius = Math.max(2, runtime.ball.radius - index);
+
+      ctx.beginPath();
+      ctx.arc(trailX, trailY, trailRadius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.restore();
+  }
+
+  function drawHomingBallAura(ctx: CanvasRenderingContext2D) {
+    const runtime = runtimeRef.current;
+
+    if (!runtime.homingPower.active) {
+      return;
+    }
+
+    const pulse = Math.abs(Math.sin(Date.now() / 130)) * 7;
+
+    ctx.shadowBlur = 28 + pulse;
+    ctx.shadowColor = "#9b59b6";
+    ctx.strokeStyle = "rgba(155, 89, 182, 0.95)";
+    ctx.lineWidth = 3;
+
+    ctx.beginPath();
+    ctx.arc(
+      runtime.ball.x,
+      runtime.ball.y,
+      runtime.ball.radius + 10 + pulse * 0.2,
+      0,
+      Math.PI * 2
+    );
+    ctx.stroke();
+
+    ctx.shadowBlur = 0;
+  }
+
+  function drawHomingBallTrail(ctx: CanvasRenderingContext2D) {
+    const runtime = runtimeRef.current;
+
+    if (!runtime.homingPower.active) {
+      return;
+    }
+
+    ctx.save();
+
+    ctx.globalAlpha = 0.38;
+    ctx.shadowBlur = 18;
+    ctx.shadowColor = "#9b59b6";
+    ctx.fillStyle = "#9b59b6";
+
+    for (let index = 1; index <= 5; index++) {
+      const trailX = runtime.ball.x - runtime.ball.vx * index * 1.7;
+      const trailY = runtime.ball.y - runtime.ball.vy * index * 1.7;
+      const trailRadius = Math.max(2, runtime.ball.radius - index * 0.7);
 
       ctx.beginPath();
       ctx.arc(trailX, trailY, trailRadius, 0, Math.PI * 2);
@@ -1229,13 +1456,14 @@ export function useBreakoutGame() {
 
     drawArrowAimGuide(ctx);
     drawBombBallTrail(ctx);
+    drawHomingBallTrail(ctx);
 
     ctx.shadowBlur = 20;
     ctx.shadowColor =
       runtime.ball.bombCharges > 0
         ? "#ff9f1a"
-        : runtime.arrowPower.aiming
-          ? "#4facfe"
+        : runtime.homingPower.active
+          ? "#9b59b6"
           : "#4facfe";
 
     ctx.fillStyle = "#ffffff";
@@ -1253,6 +1481,7 @@ export function useBreakoutGame() {
     ctx.shadowBlur = 0;
 
     drawBombBallAura(ctx);
+    drawHomingBallAura(ctx);
 
     for (const particle of runtime.particles) {
       ctx.globalAlpha = Math.max(0, particle.life);
@@ -1291,9 +1520,13 @@ export function useBreakoutGame() {
     isArrowAiming,
     isArrowReady,
     arrowCooldownProgress,
+    isHomingActive,
+    isHomingReady,
+    homingCooldownProgress,
     startGame,
     restartGame,
     handlePointerMove,
     handleArrowPowerAction,
+    handleHomingPowerAction,
   };
 }

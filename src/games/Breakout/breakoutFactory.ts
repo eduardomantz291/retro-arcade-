@@ -37,6 +37,7 @@ export function createBricks(wave: number) {
     for (let column = 0; column < BRICK_COLUMNS; column++) {
       const palette = brickColors[row % brickColors.length];
 
+      // Conforme o jogo continua, os blocos superiores ficam mais resistentes.
       const hasExtraLife = wave >= 2 && row <= Math.min(2, wave - 1);
       const maxHits = hasExtraLife ? 2 : 1;
 
@@ -96,6 +97,12 @@ export function createInitialRuntime(wave = 1): BreakoutRuntime {
 
     arrowPower: {
       aiming: false,
+      lastUsedAt: -Infinity,
+    },
+
+    homingPower: {
+      active: false,
+      activatedAt: 0,
       lastUsedAt: -Infinity,
     },
 

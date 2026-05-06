@@ -16,20 +16,38 @@ function BreakoutGamePage() {
     isArrowAiming,
     isArrowReady,
     arrowCooldownProgress,
+    isHomingActive,
+    isHomingReady,
+    homingCooldownProgress,
     startGame,
     restartGame,
     handlePointerMove,
     handleArrowPowerAction,
+    handleHomingPowerAction,
   } = useBreakoutGame();
 
   const arrowButtonStyle = {
-    "--arrow-charge": arrowCooldownProgress,
+    "--power-charge": arrowCooldownProgress,
+  } as CSSProperties;
+
+  const homingButtonStyle = {
+    "--power-charge": homingCooldownProgress,
   } as CSSProperties;
 
   const arrowButtonClassName = [
+    "breakout-power-button",
     "breakout-arrow-power-button",
-    isArrowReady ? "breakout-arrow-ready" : "breakout-arrow-cooldown",
+    isArrowReady ? "breakout-power-ready" : "breakout-power-cooldown",
     isArrowAiming ? "breakout-arrow-aiming" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const homingButtonClassName = [
+    "breakout-power-button",
+    "breakout-homing-power-button",
+    isHomingReady ? "breakout-power-ready" : "breakout-power-cooldown",
+    isHomingActive ? "breakout-power-active" : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -104,6 +122,7 @@ function BreakoutGamePage() {
                   <span>Mouse ou toque para mover</span>
                   <span>Setas ou A/D também funcionam</span>
                   <span>Espaço ou botão 🏹 ativa o poder de mira</span>
+                  <span>Shift ou botão 🎯 ativa o poder teleguiado</span>
                   <span>❤️ Pegue corações para recuperar vidas</span>
                   <span>💣 Pegue bombas para deixar a bolinha explosiva</span>
                   <span>TNT explode blocos próximos e gera muitos pontos</span>
@@ -154,41 +173,72 @@ function BreakoutGamePage() {
           <div className="breakout-power-panel-text">
             <strong>Poderes</strong>
             <span>
-              Use a flecha para puxar a bolinha para a raquete, mirar e disparar
-              com força. No PC, também funciona com Espaço.
+              Use Flecha para puxar a bolinha para a raquete e mirar. Use Guia
+              para fazer a bolinha curvar em direção aos blocos por alguns segundos.
             </span>
           </div>
 
-          {screenState === "playing" && (
-            <button
-              className={arrowButtonClassName}
-              style={arrowButtonStyle}
-              type="button"
-              onClick={handleArrowPowerAction}
-              aria-label="Usar poder de flecha"
-            >
-              <span className="breakout-arrow-particles" />
+          <div className="breakout-power-buttons">
+            {screenState === "playing" ? (
+              <>
+                <button
+                  className={arrowButtonClassName}
+                  style={arrowButtonStyle}
+                  type="button"
+                  onClick={handleArrowPowerAction}
+                  aria-label="Usar poder de flecha"
+                >
+                  <span className="breakout-power-particles" />
 
-              <span className="breakout-arrow-icon">
-                {isArrowAiming ? "🎯" : "🏹"}
-              </span>
+                  <span className="breakout-power-icon">
+                    {isArrowAiming ? "🎯" : "🏹"}
+                  </span>
 
-              <small>
-                {isArrowAiming
-                  ? "ATIRAR"
-                  : isArrowReady
-                    ? "FLECHA"
-                    : "RECARGA"}
-              </small>
-            </button>
-          )}
+                  <small>
+                    {isArrowAiming
+                      ? "ATIRAR"
+                      : isArrowReady
+                        ? "FLECHA"
+                        : "RECARGA"}
+                  </small>
+                </button>
 
-          {screenState !== "playing" && (
-            <div className="breakout-power-placeholder">
-              <span>🏹</span>
-              <small>Disponível durante o jogo</small>
-            </div>
-          )}
+                <button
+                  className={homingButtonClassName}
+                  style={homingButtonStyle}
+                  type="button"
+                  onClick={handleHomingPowerAction}
+                  aria-label="Usar poder teleguiado"
+                >
+                  <span className="breakout-power-particles" />
+
+                  <span className="breakout-power-icon">
+                    {isHomingActive ? "🟣" : "🎯"}
+                  </span>
+
+                  <small>
+                    {isHomingActive
+                      ? "ATIVO"
+                      : isHomingReady
+                        ? "GUIA"
+                        : "RECARGA"}
+                  </small>
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="breakout-power-placeholder">
+                  <span>🏹</span>
+                  <small>Disponível durante o jogo</small>
+                </div>
+
+                <div className="breakout-power-placeholder">
+                  <span>🎯</span>
+                  <small>Disponível durante o jogo</small>
+                </div>
+              </>
+            )}
+          </div>
         </section>
       </section>
     </main>

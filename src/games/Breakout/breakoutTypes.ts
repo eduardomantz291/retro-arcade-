@@ -75,6 +75,12 @@ export type BreakoutRuntime = {
     lastUsedAt: number;
   };
 
+  homingPower: {
+    active: boolean;
+    activatedAt: number;
+    lastUsedAt: number;
+  };
+
   bricks: Brick[];
   particles: Particle[];
   shockwaves: Shockwave[];
