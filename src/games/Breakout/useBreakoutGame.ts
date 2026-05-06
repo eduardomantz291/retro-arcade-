@@ -922,6 +922,22 @@ export function useBreakoutGame() {
     startGame();
   }
 
+  function backToStartScreen() {
+    if (frameRef.current !== null) {
+      cancelAnimationFrame(frameRef.current);
+      frameRef.current = null;
+    }
+
+    runtimeRef.current = createInitialRuntime(1);
+    powerUpIdRef.current = 0;
+    ultimateExtraBallIdRef.current = 0;
+    gameStartedAtRef.current = 0;
+
+    setElapsedSeconds(0);
+    syncStateFromRuntime();
+    setGameScreen("start");
+  }
+
   function handlePointerMove(clientX: number) {
     if (screenStateRef.current !== "playing") {
       return;
@@ -2684,6 +2700,7 @@ export function useBreakoutGame() {
     ultimateTimeLabel,
     startGame,
     restartGame,
+    backToStartScreen,
     handlePointerMove,
     handleArrowPowerAction,
     handleHomingPowerAction,

@@ -28,6 +28,7 @@ function BreakoutGamePage() {
     ultimateTimeLabel,
     startGame,
     restartGame,
+    backToStartScreen,
     handlePointerMove,
     handleArrowPowerAction,
     handleHomingPowerAction,
@@ -102,7 +103,7 @@ function BreakoutGamePage() {
       <section className="breakout-shell">
         <header className="breakout-topbar breakout-glass-panel">
           <Link to="/" className="breakout-back-link">
-            ← Voltar para Home
+            ← Home
           </Link>
 
           <div className="breakout-title">
@@ -110,7 +111,7 @@ function BreakoutGamePage() {
 
             <div>
               <strong>Brick Breaker</strong>
-              <p>Quebre blocos, sobreviva e bata seu tempo.</p>
+              <p>Sobreviva, faça combos e domine o caos arcade.</p>
             </div>
           </div>
         </header>
@@ -149,26 +150,27 @@ function BreakoutGamePage() {
 
           {screenState === "start" && (
             <div className="breakout-overlay">
-              <div className="breakout-modal breakout-glass-panel">
-                <span className="breakout-modal-icon">🧱</span>
+              <div className="breakout-start-card breakout-glass-panel">
+                <div className="breakout-start-main">
+                  <span className="breakout-start-icon">🧱</span>
 
-                <h1>Brick Breaker</h1>
+                  <div>
+                    <p className="breakout-eyebrow">Retro Arcade Challenge</p>
+                    <h1>Brick Breaker</h1>
+                    <p>
+                      Quebre blocos, desvie dos drops ruins, carregue a Ultimate
+                      e tente sobreviver o máximo possível.
+                    </p>
+                  </div>
+                </div>
 
-                <p>
-                  Controle a raquete, rebata a bolinha, quebre todos os blocos e
-                  tente sobreviver pelo máximo de tempo possível.
-                </p>
-
-                <div className="breakout-tips">
-                  <span>Mouse ou toque para mover</span>
-                  <span>Setas ou A/D também funcionam</span>
-                  <span>Q ou botão 🏹 ativa o poder de mira</span>
-                  <span>W ou botão 🎯 ativa o poder teleguiado</span>
-                  <span>R ou botão 🛡️ ativa o escudo contra drops ruins</span>
-                  <span>E ou botão ⚡ usa a Ultimate quando estiver cheia</span>
-                  <span>A Ultimate carrega quebrando blocos</span>
-                  <span>Durante a Ultimate, os outros poderes ficam bloqueados</span>
-                  <span>☠️, 🔻 e 👻 são drops ruins. Desvie deles!</span>
+                <div className="breakout-start-grid">
+                  <span>🖱️ Mouse/toque move a raquete</span>
+                  <span>🏹 Q ativa Flecha</span>
+                  <span>🎯 W ativa Guia</span>
+                  <span>🛡️ R bloqueia drops ruins</span>
+                  <span>⚡ E usa Ultimate cheia</span>
+                  <span>☠️ 🔻 👻 Desvie dos perigos</span>
                 </div>
 
                 <button
@@ -203,9 +205,13 @@ function BreakoutGamePage() {
                     Tentar novamente
                   </button>
 
-                  <Link className="breakout-btn breakout-btn-secondary" to="/">
-                    Voltar
-                  </Link>
+                  <button
+                    className="breakout-btn breakout-btn-secondary"
+                    type="button"
+                    onClick={backToStartScreen}
+                  >
+                    Voltar ao início
+                  </button>
                 </div>
               </div>
             </div>
@@ -216,9 +222,8 @@ function BreakoutGamePage() {
           <div className="breakout-power-panel-text">
             <strong>Poderes</strong>
             <span>
-              Q usa Flecha. W usa Guia. R usa Escudo. E ativa a Ultimate quando
-              a carga chegar em 100%. O Escudo bloqueia drops ruins, mas não
-              protege se a bolinha cair.
+              Q Flecha, W Guia, R Escudo e E Ultimate. O escudo bloqueia drops
+              ruins, mas não salva a bolinha.
             </span>
           </div>
 
@@ -233,11 +238,9 @@ function BreakoutGamePage() {
                   aria-label="Usar poder de flecha"
                 >
                   <span className="breakout-power-particles" />
-
                   <span className="breakout-power-icon">
                     {isArrowAiming ? "🎯" : "🏹"}
                   </span>
-
                   <small>
                     {isUltimateActive
                       ? "LOCK"
@@ -257,11 +260,9 @@ function BreakoutGamePage() {
                   aria-label="Usar poder teleguiado"
                 >
                   <span className="breakout-power-particles" />
-
                   <span className="breakout-power-icon">
                     {isHomingActive ? "🟣" : "🎯"}
                   </span>
-
                   <small>
                     {isUltimateActive
                       ? "LOCK"
@@ -281,11 +282,9 @@ function BreakoutGamePage() {
                   aria-label="Usar escudo"
                 >
                   <span className="breakout-power-particles" />
-
                   <span className="breakout-power-icon">
                     {isShieldActive ? "🔵" : "🛡️"}
                   </span>
-
                   <small>
                     {isUltimateActive
                       ? "LOCK"
@@ -305,11 +304,9 @@ function BreakoutGamePage() {
                   aria-label="Usar ultimate"
                 >
                   <span className="breakout-power-particles" />
-
                   <span className="breakout-power-icon">
                     {isUltimateActive ? "🟢" : "⚡"}
                   </span>
-
                   <small>
                     {isUltimateActive
                       ? ultimateTimeLabel
@@ -323,22 +320,22 @@ function BreakoutGamePage() {
               <>
                 <div className="breakout-power-placeholder">
                   <span>🏹</span>
-                  <small>Q durante o jogo</small>
+                  <small>Q</small>
                 </div>
 
                 <div className="breakout-power-placeholder">
                   <span>🎯</span>
-                  <small>W durante o jogo</small>
+                  <small>W</small>
                 </div>
 
                 <div className="breakout-power-placeholder">
                   <span>🛡️</span>
-                  <small>R durante o jogo</small>
+                  <small>R</small>
                 </div>
 
                 <div className="breakout-power-placeholder">
                   <span>⚡</span>
-                  <small>Carrega quebrando blocos</small>
+                  <small>Ultimate</small>
                 </div>
               </>
             )}
