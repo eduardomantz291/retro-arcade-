@@ -88,28 +88,6 @@ function BreakoutGamePage() {
             />
           </div>
 
-          {screenState === "playing" && (
-            <button
-              className={arrowButtonClassName}
-              style={arrowButtonStyle}
-              type="button"
-              onClick={handleArrowPowerAction}
-              aria-label="Usar poder de flecha"
-            >
-              <span className="breakout-arrow-icon">
-                {isArrowAiming ? "🎯" : "🏹"}
-              </span>
-
-              <small>
-                {isArrowAiming
-                  ? "ATIRAR"
-                  : isArrowReady
-                    ? "FLECHA"
-                    : "CARREGANDO"}
-              </small>
-            </button>
-          )}
-
           {screenState === "start" && (
             <div className="breakout-overlay">
               <div className="breakout-modal breakout-glass-panel">
@@ -172,14 +150,46 @@ function BreakoutGamePage() {
           )}
         </section>
 
-        <footer className="breakout-help breakout-glass-panel">
-          <strong>Como jogar:</strong>
-          <span>
-            Mova a raquete, rebata a bolinha e quebre todos os blocos. Use
-            espaço ou o botão de flecha para puxar a bolinha para a raquete,
-            mirar e disparar com muita força.
-          </span>
-        </footer>
+        <section className="breakout-power-panel breakout-glass-panel">
+          <div className="breakout-power-panel-text">
+            <strong>Poderes</strong>
+            <span>
+              Use a flecha para puxar a bolinha para a raquete, mirar e disparar
+              com força. No PC, também funciona com Espaço.
+            </span>
+          </div>
+
+          {screenState === "playing" && (
+            <button
+              className={arrowButtonClassName}
+              style={arrowButtonStyle}
+              type="button"
+              onClick={handleArrowPowerAction}
+              aria-label="Usar poder de flecha"
+            >
+              <span className="breakout-arrow-particles" />
+
+              <span className="breakout-arrow-icon">
+                {isArrowAiming ? "🎯" : "🏹"}
+              </span>
+
+              <small>
+                {isArrowAiming
+                  ? "ATIRAR"
+                  : isArrowReady
+                    ? "FLECHA"
+                    : "RECARGA"}
+              </small>
+            </button>
+          )}
+
+          {screenState !== "playing" && (
+            <div className="breakout-power-placeholder">
+              <span>🏹</span>
+              <small>Disponível durante o jogo</small>
+            </div>
+          )}
+        </section>
       </section>
     </main>
   );

@@ -67,6 +67,7 @@ export type BreakoutRuntime = {
     speed: number;
     stuckToPaddle: boolean;
     bombCharges: number;
+    arrowPierceHits: number;
   };
 
   arrowPower: {

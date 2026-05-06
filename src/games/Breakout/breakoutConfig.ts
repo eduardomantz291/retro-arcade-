@@ -39,8 +39,9 @@ export const BOMB_EXPLOSION_BRICK_POINTS = 25;
 
 // Poder de flecha / mira
 export const ARROW_POWER_COOLDOWN_MS = 28000;
-export const ARROW_POWER_SHOT_SPEED = 10.8;
-export const ARROW_POWER_MAX_HORIZONTAL_FORCE = 7.2;
+export const ARROW_POWER_SHOT_SPEED = 15.5;
+export const ARROW_POWER_MAX_HORIZONTAL_FORCE = 13.2;
+export const ARROW_POWER_PIERCE_HITS = 9;
 
 export const brickColors = [
   { color: "#4facfe", glow: "#4facfe" },

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   ARROW_POWER_COOLDOWN_MS,
   ARROW_POWER_MAX_HORIZONTAL_FORCE,
+  ARROW_POWER_PIERCE_HITS,
   ARROW_POWER_SHOT_SPEED,
   BOMB_CHARGES,
   BOMB_DROP_CHANCE,
@@ -175,6 +176,7 @@ export function useBreakoutGame() {
     runtime.ball.vy = -4.6;
     runtime.ball.speed = 1;
     runtime.ball.stuckToPaddle = stuckToPaddle;
+    runtime.ball.arrowPierceHits = 0;
   }
 
   function releaseBallFromPaddle() {
@@ -191,17 +193,23 @@ export function useBreakoutGame() {
   function getArrowShotVelocity() {
     const runtime = runtimeRef.current;
     const paddleCenter = runtime.paddle.x + runtime.paddle.width / 2;
-    const centerOffset = (paddleCenter - CANVAS_WIDTH / 2) / (CANVAS_WIDTH / 2);
 
-    // Invertido de propósito:
-    // raquete mais para esquerda mira mais para direita,
-    // raquete mais para direita mira mais para esquerda.
-    const horizontalPower =
-      -centerOffset * ARROW_POWER_MAX_HORIZONTAL_FORCE;
+    // A mira é invertida de propósito:
+    // raquete para esquerda mira para direita,
+    // raquete para direita mira para esquerda.
+    const paddleProgress = paddleCenter / CANVAS_WIDTH;
+    const invertedAimProgress = 1 - paddleProgress;
+
+    const aimOffset = (invertedAimProgress - 0.5) * 2;
+
+    const rawVx = aimOffset * ARROW_POWER_MAX_HORIZONTAL_FORCE;
+    const rawVy = -10;
+
+    const magnitude = Math.hypot(rawVx, rawVy);
 
     return {
-      vx: horizontalPower,
-      vy: -ARROW_POWER_SHOT_SPEED,
+      vx: (rawVx / magnitude) * ARROW_POWER_SHOT_SPEED,
+      vy: (rawVy / magnitude) * ARROW_POWER_SHOT_SPEED,
     };
   }
 
@@ -226,10 +234,11 @@ export function useBreakoutGame() {
     runtime.ball.stuckToPaddle = false;
     runtime.ball.vx = shotVelocity.vx;
     runtime.ball.vy = shotVelocity.vy;
-    runtime.ball.speed = 1.35;
+    runtime.ball.speed = 1;
+    runtime.ball.arrowPierceHits = ARROW_POWER_PIERCE_HITS;
 
-    createExplosion(runtime.ball.x, runtime.ball.y, "#4facfe", 22, 7);
-    createShockwave(runtime.ball.x, runtime.ball.y, "#4facfe", 42);
+    createExplosion(runtime.ball.x, runtime.ball.y, "#4facfe", 26, 8);
+    createShockwave(runtime.ball.x, runtime.ball.y, "#4facfe", 48);
 
     syncArrowPowerState();
   }
@@ -674,15 +683,58 @@ export function useBreakoutGame() {
     checkIfScreenWasCleared();
   }
 
+  function destroyBrickByArrowShot(brick: Brick) {
+    const runtime = runtimeRef.current;
+    const brickCenter = getBrickCenter(brick);
+
+    if (brick.type === "tnt") {
+      explodeTntBrick(brick);
+    } else {
+      brick.active = false;
+      brick.hits = 0;
+
+      runtime.score += 25;
+
+      createExplosion(brickCenter.x, brickCenter.y, "#4facfe", 16, 7);
+      tryDropHeartFromBrick(brick);
+      tryDropBombFromBrick(brick);
+    }
+
+    runtime.ball.arrowPierceHits = Math.max(
+      0,
+      runtime.ball.arrowPierceHits - 1
+    );
+
+    setScore(runtime.score);
+    checkIfScreenWasCleared();
+  }
+
   function hitBrick(brick: Brick) {
     const runtime = runtimeRef.current;
 
     if (runtime.ball.bombCharges > 0) {
       explodeBombBallImpact(brick);
 
+      if (runtime.ball.arrowPierceHits > 0) {
+        runtime.ball.arrowPierceHits = Math.max(
+          0,
+          runtime.ball.arrowPierceHits - 1
+        );
+
+        runtime.ball.speed = Math.min(runtime.ball.speed + 0.02, 1.55);
+        return;
+      }
+
       runtime.ball.vy *= -1;
       runtime.ball.speed = Math.min(runtime.ball.speed + 0.04, 1.5);
 
+      return;
+    }
+
+    if (runtime.ball.arrowPierceHits > 0) {
+      destroyBrickByArrowShot(brick);
+
+      runtime.ball.speed = Math.min(runtime.ball.speed + 0.015, 1.55);
       return;
     }
 
@@ -1026,7 +1078,7 @@ export function useBreakoutGame() {
     }
 
     const velocity = getArrowShotVelocity();
-    const length = 190;
+    const length = 280;
     const magnitude = Math.hypot(velocity.vx, velocity.vy);
 
     const directionX = velocity.vx / magnitude;
@@ -1041,15 +1093,25 @@ export function useBreakoutGame() {
     ctx.shadowColor = "#4facfe";
     ctx.fillStyle = "rgba(79, 172, 254, 0.95)";
 
-    for (let index = 1; index <= 12; index++) {
-      const progress = index / 12;
+    for (let index = 1; index <= 18; index++) {
+      const progress = index / 18;
       const dotX = startX + directionX * length * progress;
       const dotY = startY + directionY * length * progress;
-      const radius = 5 - progress * 2.2;
 
-      ctx.globalAlpha = 1 - progress * 0.2;
+      if (
+        dotX < 0 ||
+        dotX > CANVAS_WIDTH ||
+        dotY < 0 ||
+        dotY > CANVAS_HEIGHT
+      ) {
+        continue;
+      }
+
+      const radius = 5.6 - progress * 2.8;
+
+      ctx.globalAlpha = 1 - progress * 0.35;
       ctx.beginPath();
-      ctx.arc(dotX, dotY, radius, 0, Math.PI * 2);
+      ctx.arc(dotX, dotY, Math.max(2, radius), 0, Math.PI * 2);
       ctx.fill();
     }
 

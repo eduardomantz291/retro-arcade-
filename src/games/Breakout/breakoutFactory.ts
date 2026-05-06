@@ -91,6 +91,7 @@ export function createInitialRuntime(wave = 1): BreakoutRuntime {
       speed: 1,
       stuckToPaddle: false,
       bombCharges: 0,
+      arrowPierceHits: 0,
     },
 
     arrowPower: {
