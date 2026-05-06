@@ -15,6 +15,8 @@ import {
   BRICK_REBUILD_RELEASE_DELAY,
   CANVAS_HEIGHT,
   CANVAS_WIDTH,
+  GHOST_DROP_CHANCE,
+  GHOST_PADDLE_DURATION_MS,
   HEART_BONUS_POINTS,
   HEART_DROP_CHANCE,
   HOMING_ARROW_COMBO_MAX_TURN,
@@ -27,8 +29,13 @@ import {
   HOMING_POWER_STRENGTH,
   INITIAL_LIVES,
   MAX_LIVES,
+  PADDLE_SHRINK_AMOUNT,
+  PADDLE_SHRINK_DROP_CHANCE,
+  PADDLE_SHRINK_MAX_STACKS,
+  PADDLE_WIDTH,
   POWER_UP_FALL_SPEED,
   POWER_UP_RADIUS,
+  SKULL_DROP_CHANCE,
   TNT_BRICK_POINTS,
   TNT_EXPLOSION_BRICK_POINTS,
   TNT_EXPLOSION_RADIUS,
@@ -523,7 +530,11 @@ export function useBreakoutGame() {
       brick.active = false;
       brick.hits = 0;
 
-      pointsEarned += brick.type === "tnt" ? TNT_BRICK_POINTS : 25;
+      if (brick.type === "tnt") {
+        pointsEarned += TNT_BRICK_POINTS;
+      } else {
+        pointsEarned += 25;
+      }
 
       createExplosion(brickCenter.x, brickCenter.y, "#38ef7d", 8, 5);
     }
@@ -546,6 +557,7 @@ export function useBreakoutGame() {
     runtime.ball.bombCharges = 0;
     runtime.ball.arrowPierceHits = 0;
     runtime.ball.stuckToPaddle = false;
+    runtime.paddle.ghostUntil = 0;
 
     runtime.ultimatePower.active = true;
     runtime.ultimatePower.activatedAt = performance.now();
@@ -847,44 +859,96 @@ export function useBreakoutGame() {
     });
   }
 
-  function createHeartPowerUp(x: number, y: number): FallingPowerUp {
+  function createPowerUp(
+    type: FallingPowerUp["type"],
+    x: number,
+    y: number
+  ): FallingPowerUp {
     powerUpIdRef.current += 1;
+
+    const powerUpData = {
+      heart: {
+        emoji: "❤️",
+        color: "#ff4757",
+        glow: "#ff6b81",
+        vy: POWER_UP_FALL_SPEED,
+      },
+      bomb: {
+        emoji: "💣",
+        color: "#f1c40f",
+        glow: "#ff9f1a",
+        vy: POWER_UP_FALL_SPEED,
+      },
+      skull: {
+        emoji: "☠️",
+        color: "#2d123f",
+        glow: "#ff4757",
+        vy: POWER_UP_FALL_SPEED + 0.25,
+      },
+      shrink: {
+        emoji: "🔻",
+        color: "#ff9f1a",
+        glow: "#f1c40f",
+        vy: POWER_UP_FALL_SPEED + 0.1,
+      },
+      ghost: {
+        emoji: "👻",
+        color: "#9b59b6",
+        glow: "#be2edd",
+        vy: POWER_UP_FALL_SPEED + 0.15,
+      },
+    } satisfies Record<
+      FallingPowerUp["type"],
+      {
+        emoji: string;
+        color: string;
+        glow: string;
+        vy: number;
+      }
+    >;
 
     return {
       id: powerUpIdRef.current,
-      type: "heart",
+      type,
       x,
       y,
-      vy: POWER_UP_FALL_SPEED,
+      vy: powerUpData[type].vy,
       radius: POWER_UP_RADIUS,
-      emoji: "❤️",
-      color: "#ff4757",
-      glow: "#ff6b81",
+      emoji: powerUpData[type].emoji,
+      color: powerUpData[type].color,
+      glow: powerUpData[type].glow,
       active: true,
     };
   }
 
-  function createBombPowerUp(x: number, y: number): FallingPowerUp {
-    powerUpIdRef.current += 1;
+  function createHeartPowerUp(x: number, y: number) {
+    return createPowerUp("heart", x, y);
+  }
 
-    return {
-      id: powerUpIdRef.current,
-      type: "bomb",
-      x,
-      y,
-      vy: POWER_UP_FALL_SPEED,
-      radius: POWER_UP_RADIUS,
-      emoji: "💣",
-      color: "#f1c40f",
-      glow: "#ff9f1a",
-      active: true,
-    };
+  function createBombPowerUp(x: number, y: number) {
+    return createPowerUp("bomb", x, y);
+  }
+
+  function createSkullPowerUp(x: number, y: number) {
+    return createPowerUp("skull", x, y);
+  }
+
+  function createShrinkPowerUp(x: number, y: number) {
+    return createPowerUp("shrink", x, y);
+  }
+
+  function createGhostPowerUp(x: number, y: number) {
+    return createPowerUp("ghost", x, y);
   }
 
   function tryDropHeartFromBrick(brick: Brick) {
     const runtime = runtimeRef.current;
 
     if (runtime.ultimatePower.active) {
+      return;
+    }
+
+    if (brick.type !== "normal") {
       return;
     }
 
@@ -900,11 +964,72 @@ export function useBreakoutGame() {
     );
   }
 
+  function tryDropBadPowerUpFromBrick(brick: Brick) {
+    const runtime = runtimeRef.current;
+
+    if (runtime.ultimatePower.active) {
+      return;
+    }
+
+    if (brick.type !== "normal") {
+      return;
+    }
+
+    const roll = Math.random();
+
+    if (roll < GHOST_DROP_CHANCE) {
+      runtime.powerUps.push(
+        createGhostPowerUp(
+          brick.x + brick.width / 2,
+          brick.y + brick.height / 2
+        )
+      );
+
+      return;
+    }
+
+    if (roll < GHOST_DROP_CHANCE + PADDLE_SHRINK_DROP_CHANCE) {
+      runtime.powerUps.push(
+        createShrinkPowerUp(
+          brick.x + brick.width / 2,
+          brick.y + brick.height / 2
+        )
+      );
+    }
+  }
+
+  function tryDropSkullFromCurseBrick(brick: Brick) {
+    const runtime = runtimeRef.current;
+
+    if (runtime.ultimatePower.active) {
+      return;
+    }
+
+    if (brick.type !== "curse") {
+      return;
+    }
+
+    if (Math.random() > SKULL_DROP_CHANCE) {
+      return;
+    }
+
+    runtime.powerUps.push(
+      createSkullPowerUp(
+        brick.x + brick.width / 2,
+        brick.y + brick.height / 2
+      )
+    );
+  }
+
   function tryDropBombFromBrick(brick: Brick) {
     const runtime = runtimeRef.current;
     const now = performance.now();
 
     if (runtime.ultimatePower.active) {
+      return;
+    }
+
+    if (brick.type !== "normal") {
       return;
     }
 
@@ -932,6 +1057,35 @@ export function useBreakoutGame() {
         brick.y + brick.height / 2
       )
     );
+  }
+
+  function endGameIfNeeded() {
+    const runtime = runtimeRef.current;
+
+    if (runtime.lives > 0) {
+      return;
+    }
+
+    setGameScreen("game-over");
+
+    if (frameRef.current !== null) {
+      cancelAnimationFrame(frameRef.current);
+      frameRef.current = null;
+    }
+  }
+
+  function damagePlayerByHazard(x: number, y: number, color = "#ff4757") {
+    const runtime = runtimeRef.current;
+
+    runtime.lives -= 1;
+    runtime.shake = 16;
+
+    setLives(runtime.lives);
+
+    createExplosion(x, y, color, 24, 8);
+    createShockwave(x, y, color, 46);
+
+    endGameIfNeeded();
   }
 
   function collectHeartPowerUp(powerUp: FallingPowerUp) {
@@ -974,6 +1128,56 @@ export function useBreakoutGame() {
     createShockwave(powerUp.x, powerUp.y, "#f1c40f", 44);
   }
 
+  function collectSkullPowerUp(powerUp: FallingPowerUp) {
+    powerUp.active = false;
+
+    damagePlayerByHazard(powerUp.x, powerUp.y, "#ff4757");
+  }
+
+  function collectShrinkPowerUp(powerUp: FallingPowerUp) {
+    const runtime = runtimeRef.current;
+
+    powerUp.active = false;
+
+    if (runtime.ultimatePower.active) {
+      return;
+    }
+
+    const currentCenter = runtime.paddle.x + runtime.paddle.width / 2;
+
+    runtime.paddle.shrinkStacks = Math.min(
+      PADDLE_SHRINK_MAX_STACKS,
+      runtime.paddle.shrinkStacks + 1
+    );
+
+    runtime.paddle.width =
+      PADDLE_WIDTH - runtime.paddle.shrinkStacks * PADDLE_SHRINK_AMOUNT;
+
+    runtime.paddle.x = clampPaddle(currentCenter - runtime.paddle.width / 2);
+    runtime.paddle.targetX = runtime.paddle.x;
+
+    runtime.shake = 9;
+
+    createExplosion(powerUp.x, powerUp.y, "#ff9f1a", 18, 7);
+    createShockwave(powerUp.x, powerUp.y, "#ff9f1a", 38);
+  }
+
+  function collectGhostPowerUp(powerUp: FallingPowerUp) {
+    const runtime = runtimeRef.current;
+
+    powerUp.active = false;
+
+    if (runtime.ultimatePower.active) {
+      return;
+    }
+
+    runtime.paddle.ghostUntil = performance.now() + GHOST_PADDLE_DURATION_MS;
+    runtime.shake = 10;
+
+    createExplosion(powerUp.x, powerUp.y, "#9b59b6", 20, 7);
+    createShockwave(powerUp.x, powerUp.y, "#9b59b6", 44);
+  }
+
   function collectPowerUp(powerUp: FallingPowerUp) {
     if (powerUp.type === "heart") {
       collectHeartPowerUp(powerUp);
@@ -982,6 +1186,21 @@ export function useBreakoutGame() {
 
     if (powerUp.type === "bomb") {
       collectBombPowerUp(powerUp);
+      return;
+    }
+
+    if (powerUp.type === "skull") {
+      collectSkullPowerUp(powerUp);
+      return;
+    }
+
+    if (powerUp.type === "shrink") {
+      collectShrinkPowerUp(powerUp);
+      return;
+    }
+
+    if (powerUp.type === "ghost") {
+      collectGhostPowerUp(powerUp);
     }
   }
 
@@ -1118,6 +1337,11 @@ export function useBreakoutGame() {
     const runtime = runtimeRef.current;
     const brickCenter = getBrickCenter(brick);
 
+    if (brick.type === "curse") {
+      destroyCurseBrick(brick);
+      return;
+    }
+
     brick.active = false;
     brick.hits = 0;
 
@@ -1126,11 +1350,34 @@ export function useBreakoutGame() {
     addUltimateCharge();
 
     createExplosion(brickCenter.x, brickCenter.y, brick.glow, 12, 6);
+
     tryDropHeartFromBrick(brick);
+    tryDropBadPowerUpFromBrick(brick);
 
     if (allowBombDrop) {
       tryDropBombFromBrick(brick);
     }
+  }
+
+  function destroyCurseBrick(brick: Brick) {
+    const runtime = runtimeRef.current;
+    const brickCenter = getBrickCenter(brick);
+
+    brick.active = false;
+    brick.hits = 0;
+
+    runtime.score += 20;
+    runtime.shake = 8;
+
+    addUltimateCharge();
+
+    createExplosion(brickCenter.x, brickCenter.y, "#ff4757", 16, 7);
+    createShockwave(brickCenter.x, brickCenter.y, "#ff4757", 36);
+
+    tryDropSkullFromCurseBrick(brick);
+
+    setScore(runtime.score);
+    checkIfScreenWasCleared();
   }
 
   function explodeTntBrick(tntBrick: Brick) {
@@ -1160,6 +1407,11 @@ export function useBreakoutGame() {
       );
 
       if (distance > TNT_EXPLOSION_RADIUS) {
+        continue;
+      }
+
+      if (brick.type === "curse") {
+        destroyCurseBrick(brick);
         continue;
       }
 
@@ -1206,6 +1458,11 @@ export function useBreakoutGame() {
         continue;
       }
 
+      if (brick.type === "curse") {
+        destroyCurseBrick(brick);
+        continue;
+      }
+
       destroyNormalBrickByExplosion(
         brick,
         BOMB_EXPLOSION_BRICK_POINTS,
@@ -1226,6 +1483,8 @@ export function useBreakoutGame() {
 
     if (brick.type === "tnt") {
       explodeTntBrick(brick);
+    } else if (brick.type === "curse") {
+      destroyCurseBrick(brick);
     } else {
       brick.active = false;
       brick.hits = 0;
@@ -1236,6 +1495,7 @@ export function useBreakoutGame() {
 
       createExplosion(brickCenter.x, brickCenter.y, "#4facfe", 16, 7);
       tryDropHeartFromBrick(brick);
+      tryDropBadPowerUpFromBrick(brick);
       tryDropBombFromBrick(brick);
     }
 
@@ -1306,6 +1566,15 @@ export function useBreakoutGame() {
       return;
     }
 
+    if (brick.type === "curse") {
+      destroyCurseBrick(brick);
+
+      runtime.ball.vy *= -1;
+      runtime.ball.speed = Math.min(runtime.ball.speed + 0.035, 1.45);
+
+      return;
+    }
+
     brick.hits -= 1;
 
     runtime.score += 10;
@@ -1324,6 +1593,7 @@ export function useBreakoutGame() {
       addUltimateCharge();
 
       tryDropHeartFromBrick(brick);
+      tryDropBadPowerUpFromBrick(brick);
       tryDropBombFromBrick(brick);
     }
 
@@ -1476,6 +1746,9 @@ export function useBreakoutGame() {
   function updateGame() {
     const runtime = runtimeRef.current;
     const { paddle, ball } = runtime;
+    const now = performance.now();
+    const isPaddleGhostActive =
+      !runtime.ultimatePower.active && runtime.paddle.ghostUntil > now;
 
     updateElapsedTime();
     syncArrowPowerState();
@@ -1538,6 +1811,7 @@ export function useBreakoutGame() {
     }
 
     const isBallTouchingPaddle =
+      !isPaddleGhostActive &&
       ball.y + ball.radius >= paddle.y &&
       ball.y - ball.radius <= paddle.y + paddle.height &&
       ball.x >= paddle.x &&
@@ -1716,6 +1990,32 @@ export function useBreakoutGame() {
     ctx.beginPath();
     ctx.arc(x + brick.width - 4, y - 6, 3, 0, Math.PI * 2);
     ctx.fill();
+  }
+
+  function drawCurseBrick(
+    ctx: CanvasRenderingContext2D,
+    brick: Brick,
+    yOffset: number
+  ) {
+    const pulse = Math.abs(Math.sin(Date.now() / 130)) * 9;
+    const x = brick.x;
+    const y = brick.y + yOffset;
+
+    ctx.shadowBlur = 20 + pulse;
+    ctx.shadowColor = "#ff4757";
+    ctx.fillStyle = "#2d123f";
+
+    drawRoundedRect(ctx, x, y, brick.width, brick.height, 8);
+
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = "rgba(255, 71, 87, 0.28)";
+    drawRoundedRect(ctx, x + 4, y + 4, brick.width - 8, brick.height - 8, 6);
+
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "900 14px system-ui, Apple Color Emoji, Segoe UI Emoji";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("☠️", x + brick.width / 2, y + brick.height / 2 + 1);
   }
 
   function drawUltimateBrick(
@@ -1977,6 +2277,40 @@ export function useBreakoutGame() {
     ctx.restore();
   }
 
+  function drawPaddle(ctx: CanvasRenderingContext2D) {
+    const runtime = runtimeRef.current;
+    const now = performance.now();
+    const isGhostActive =
+      !runtime.ultimatePower.active && runtime.paddle.ghostUntil > now;
+
+    ctx.save();
+
+    if (isGhostActive) {
+      const blink = Math.abs(Math.sin(Date.now() / 80)) * 0.25;
+
+      ctx.globalAlpha = 0.22 + blink;
+      ctx.shadowBlur = 24;
+      ctx.shadowColor = "#9b59b6";
+      ctx.fillStyle = "#be2edd";
+    } else {
+      ctx.globalAlpha = 1;
+      ctx.shadowBlur = 18;
+      ctx.shadowColor = "#38ef7d";
+      ctx.fillStyle = "#38ef7d";
+    }
+
+    drawRoundedRect(
+      ctx,
+      runtime.paddle.x,
+      runtime.paddle.y,
+      runtime.paddle.width,
+      runtime.paddle.height,
+      999
+    );
+
+    ctx.restore();
+  }
+
   function drawGame() {
     const canvas = canvasRef.current;
 
@@ -2048,6 +2382,11 @@ export function useBreakoutGame() {
         continue;
       }
 
+      if (brick.type === "curse") {
+        drawCurseBrick(ctx, brick, yOffset);
+        continue;
+      }
+
       if (brick.type === "tnt") {
         drawTntBrick(ctx, brick, yOffset);
         continue;
@@ -2080,18 +2419,7 @@ export function useBreakoutGame() {
       }
     }
 
-    ctx.shadowBlur = 18;
-    ctx.shadowColor = "#38ef7d";
-    ctx.fillStyle = "#38ef7d";
-
-    drawRoundedRect(
-      ctx,
-      runtime.paddle.x,
-      runtime.paddle.y,
-      runtime.paddle.width,
-      runtime.paddle.height,
-      999
-    );
+    drawPaddle(ctx);
 
     drawArrowAimGuide(ctx);
     drawBombBallTrail(ctx);

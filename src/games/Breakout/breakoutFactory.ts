@@ -26,6 +26,50 @@ function chooseTntBrickIndex(totalBricks: number) {
   return Math.floor(Math.random() * (safeEnd - safeStart + 1)) + safeStart;
 }
 
+function getCurseBrickCount(wave: number) {
+  if (wave <= 1) {
+    return 1;
+  }
+
+  if (wave <= 3) {
+    return 2;
+  }
+
+  if (wave <= 5) {
+    return 3;
+  }
+
+  return Math.min(6, 3 + Math.floor((wave - 5) / 2));
+}
+
+function addCurseBricks(bricks: Brick[], wave: number) {
+  const curseCount = getCurseBrickCount(wave);
+
+  const availableIndexes = bricks
+    .map((brick, index) => ({ brick, index }))
+    .filter(({ brick }) => brick.type === "normal")
+    .map(({ index }) => index)
+    .sort(() => Math.random() - 0.5);
+
+  for (let index = 0; index < curseCount; index++) {
+    const brickIndex = availableIndexes[index];
+    const brick = bricks[brickIndex];
+
+    if (!brick) {
+      continue;
+    }
+
+    bricks[brickIndex] = {
+      ...brick,
+      type: "curse",
+      hits: 1,
+      maxHits: 1,
+      color: "#2d123f",
+      glow: "#ff4757",
+    };
+  }
+}
+
 export function createBricks(wave: number) {
   const brickWidth =
     (CANVAS_WIDTH - BRICK_SIDE * 2 - BRICK_GAP * (BRICK_COLUMNS - 1)) /
@@ -69,6 +113,8 @@ export function createBricks(wave: number) {
     };
   }
 
+  addCurseBricks(bricks, wave);
+
   return bricks;
 }
 
@@ -107,6 +153,8 @@ export function createInitialRuntime(wave = 1): BreakoutRuntime {
       width: PADDLE_WIDTH,
       height: PADDLE_HEIGHT,
       targetX: CANVAS_WIDTH / 2 - PADDLE_WIDTH / 2,
+      shrinkStacks: 0,
+      ghostUntil: 0,
     },
 
     ball: {

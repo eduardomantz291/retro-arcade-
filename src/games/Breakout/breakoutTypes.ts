@@ -1,6 +1,6 @@
 export type BreakoutScreenState = "start" | "playing" | "game-over";
 
-export type BrickType = "normal" | "tnt" | "ultimate";
+export type BrickType = "normal" | "tnt" | "curse" | "ultimate";
 
 export type Brick = {
   x: number;
@@ -34,7 +34,7 @@ export type Shockwave = {
   color: string;
 };
 
-export type PowerUpType = "heart" | "bomb";
+export type PowerUpType = "heart" | "bomb" | "skull" | "shrink" | "ghost";
 
 export type FallingPowerUp = {
   id: number;
@@ -67,6 +67,8 @@ export type BreakoutRuntime = {
     width: number;
     height: number;
     targetX: number;
+    shrinkStacks: number;
+    ghostUntil: number;
   };
 
   ball: {

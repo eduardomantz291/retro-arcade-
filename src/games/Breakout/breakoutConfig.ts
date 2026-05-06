@@ -16,11 +16,20 @@ export const BRICK_HEIGHT = 22;
 export const INITIAL_LIVES = 3;
 export const MAX_LIVES = 6;
 
-export const HEART_DROP_CHANCE = 0.14;
+export const HEART_DROP_CHANCE = 0.1;
 export const HEART_BONUS_POINTS = 50;
 
 export const POWER_UP_RADIUS = 14;
 export const POWER_UP_FALL_SPEED = 2.1;
+
+// Drops ruins
+export const SKULL_DROP_CHANCE = 0.9;
+export const PADDLE_SHRINK_DROP_CHANCE = 0.07;
+export const GHOST_DROP_CHANCE = 0.035;
+
+export const PADDLE_SHRINK_AMOUNT = 18;
+export const PADDLE_SHRINK_MAX_STACKS = 3;
+export const GHOST_PADDLE_DURATION_MS = 3000;
 
 export const BRICK_REBUILD_INTERVAL = 26;
 export const BRICK_REBUILD_RELEASE_DELAY = 550;
@@ -61,7 +70,7 @@ export const HOMING_ARROW_COMBO_MAX_TURN = 0.82;
 
 // Ultimate / Frenesi
 export const ULTIMATE_MAX_CHARGE = 100;
-export const ULTIMATE_REQUIRED_BRICKS = 220;
+export const ULTIMATE_REQUIRED_BRICKS = 120;
 export const ULTIMATE_DURATION_MS = 60000;
 export const ULTIMATE_FIXED_BALL_SPEED = 8.2;
 export const ULTIMATE_GREEN_BRICK_POINTS = 50;
