@@ -15,6 +15,8 @@ import {
   CANVAS_WIDTH,
   HEART_BONUS_POINTS,
   HEART_DROP_CHANCE,
+  HOMING_ARROW_COMBO_MAX_TURN,
+  HOMING_ARROW_COMBO_STRENGTH,
   HOMING_POWER_COOLDOWN_MS,
   HOMING_POWER_DURATION_MS,
   HOMING_POWER_MAX_TURN,
@@ -86,13 +88,13 @@ export function useBreakoutGame() {
 
       const runtime = runtimeRef.current;
 
-      if (event.code === "Space") {
+      if (event.key.toLowerCase() === "q") {
         event.preventDefault();
         handleArrowPowerAction();
         return;
       }
 
-      if (event.code === "ShiftLeft" || event.code === "ShiftRight") {
+      if (event.key.toLowerCase() === "w") {
         event.preventDefault();
         handleHomingPowerAction();
         return;
@@ -239,9 +241,6 @@ export function useBreakoutGame() {
     const runtime = runtimeRef.current;
     const paddleCenter = runtime.paddle.x + runtime.paddle.width / 2;
 
-    // A mira é invertida de propósito:
-    // raquete para esquerda mira para direita,
-    // raquete para direita mira para esquerda.
     const paddleProgress = paddleCenter / CANVAS_WIDTH;
     const invertedAimProgress = 1 - paddleProgress;
     const aimOffset = (invertedAimProgress - 0.5) * 2;
@@ -393,8 +392,18 @@ export function useBreakoutGame() {
 
     const targetCenter = getBrickCenter(targetBrick);
 
+    const isArrowHomingCombo = runtime.ball.arrowPierceHits > 0;
+
+    const homingStrength = isArrowHomingCombo
+      ? HOMING_ARROW_COMBO_STRENGTH
+      : HOMING_POWER_STRENGTH;
+
+    const homingMaxTurn = isArrowHomingCombo
+      ? HOMING_ARROW_COMBO_MAX_TURN
+      : HOMING_POWER_MAX_TURN;
+
     const currentSpeed = Math.max(
-      6,
+      isArrowHomingCombo ? 10 : 6,
       Math.hypot(runtime.ball.vx, runtime.ball.vy)
     );
 
@@ -406,25 +415,25 @@ export function useBreakoutGame() {
     const desiredVy = (directionY / directionLength) * currentSpeed;
 
     const nextVx =
-      runtime.ball.vx + (desiredVx - runtime.ball.vx) * HOMING_POWER_STRENGTH;
+      runtime.ball.vx + (desiredVx - runtime.ball.vx) * homingStrength;
     const nextVy =
-      runtime.ball.vy + (desiredVy - runtime.ball.vy) * HOMING_POWER_STRENGTH;
+      runtime.ball.vy + (desiredVy - runtime.ball.vy) * homingStrength;
 
     const turnX = Math.max(
-      -HOMING_POWER_MAX_TURN,
-      Math.min(HOMING_POWER_MAX_TURN, nextVx - runtime.ball.vx)
+      -homingMaxTurn,
+      Math.min(homingMaxTurn, nextVx - runtime.ball.vx)
     );
 
     const turnY = Math.max(
-      -HOMING_POWER_MAX_TURN,
-      Math.min(HOMING_POWER_MAX_TURN, nextVy - runtime.ball.vy)
+      -homingMaxTurn,
+      Math.min(homingMaxTurn, nextVy - runtime.ball.vy)
     );
 
     runtime.ball.vx += turnX;
     runtime.ball.vy += turnY;
 
     const normalizedSpeed = Math.max(
-      6,
+      isArrowHomingCombo ? 10 : 6,
       Math.hypot(runtime.ball.vx, runtime.ball.vy)
     );
 

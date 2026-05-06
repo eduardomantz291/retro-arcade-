@@ -121,8 +121,9 @@ function BreakoutGamePage() {
                 <div className="breakout-tips">
                   <span>Mouse ou toque para mover</span>
                   <span>Setas ou A/D também funcionam</span>
-                  <span>Espaço ou botão 🏹 ativa o poder de mira</span>
-                  <span>Shift ou botão 🎯 ativa o poder teleguiado</span>
+                  <span>Q ou botão 🏹 ativa o poder de mira</span>
+                  <span>W ou botão 🎯 ativa o poder teleguiado</span>
+                  <span>Use Guia + Flecha para lançar uma bolinha guiada forte</span>
                   <span>❤️ Pegue corações para recuperar vidas</span>
                   <span>💣 Pegue bombas para deixar a bolinha explosiva</span>
                   <span>TNT explode blocos próximos e gera muitos pontos</span>
@@ -173,8 +174,9 @@ function BreakoutGamePage() {
           <div className="breakout-power-panel-text">
             <strong>Poderes</strong>
             <span>
-              Use Flecha para puxar a bolinha para a raquete e mirar. Use Guia
-              para fazer a bolinha curvar em direção aos blocos por alguns segundos.
+              Q usa Flecha. W usa Guia. O Guia sozinho curva a bolinha de forma
+              leve. Guia + Flecha lança uma bolinha rápida, guiada e capaz de
+              atravessar vários blocos.
             </span>
           </div>
 
@@ -198,7 +200,7 @@ function BreakoutGamePage() {
                     {isArrowAiming
                       ? "ATIRAR"
                       : isArrowReady
-                        ? "FLECHA"
+                        ? "Q"
                         : "RECARGA"}
                   </small>
                 </button>
@@ -220,7 +222,7 @@ function BreakoutGamePage() {
                     {isHomingActive
                       ? "ATIVO"
                       : isHomingReady
-                        ? "GUIA"
+                        ? "W"
                         : "RECARGA"}
                   </small>
                 </button>
@@ -229,12 +231,12 @@ function BreakoutGamePage() {
               <>
                 <div className="breakout-power-placeholder">
                   <span>🏹</span>
-                  <small>Disponível durante o jogo</small>
+                  <small>Q durante o jogo</small>
                 </div>
 
                 <div className="breakout-power-placeholder">
                   <span>🎯</span>
-                  <small>Disponível durante o jogo</small>
+                  <small>W durante o jogo</small>
                 </div>
               </>
             )}

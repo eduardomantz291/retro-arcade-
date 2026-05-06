@@ -49,6 +49,11 @@ export const HOMING_POWER_DURATION_MS = 8000;
 export const HOMING_POWER_STRENGTH = 0.075;
 export const HOMING_POWER_MAX_TURN = 0.36;
 
+// Combo Flecha + Guia
+// Esse combo deixa a bolinha teleguiada com muito mais força durante o disparo.
+export const HOMING_ARROW_COMBO_STRENGTH = 0.18;
+export const HOMING_ARROW_COMBO_MAX_TURN = 0.82;
+
 export const brickColors = [
   { color: "#4facfe", glow: "#4facfe" },
   { color: "#38ef7d", glow: "#38ef7d" },
