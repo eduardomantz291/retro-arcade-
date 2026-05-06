@@ -57,6 +57,15 @@ export const HOMING_POWER_MAX_TURN = 0.36;
 export const HOMING_ARROW_COMBO_STRENGTH = 0.18;
 export const HOMING_ARROW_COMBO_MAX_TURN = 0.82;
 
+// Ultimate / Frenesi
+export const ULTIMATE_MAX_CHARGE = 100;
+export const ULTIMATE_CHARGE_PER_BRICK = 4;
+export const ULTIMATE_DURATION_MS = 60000;
+export const ULTIMATE_BALL_SPEED = 1.18;
+export const ULTIMATE_GREEN_BRICK_POINTS = 50;
+export const ULTIMATE_EXTRA_BALL_POINTS = 35;
+export const ULTIMATE_EXTRA_BALL_MAX = 10;
+
 export const brickColors = [
   { color: "#4facfe", glow: "#4facfe" },
   { color: "#38ef7d", glow: "#38ef7d" },

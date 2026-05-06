@@ -1,6 +1,6 @@
 export type BreakoutScreenState = "start" | "playing" | "game-over";
 
-export type BrickType = "normal" | "tnt";
+export type BrickType = "normal" | "tnt" | "ultimate";
 
 export type Brick = {
   x: number;
@@ -49,6 +49,17 @@ export type FallingPowerUp = {
   active: boolean;
 };
 
+export type UltimateExtraBall = {
+  id: number;
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  radius: number;
+  speed: number;
+  active: boolean;
+};
+
 export type BreakoutRuntime = {
   paddle: {
     x: number;
@@ -81,10 +92,17 @@ export type BreakoutRuntime = {
     lastUsedAt: number;
   };
 
+  ultimatePower: {
+    active: boolean;
+    charge: number;
+    activatedAt: number;
+  };
+
   bricks: Brick[];
   particles: Particle[];
   shockwaves: Shockwave[];
   powerUps: FallingPowerUp[];
+  ultimateExtraBalls: UltimateExtraBall[];
 
   score: number;
   lives: number;

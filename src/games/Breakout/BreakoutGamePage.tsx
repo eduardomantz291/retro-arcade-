@@ -19,11 +19,16 @@ function BreakoutGamePage() {
     isHomingActive,
     isHomingReady,
     homingCooldownProgress,
+    isUltimateActive,
+    isUltimateReady,
+    ultimateCharge,
+    ultimateTimeLabel,
     startGame,
     restartGame,
     handlePointerMove,
     handleArrowPowerAction,
     handleHomingPowerAction,
+    handleUltimatePowerAction,
   } = useBreakoutGame();
 
   const arrowButtonStyle = {
@@ -34,10 +39,16 @@ function BreakoutGamePage() {
     "--power-charge": homingCooldownProgress,
   } as CSSProperties;
 
+  const ultimateButtonStyle = {
+    "--power-charge": ultimateCharge / 100,
+  } as CSSProperties;
+
   const arrowButtonClassName = [
     "breakout-power-button",
     "breakout-arrow-power-button",
-    isArrowReady ? "breakout-power-ready" : "breakout-power-cooldown",
+    isArrowReady && !isUltimateActive
+      ? "breakout-power-ready"
+      : "breakout-power-cooldown",
     isArrowAiming ? "breakout-arrow-aiming" : "",
   ]
     .filter(Boolean)
@@ -46,8 +57,19 @@ function BreakoutGamePage() {
   const homingButtonClassName = [
     "breakout-power-button",
     "breakout-homing-power-button",
-    isHomingReady ? "breakout-power-ready" : "breakout-power-cooldown",
+    isHomingReady && !isUltimateActive
+      ? "breakout-power-ready"
+      : "breakout-power-cooldown",
     isHomingActive ? "breakout-power-active" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const ultimateButtonClassName = [
+    "breakout-power-button",
+    "breakout-ultimate-power-button",
+    isUltimateReady ? "breakout-power-ready" : "breakout-power-cooldown",
+    isUltimateActive ? "breakout-power-active" : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -123,10 +145,11 @@ function BreakoutGamePage() {
                   <span>Setas ou A/D também funcionam</span>
                   <span>Q ou botão 🏹 ativa o poder de mira</span>
                   <span>W ou botão 🎯 ativa o poder teleguiado</span>
-                  <span>Use Guia + Flecha para lançar uma bolinha guiada forte</span>
+                  <span>E ou botão ⚡ usa a Ultimate quando estiver cheia</span>
+                  <span>A Ultimate carrega quebrando blocos</span>
+                  <span>Durante a Ultimate, os outros poderes ficam bloqueados</span>
                   <span>❤️ Pegue corações para recuperar vidas</span>
                   <span>💣 Pegue bombas para deixar a bolinha explosiva</span>
-                  <span>TNT explode blocos próximos e gera muitos pontos</span>
                 </div>
 
                 <button
@@ -174,9 +197,8 @@ function BreakoutGamePage() {
           <div className="breakout-power-panel-text">
             <strong>Poderes</strong>
             <span>
-              Q usa Flecha. W usa Guia. O Guia sozinho curva a bolinha de forma
-              leve. Guia + Flecha lança uma bolinha rápida, guiada e capaz de
-              atravessar vários blocos.
+              Q usa Flecha. W usa Guia. E ativa a Ultimate quando a carga chegar
+              em 100%. Durante a Ultimate, os outros poderes ficam travados.
             </span>
           </div>
 
@@ -197,11 +219,13 @@ function BreakoutGamePage() {
                   </span>
 
                   <small>
-                    {isArrowAiming
-                      ? "ATIRAR"
-                      : isArrowReady
-                        ? "Q"
-                        : "RECARGA"}
+                    {isUltimateActive
+                      ? "LOCK"
+                      : isArrowAiming
+                        ? "ATIRAR"
+                        : isArrowReady
+                          ? "Q"
+                          : "RECARGA"}
                   </small>
                 </button>
 
@@ -219,11 +243,35 @@ function BreakoutGamePage() {
                   </span>
 
                   <small>
-                    {isHomingActive
-                      ? "ATIVO"
-                      : isHomingReady
-                        ? "W"
-                        : "RECARGA"}
+                    {isUltimateActive
+                      ? "LOCK"
+                      : isHomingActive
+                        ? "ATIVO"
+                        : isHomingReady
+                          ? "W"
+                          : "RECARGA"}
+                  </small>
+                </button>
+
+                <button
+                  className={ultimateButtonClassName}
+                  style={ultimateButtonStyle}
+                  type="button"
+                  onClick={handleUltimatePowerAction}
+                  aria-label="Usar ultimate"
+                >
+                  <span className="breakout-power-particles" />
+
+                  <span className="breakout-power-icon">
+                    {isUltimateActive ? "🟢" : "⚡"}
+                  </span>
+
+                  <small>
+                    {isUltimateActive
+                      ? ultimateTimeLabel
+                      : isUltimateReady
+                        ? "E"
+                        : `${ultimateCharge}%`}
                   </small>
                 </button>
               </>
@@ -237,6 +285,11 @@ function BreakoutGamePage() {
                 <div className="breakout-power-placeholder">
                   <span>🎯</span>
                   <small>W durante o jogo</small>
+                </div>
+
+                <div className="breakout-power-placeholder">
+                  <span>⚡</span>
+                  <small>Carrega quebrando blocos</small>
                 </div>
               </>
             )}

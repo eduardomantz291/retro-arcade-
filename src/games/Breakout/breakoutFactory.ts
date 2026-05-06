@@ -37,7 +37,6 @@ export function createBricks(wave: number) {
     for (let column = 0; column < BRICK_COLUMNS; column++) {
       const palette = brickColors[row % brickColors.length];
 
-      // Conforme o jogo continua, os blocos superiores ficam mais resistentes.
       const hasExtraLife = wave >= 2 && row <= Math.min(2, wave - 1);
       const maxHits = hasExtraLife ? 2 : 1;
 
@@ -68,6 +67,33 @@ export function createBricks(wave: number) {
       color: "#ff3838",
       glow: "#ff6b6b",
     };
+  }
+
+  return bricks;
+}
+
+export function createUltimateBricks() {
+  const brickWidth =
+    (CANVAS_WIDTH - BRICK_SIDE * 2 - BRICK_GAP * (BRICK_COLUMNS - 1)) /
+    BRICK_COLUMNS;
+
+  const bricks: Brick[] = [];
+
+  for (let row = 0; row < BRICK_ROWS; row++) {
+    for (let column = 0; column < BRICK_COLUMNS; column++) {
+      bricks.push({
+        x: BRICK_SIDE + column * (brickWidth + BRICK_GAP),
+        y: BRICK_TOP + row * (BRICK_HEIGHT + BRICK_GAP),
+        width: brickWidth,
+        height: BRICK_HEIGHT,
+        active: true,
+        hits: 1,
+        maxHits: 1,
+        color: "#38ef7d",
+        glow: "#38ef7d",
+        type: "ultimate",
+      });
+    }
   }
 
   return bricks;
@@ -106,10 +132,17 @@ export function createInitialRuntime(wave = 1): BreakoutRuntime {
       lastUsedAt: -Infinity,
     },
 
+    ultimatePower: {
+      active: false,
+      charge: 0,
+      activatedAt: 0,
+    },
+
     bricks: createBricks(wave),
     particles: [],
     shockwaves: [],
     powerUps: [],
+    ultimateExtraBalls: [],
 
     score: 0,
     lives: INITIAL_LIVES,
