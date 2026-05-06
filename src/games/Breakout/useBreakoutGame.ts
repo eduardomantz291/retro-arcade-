@@ -19,6 +19,8 @@ import {
   HEART_DROP_CHANCE,
   HOMING_ARROW_COMBO_MAX_TURN,
   HOMING_ARROW_COMBO_STRENGTH,
+  HOMING_END_BOOST_SPEED,
+  HOMING_MIN_BALL_SPEED,
   HOMING_POWER_COOLDOWN_MS,
   HOMING_POWER_DURATION_MS,
   HOMING_POWER_MAX_TURN,
@@ -30,13 +32,13 @@ import {
   TNT_BRICK_POINTS,
   TNT_EXPLOSION_BRICK_POINTS,
   TNT_EXPLOSION_RADIUS,
-  ULTIMATE_BALL_SPEED,
-  ULTIMATE_CHARGE_PER_BRICK,
   ULTIMATE_DURATION_MS,
   ULTIMATE_EXTRA_BALL_MAX,
   ULTIMATE_EXTRA_BALL_POINTS,
+  ULTIMATE_FIXED_BALL_SPEED,
   ULTIMATE_GREEN_BRICK_POINTS,
   ULTIMATE_MAX_CHARGE,
+  ULTIMATE_REQUIRED_BRICKS,
 } from "./breakoutConfig";
 import {
   createBricks,
@@ -167,13 +169,22 @@ export function useBreakoutGame() {
     return Math.max(0, Math.min(CANVAS_WIDTH - runtime.paddle.width, nextX));
   }
 
+  function getUltimateChargePercent() {
+    const runtime = runtimeRef.current;
+
+    return Math.min(
+      ULTIMATE_MAX_CHARGE,
+      Math.floor((runtime.ultimatePower.charge / ULTIMATE_REQUIRED_BRICKS) * 100)
+    );
+  }
+
   function syncStateFromRuntime() {
     const runtime = runtimeRef.current;
 
     setScore(runtime.score);
     setLives(runtime.lives);
     setBombCharges(runtime.ball.bombCharges);
-    setUltimateCharge(Math.floor(runtime.ultimatePower.charge));
+    setUltimateCharge(getUltimateChargePercent());
 
     syncArrowPowerState();
     syncHomingPowerState();
@@ -192,7 +203,7 @@ export function useBreakoutGame() {
     setElapsedSeconds(nextElapsedSeconds);
   }
 
-  function addUltimateCharge(amount = ULTIMATE_CHARGE_PER_BRICK) {
+  function addUltimateCharge(amount = 1) {
     const runtime = runtimeRef.current;
 
     if (runtime.ultimatePower.active) {
@@ -200,11 +211,54 @@ export function useBreakoutGame() {
     }
 
     runtime.ultimatePower.charge = Math.min(
-      ULTIMATE_MAX_CHARGE,
+      ULTIMATE_REQUIRED_BRICKS,
       runtime.ultimatePower.charge + amount
     );
 
-    setUltimateCharge(Math.floor(runtime.ultimatePower.charge));
+    setUltimateCharge(getUltimateChargePercent());
+  }
+
+  function setBallVectorSpeed(targetSpeed: number) {
+    const runtime = runtimeRef.current;
+    const currentVelocity = Math.hypot(runtime.ball.vx, runtime.ball.vy);
+
+    if (currentVelocity <= 0) {
+      runtime.ball.vx = 4;
+      runtime.ball.vy = -targetSpeed;
+      return;
+    }
+
+    runtime.ball.vx = (runtime.ball.vx / currentVelocity) * targetSpeed;
+    runtime.ball.vy = (runtime.ball.vy / currentVelocity) * targetSpeed;
+  }
+
+  function forceUltimateBallSpeed() {
+    const runtime = runtimeRef.current;
+
+    runtime.ball.speed = 1;
+    setBallVectorSpeed(ULTIMATE_FIXED_BALL_SPEED);
+  }
+
+  function boostBallAfterHomingEnds() {
+    const runtime = runtimeRef.current;
+
+    if (runtime.ball.stuckToPaddle) {
+      return;
+    }
+
+    if (runtime.ultimatePower.active) {
+      return;
+    }
+
+    const currentVelocity = Math.hypot(runtime.ball.vx, runtime.ball.vy);
+
+    if (currentVelocity >= HOMING_END_BOOST_SPEED) {
+      return;
+    }
+
+    setBallVectorSpeed(HOMING_END_BOOST_SPEED);
+
+    createExplosion(runtime.ball.x, runtime.ball.y, "#9b59b6", 12, 5);
   }
 
   function syncArrowPowerState() {
@@ -256,6 +310,7 @@ export function useBreakoutGame() {
 
       if (activeElapsed >= HOMING_POWER_DURATION_MS) {
         runtime.homingPower.active = false;
+        boostBallAfterHomingEnds();
       }
     }
 
@@ -284,7 +339,7 @@ export function useBreakoutGame() {
     if (!runtime.ultimatePower.active) {
       setIsUltimateActive(false);
       setUltimateTimeLabel("60s");
-      setUltimateCharge(Math.floor(runtime.ultimatePower.charge));
+      setUltimateCharge(getUltimateChargePercent());
       return;
     }
 
@@ -295,6 +350,8 @@ export function useBreakoutGame() {
       finishUltimatePower();
       return;
     }
+
+    forceUltimateBallSpeed();
 
     setIsUltimateActive(true);
     setUltimateTimeLabel(formatUltimateTime(remaining));
@@ -440,6 +497,12 @@ export function useBreakoutGame() {
     runtime.homingPower.activatedAt = now;
     runtime.homingPower.lastUsedAt = now;
 
+    const currentVelocity = Math.hypot(runtime.ball.vx, runtime.ball.vy);
+
+    if (!runtime.ball.stuckToPaddle && currentVelocity < HOMING_MIN_BALL_SPEED) {
+      setBallVectorSpeed(HOMING_MIN_BALL_SPEED);
+    }
+
     createExplosion(runtime.ball.x, runtime.ball.y, "#9b59b6", 18, 6);
     createShockwave(runtime.ball.x, runtime.ball.y, "#9b59b6", 48);
 
@@ -482,13 +545,14 @@ export function useBreakoutGame() {
     runtime.homingPower.active = false;
     runtime.ball.bombCharges = 0;
     runtime.ball.arrowPierceHits = 0;
-    runtime.ball.speed = ULTIMATE_BALL_SPEED;
     runtime.ball.stuckToPaddle = false;
 
     runtime.ultimatePower.active = true;
     runtime.ultimatePower.activatedAt = performance.now();
-    runtime.ultimatePower.charge = ULTIMATE_MAX_CHARGE;
+    runtime.ultimatePower.charge = ULTIMATE_REQUIRED_BRICKS;
     runtime.ultimatePower.paddleBounceCombo = 0;
+
+    forceUltimateBallSpeed();
 
     runtime.shake = 18;
 
@@ -546,7 +610,7 @@ export function useBreakoutGame() {
       return;
     }
 
-    if (runtime.ultimatePower.charge < ULTIMATE_MAX_CHARGE) {
+    if (runtime.ultimatePower.charge < ULTIMATE_REQUIRED_BRICKS) {
       return;
     }
 
@@ -569,8 +633,8 @@ export function useBreakoutGame() {
     const mainDirection = runtime.ball.vx >= 0 ? 1 : -1;
     const extraDirection = -mainDirection;
     const spread = total <= 1 ? 0 : index - (total - 1) / 2;
-    const verticalSpeed = Math.max(5.8, Math.abs(runtime.ball.vy) * 0.78);
-    const horizontalBase = Math.max(3.6, Math.abs(hitPosition * 6.4));
+    const verticalSpeed = 6.2;
+    const horizontalBase = Math.max(3.8, Math.abs(hitPosition * 6.4));
     const horizontalSpeed = horizontalBase + Math.abs(spread) * 0.75;
 
     runtime.ultimateExtraBalls.push({
@@ -666,7 +730,7 @@ export function useBreakoutGame() {
       : HOMING_POWER_MAX_TURN;
 
     const currentSpeed = Math.max(
-      isArrowHomingCombo ? 10 : 6,
+      isArrowHomingCombo ? 10 : HOMING_MIN_BALL_SPEED,
       Math.hypot(runtime.ball.vx, runtime.ball.vy)
     );
 
@@ -696,7 +760,7 @@ export function useBreakoutGame() {
     runtime.ball.vy += turnY;
 
     const normalizedSpeed = Math.max(
-      isArrowHomingCombo ? 10 : 6,
+      isArrowHomingCombo ? 10 : HOMING_MIN_BALL_SPEED,
       Math.hypot(runtime.ball.vx, runtime.ball.vy)
     );
 
@@ -1203,6 +1267,7 @@ export function useBreakoutGame() {
 
     if (runtime.ultimatePower.active || brick.type === "ultimate") {
       destroyUltimateBrick(brick, ULTIMATE_GREEN_BRICK_POINTS);
+      forceUltimateBallSpeed();
       return;
     }
 
@@ -1398,10 +1463,12 @@ export function useBreakoutGame() {
 
     runtime.ball.y = CANVAS_HEIGHT - runtime.ball.radius - 1;
     runtime.ball.vy = -Math.abs(runtime.ball.vy);
-    runtime.ball.speed = ULTIMATE_BALL_SPEED;
+    runtime.ball.speed = 1;
 
     runtime.ultimatePower.paddleBounceCombo = 0;
     runtime.shake = 6;
+
+    forceUltimateBallSpeed();
 
     createExplosion(runtime.ball.x, runtime.ball.y, "#38ef7d", 14, 6);
   }
@@ -1435,6 +1502,10 @@ export function useBreakoutGame() {
     if (!ball.stuckToPaddle) {
       applyHomingToBall();
 
+      if (runtime.ultimatePower.active) {
+        forceUltimateBallSpeed();
+      }
+
       ball.x += ball.vx * ball.speed;
       ball.y += ball.vy * ball.speed;
     }
@@ -1442,16 +1513,28 @@ export function useBreakoutGame() {
     if (ball.x - ball.radius <= 0) {
       ball.x = ball.radius;
       ball.vx *= -1;
+
+      if (runtime.ultimatePower.active) {
+        forceUltimateBallSpeed();
+      }
     }
 
     if (ball.x + ball.radius >= CANVAS_WIDTH) {
       ball.x = CANVAS_WIDTH - ball.radius;
       ball.vx *= -1;
+
+      if (runtime.ultimatePower.active) {
+        forceUltimateBallSpeed();
+      }
     }
 
     if (ball.y - ball.radius <= 0) {
       ball.y = ball.radius;
       ball.vy *= -1;
+
+      if (runtime.ultimatePower.active) {
+        forceUltimateBallSpeed();
+      }
     }
 
     const isBallTouchingPaddle =
@@ -1470,7 +1553,9 @@ export function useBreakoutGame() {
 
         ball.vx = hitPosition * 6.4;
         ball.vy = -Math.abs(ball.vy);
-        ball.speed = ULTIMATE_BALL_SPEED;
+        ball.speed = 1;
+
+        forceUltimateBallSpeed();
 
         spawnUltimateExtraBalls(hitPosition);
         createExplosion(ball.x, ball.y, "#38ef7d", 18, 7);
