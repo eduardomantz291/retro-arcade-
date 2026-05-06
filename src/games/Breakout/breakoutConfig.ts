@@ -43,6 +43,10 @@ export const ARROW_POWER_SHOT_SPEED = 15.5;
 export const ARROW_POWER_MAX_HORIZONTAL_FORCE = 13.2;
 export const ARROW_POWER_PIERCE_HITS = 9;
 
+// Mira da flecha
+export const ARROW_AIM_TOP_PADDING = 42;
+export const ARROW_AIM_SIDE_PADDING = 8;
+
 // Poder teleguiado
 export const HOMING_POWER_COOLDOWN_MS = 35000;
 export const HOMING_POWER_DURATION_MS = 8000;
@@ -50,7 +54,6 @@ export const HOMING_POWER_STRENGTH = 0.075;
 export const HOMING_POWER_MAX_TURN = 0.36;
 
 // Combo Flecha + Guia
-// Esse combo deixa a bolinha teleguiada com muito mais força durante o disparo.
 export const HOMING_ARROW_COMBO_STRENGTH = 0.18;
 export const HOMING_ARROW_COMBO_MAX_TURN = 0.82;
 

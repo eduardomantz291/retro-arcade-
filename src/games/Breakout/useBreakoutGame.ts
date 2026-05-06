@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
+  ARROW_AIM_SIDE_PADDING,
+  ARROW_AIM_TOP_PADDING,
   ARROW_POWER_COOLDOWN_MS,
   ARROW_POWER_MAX_HORIZONTAL_FORCE,
   ARROW_POWER_PIERCE_HITS,
@@ -241,18 +243,28 @@ export function useBreakoutGame() {
     const runtime = runtimeRef.current;
     const paddleCenter = runtime.paddle.x + runtime.paddle.width / 2;
 
+    // A mira usa a posição da raquete para escolher um ponto real no topo.
+    // Assim dá para mirar nos cantos e nos blocos laterais.
+    //
+    // A direção continua invertida:
+    // raquete à esquerda mira para direita,
+    // raquete à direita mira para esquerda.
     const paddleProgress = paddleCenter / CANVAS_WIDTH;
-    const invertedAimProgress = 1 - paddleProgress;
-    const aimOffset = (invertedAimProgress - 0.5) * 2;
+    const invertedProgress = 1 - paddleProgress;
 
-    const rawVx = aimOffset * ARROW_POWER_MAX_HORIZONTAL_FORCE;
-    const rawVy = -10;
+    const targetX =
+      ARROW_AIM_SIDE_PADDING +
+      invertedProgress * (CANVAS_WIDTH - ARROW_AIM_SIDE_PADDING * 2);
 
-    const magnitude = Math.hypot(rawVx, rawVy);
+    const targetY = ARROW_AIM_TOP_PADDING;
+
+    const directionX = targetX - runtime.ball.x;
+    const directionY = targetY - runtime.ball.y;
+    const directionLength = Math.max(1, Math.hypot(directionX, directionY));
 
     return {
-      vx: (rawVx / magnitude) * ARROW_POWER_SHOT_SPEED,
-      vy: (rawVy / magnitude) * ARROW_POWER_SHOT_SPEED,
+      vx: (directionX / directionLength) * ARROW_POWER_SHOT_SPEED,
+      vy: (directionY / directionLength) * ARROW_POWER_SHOT_SPEED,
     };
   }
 
@@ -680,7 +692,9 @@ export function useBreakoutGame() {
 
     runtime.powerUps = [];
     runtime.arrowPower.aiming = false;
-    runtime.homingPower.active = false;
+
+    // O Guia não é desligado aqui.
+    // Se o player limpar a tela com o Guia ativo, ele continua até o tempo acabar.
 
     runtime.rebuild = {
       active: true,
@@ -993,6 +1007,23 @@ export function useBreakoutGame() {
     }
   }
 
+  function bounceArrowShotFromBottom() {
+    const runtime = runtimeRef.current;
+
+    runtime.ball.y = CANVAS_HEIGHT - runtime.ball.radius - 1;
+    runtime.ball.vy = -Math.abs(runtime.ball.vy);
+
+    // Quando o player erra a bolinha da flecha, ele não perde vida.
+    // Mas o poder da flecha acaba e a bolinha volta ao comportamento normal.
+    runtime.ball.arrowPierceHits = 0;
+    runtime.ball.speed = 1;
+
+    runtime.shake = 7;
+
+    createExplosion(runtime.ball.x, runtime.ball.y, "#4facfe", 16, 6);
+    createShockwave(runtime.ball.x, runtime.ball.y, "#4facfe", 42);
+  }
+
   function updateGame() {
     const runtime = runtimeRef.current;
     const { paddle, ball } = runtime;
@@ -1051,11 +1082,26 @@ export function useBreakoutGame() {
       const paddleCenter = paddle.x + paddle.width / 2;
       const hitPosition = (ball.x - paddleCenter) / (paddle.width / 2);
 
-      ball.vx = hitPosition * 5.4;
-      ball.vy = -Math.abs(ball.vy);
-      ball.y = paddle.y - ball.radius - 1;
+      if (ball.arrowPierceHits > 0) {
+        // Se o player conseguiu pegar a bolinha da flecha na raquete,
+        // o poder continua e ela volta com força.
+        const directionX = hitPosition * ARROW_POWER_MAX_HORIZONTAL_FORCE;
+        const directionY = -10;
+        const directionLength = Math.max(1, Math.hypot(directionX, directionY));
 
-      createExplosion(ball.x, ball.y, "#38ef7d");
+        ball.vx = (directionX / directionLength) * ARROW_POWER_SHOT_SPEED;
+        ball.vy = (directionY / directionLength) * ARROW_POWER_SHOT_SPEED;
+        ball.speed = 1;
+
+        createExplosion(ball.x, ball.y, "#4facfe", 18, 7);
+      } else {
+        ball.vx = hitPosition * 5.4;
+        ball.vy = -Math.abs(ball.vy);
+
+        createExplosion(ball.x, ball.y, "#38ef7d");
+      }
+
+      ball.y = paddle.y - ball.radius - 1;
     }
 
     for (const brick of runtime.bricks) {
@@ -1078,10 +1124,17 @@ export function useBreakoutGame() {
     updatePowerUps();
 
     if (ball.y - ball.radius > CANVAS_HEIGHT) {
+      runtime.arrowPower.aiming = false;
+
+      if (ball.arrowPierceHits > 0) {
+        bounceArrowShotFromBottom();
+        syncArrowPowerState();
+        syncHomingPowerState();
+        return;
+      }
+
       runtime.lives -= 1;
       runtime.shake = 12;
-      runtime.arrowPower.aiming = false;
-      runtime.homingPower.active = false;
 
       setLives(runtime.lives);
       syncArrowPowerState();
@@ -1314,8 +1367,8 @@ export function useBreakoutGame() {
     }
 
     const velocity = getArrowShotVelocity();
-    const length = 280;
-    const magnitude = Math.hypot(velocity.vx, velocity.vy);
+    const length = 420;
+    const magnitude = Math.max(1, Math.hypot(velocity.vx, velocity.vy));
 
     const directionX = velocity.vx / magnitude;
     const directionY = velocity.vy / magnitude;
@@ -1329,8 +1382,8 @@ export function useBreakoutGame() {
     ctx.shadowColor = "#4facfe";
     ctx.fillStyle = "rgba(79, 172, 254, 0.95)";
 
-    for (let index = 1; index <= 18; index++) {
-      const progress = index / 18;
+    for (let index = 1; index <= 28; index++) {
+      const progress = index / 28;
       const dotX = startX + directionX * length * progress;
       const dotY = startY + directionY * length * progress;
 
@@ -1343,9 +1396,9 @@ export function useBreakoutGame() {
         continue;
       }
 
-      const radius = 5.6 - progress * 2.8;
+      const radius = 6 - progress * 3.2;
 
-      ctx.globalAlpha = 1 - progress * 0.35;
+      ctx.globalAlpha = 1 - progress * 0.42;
       ctx.beginPath();
       ctx.arc(dotX, dotY, Math.max(2, radius), 0, Math.PI * 2);
       ctx.fill();
