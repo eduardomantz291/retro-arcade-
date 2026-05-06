@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import {
+  ARROW_POWER_COOLDOWN_MS,
+  ARROW_POWER_MAX_HORIZONTAL_FORCE,
+  ARROW_POWER_SHOT_SPEED,
   BOMB_CHARGES,
   BOMB_DROP_CHANCE,
   BOMB_DROP_COOLDOWN_MS,
@@ -60,6 +63,10 @@ export function useBreakoutGame() {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [bombCharges, setBombCharges] = useState(0);
 
+  const [isArrowAiming, setIsArrowAiming] = useState(false);
+  const [isArrowReady, setIsArrowReady] = useState(true);
+  const [arrowCooldownProgress, setArrowCooldownProgress] = useState(1);
+
   useEffect(() => {
     drawGame();
 
@@ -69,6 +76,12 @@ export function useBreakoutGame() {
       }
 
       const runtime = runtimeRef.current;
+
+      if (event.code === "Space") {
+        event.preventDefault();
+        handleArrowPowerAction();
+        return;
+      }
 
       if (event.key === "ArrowLeft" || event.key.toLowerCase() === "a") {
         runtime.paddle.targetX -= 54;
@@ -109,6 +122,7 @@ export function useBreakoutGame() {
     setScore(runtime.score);
     setLives(runtime.lives);
     setBombCharges(runtime.ball.bombCharges);
+    syncArrowPowerState();
   }
 
   function updateElapsedTime() {
@@ -121,6 +135,28 @@ export function useBreakoutGame() {
     );
 
     setElapsedSeconds(nextElapsedSeconds);
+  }
+
+  function syncArrowPowerState() {
+    const runtime = runtimeRef.current;
+    const now = performance.now();
+
+    if (runtime.arrowPower.aiming) {
+      setIsArrowAiming(true);
+      setIsArrowReady(false);
+      setArrowCooldownProgress(1);
+      return;
+    }
+
+    const elapsedCooldown = now - runtime.arrowPower.lastUsedAt;
+    const progress = Math.min(
+      1,
+      Math.max(0, elapsedCooldown / ARROW_POWER_COOLDOWN_MS)
+    );
+
+    setIsArrowAiming(false);
+    setIsArrowReady(progress >= 1);
+    setArrowCooldownProgress(progress);
   }
 
   function keepBallOnPaddle() {
@@ -150,6 +186,80 @@ export function useBreakoutGame() {
     runtime.ball.speed = Math.min(1 + runtime.wave * 0.025, 1.22);
 
     createExplosion(runtime.ball.x, runtime.ball.y, "#4facfe");
+  }
+
+  function getArrowShotVelocity() {
+    const runtime = runtimeRef.current;
+    const paddleCenter = runtime.paddle.x + runtime.paddle.width / 2;
+    const centerOffset = (paddleCenter - CANVAS_WIDTH / 2) / (CANVAS_WIDTH / 2);
+
+    // Invertido de propósito:
+    // raquete mais para esquerda mira mais para direita,
+    // raquete mais para direita mira mais para esquerda.
+    const horizontalPower =
+      -centerOffset * ARROW_POWER_MAX_HORIZONTAL_FORCE;
+
+    return {
+      vx: horizontalPower,
+      vy: -ARROW_POWER_SHOT_SPEED,
+    };
+  }
+
+  function activateArrowAim() {
+    const runtime = runtimeRef.current;
+
+    runtime.arrowPower.aiming = true;
+    runtime.arrowPower.lastUsedAt = performance.now();
+    runtime.ball.stuckToPaddle = true;
+
+    keepBallOnPaddle();
+
+    createExplosion(runtime.ball.x, runtime.ball.y, "#4facfe", 16, 5);
+    syncArrowPowerState();
+  }
+
+  function launchArrowShot() {
+    const runtime = runtimeRef.current;
+    const shotVelocity = getArrowShotVelocity();
+
+    runtime.arrowPower.aiming = false;
+    runtime.ball.stuckToPaddle = false;
+    runtime.ball.vx = shotVelocity.vx;
+    runtime.ball.vy = shotVelocity.vy;
+    runtime.ball.speed = 1.35;
+
+    createExplosion(runtime.ball.x, runtime.ball.y, "#4facfe", 22, 7);
+    createShockwave(runtime.ball.x, runtime.ball.y, "#4facfe", 42);
+
+    syncArrowPowerState();
+  }
+
+  function handleArrowPowerAction() {
+    const runtime = runtimeRef.current;
+
+    if (screenStateRef.current !== "playing") {
+      return;
+    }
+
+    if (runtime.rebuild.active) {
+      return;
+    }
+
+    if (runtime.arrowPower.aiming) {
+      launchArrowShot();
+      return;
+    }
+
+    const now = performance.now();
+    const isCooldownReady =
+      now - runtime.arrowPower.lastUsedAt >= ARROW_POWER_COOLDOWN_MS;
+
+    if (!isCooldownReady) {
+      syncArrowPowerState();
+      return;
+    }
+
+    activateArrowAim();
   }
 
   function startGame() {
@@ -385,6 +495,8 @@ export function useBreakoutGame() {
     }));
 
     runtime.powerUps = [];
+    runtime.arrowPower.aiming = false;
+
     runtime.rebuild = {
       active: true,
       startedAt: performance.now(),
@@ -396,6 +508,7 @@ export function useBreakoutGame() {
     runtime.ball.stuckToPaddle = true;
 
     keepBallOnPaddle();
+    syncArrowPowerState();
   }
 
   function updateBrickRebuild() {
@@ -656,6 +769,7 @@ export function useBreakoutGame() {
     const { paddle, ball } = runtime;
 
     updateElapsedTime();
+    syncArrowPowerState();
     updatePaddle();
 
     if (ball.stuckToPaddle) {
@@ -734,8 +848,10 @@ export function useBreakoutGame() {
     if (ball.y - ball.radius > CANVAS_HEIGHT) {
       runtime.lives -= 1;
       runtime.shake = 12;
+      runtime.arrowPower.aiming = false;
 
       setLives(runtime.lives);
+      syncArrowPowerState();
 
       if (runtime.lives <= 0) {
         setGameScreen("game-over");
@@ -902,6 +1018,45 @@ export function useBreakoutGame() {
     ctx.restore();
   }
 
+  function drawArrowAimGuide(ctx: CanvasRenderingContext2D) {
+    const runtime = runtimeRef.current;
+
+    if (!runtime.arrowPower.aiming) {
+      return;
+    }
+
+    const velocity = getArrowShotVelocity();
+    const length = 190;
+    const magnitude = Math.hypot(velocity.vx, velocity.vy);
+
+    const directionX = velocity.vx / magnitude;
+    const directionY = velocity.vy / magnitude;
+
+    const startX = runtime.ball.x;
+    const startY = runtime.ball.y - 10;
+
+    ctx.save();
+
+    ctx.shadowBlur = 18;
+    ctx.shadowColor = "#4facfe";
+    ctx.fillStyle = "rgba(79, 172, 254, 0.95)";
+
+    for (let index = 1; index <= 12; index++) {
+      const progress = index / 12;
+      const dotX = startX + directionX * length * progress;
+      const dotY = startY + directionY * length * progress;
+      const radius = 5 - progress * 2.2;
+
+      ctx.globalAlpha = 1 - progress * 0.2;
+      ctx.beginPath();
+      ctx.arc(dotX, dotY, radius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+
   function drawGame() {
     const canvas = canvasRef.current;
 
@@ -1010,10 +1165,17 @@ export function useBreakoutGame() {
       999
     );
 
+    drawArrowAimGuide(ctx);
     drawBombBallTrail(ctx);
 
     ctx.shadowBlur = 20;
-    ctx.shadowColor = runtime.ball.bombCharges > 0 ? "#ff9f1a" : "#4facfe";
+    ctx.shadowColor =
+      runtime.ball.bombCharges > 0
+        ? "#ff9f1a"
+        : runtime.arrowPower.aiming
+          ? "#4facfe"
+          : "#4facfe";
+
     ctx.fillStyle = "#ffffff";
 
     ctx.beginPath();
@@ -1064,8 +1226,12 @@ export function useBreakoutGame() {
     elapsedSeconds,
     elapsedTimeLabel: formatSurvivalTime(elapsedSeconds),
     bombCharges,
+    isArrowAiming,
+    isArrowReady,
+    arrowCooldownProgress,
     startGame,
     restartGame,
     handlePointerMove,
+    handleArrowPowerAction,
   };
 }

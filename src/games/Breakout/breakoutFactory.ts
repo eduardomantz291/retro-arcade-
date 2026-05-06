@@ -93,6 +93,11 @@ export function createInitialRuntime(wave = 1): BreakoutRuntime {
       bombCharges: 0,
     },
 
+    arrowPower: {
+      aiming: false,
+      lastUsedAt: -Infinity,
+    },
+
     bricks: createBricks(wave),
     particles: [],
     shockwaves: [],

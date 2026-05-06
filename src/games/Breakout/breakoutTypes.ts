@@ -69,6 +69,11 @@ export type BreakoutRuntime = {
     bombCharges: number;
   };
 
+  arrowPower: {
+    aiming: boolean;
+    lastUsedAt: number;
+  };
+
   bricks: Brick[];
   particles: Particle[];
   shockwaves: Shockwave[];
