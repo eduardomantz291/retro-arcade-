@@ -16,8 +16,6 @@ import {
 import type { BreakoutRuntime, Brick } from "./breakoutTypes";
 
 function chooseTntBrickIndex(totalBricks: number) {
-  // Mantém apenas 1 TNT por tela.
-  // Evitamos os cantos extremos para ela ter mais chance de explodir blocos ao redor.
   const safeStart = BRICK_COLUMNS + 1;
   const safeEnd = totalBricks - BRICK_COLUMNS - 2;
 
@@ -92,6 +90,7 @@ export function createInitialRuntime(wave = 1): BreakoutRuntime {
       radius: BALL_RADIUS,
       speed: 1,
       stuckToPaddle: false,
+      bombCharges: 0,
     },
 
     bricks: createBricks(wave),
@@ -103,6 +102,7 @@ export function createInitialRuntime(wave = 1): BreakoutRuntime {
     lives: INITIAL_LIVES,
     wave,
     shake: 0,
+    lastBombCollectedAt: -Infinity,
 
     rebuild: {
       active: false,

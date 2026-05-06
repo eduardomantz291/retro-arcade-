@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import {
+  BOMB_CHARGES,
+  BOMB_DROP_CHANCE,
+  BOMB_DROP_COOLDOWN_MS,
+  BOMB_EXPLOSION_BRICK_POINTS,
+  BOMB_EXPLOSION_RADIUS,
   BRICK_REBUILD_INTERVAL,
   BRICK_REBUILD_RELEASE_DELAY,
   CANVAS_HEIGHT,
@@ -53,6 +58,7 @@ export function useBreakoutGame() {
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(INITIAL_LIVES);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [bombCharges, setBombCharges] = useState(0);
 
   useEffect(() => {
     drawGame();
@@ -102,6 +108,7 @@ export function useBreakoutGame() {
 
     setScore(runtime.score);
     setLives(runtime.lives);
+    setBombCharges(runtime.ball.bombCharges);
   }
 
   function updateElapsedTime() {
@@ -205,14 +212,14 @@ export function useBreakoutGame() {
     }
   }
 
-  function createShockwave(x: number, y: number, color: string) {
+  function createShockwave(x: number, y: number, color: string, maxRadius: number) {
     const runtime = runtimeRef.current;
 
     runtime.shockwaves.push({
       x,
       y,
       radius: 8,
-      maxRadius: TNT_EXPLOSION_RADIUS,
+      maxRadius,
       life: 1,
       color,
     });
@@ -235,6 +242,23 @@ export function useBreakoutGame() {
     };
   }
 
+  function createBombPowerUp(x: number, y: number): FallingPowerUp {
+    powerUpIdRef.current += 1;
+
+    return {
+      id: powerUpIdRef.current,
+      type: "bomb",
+      x,
+      y,
+      vy: POWER_UP_FALL_SPEED,
+      radius: POWER_UP_RADIUS,
+      emoji: "💣",
+      color: "#f1c40f",
+      glow: "#ff9f1a",
+      active: true,
+    };
+  }
+
   function tryDropHeartFromBrick(brick: Brick) {
     const runtime = runtimeRef.current;
 
@@ -244,6 +268,36 @@ export function useBreakoutGame() {
 
     runtime.powerUps.push(
       createHeartPowerUp(
+        brick.x + brick.width / 2,
+        brick.y + brick.height / 2
+      )
+    );
+  }
+
+  function tryDropBombFromBrick(brick: Brick) {
+    const runtime = runtimeRef.current;
+    const now = performance.now();
+
+    const isHardBrick = brick.maxHits > 1;
+    const hasBombPowerActive = runtime.ball.bombCharges > 0;
+
+    const hasFallingBomb = runtime.powerUps.some((powerUp) => {
+      return powerUp.type === "bomb";
+    });
+
+    const isBombOnCooldown =
+      now - runtime.lastBombCollectedAt < BOMB_DROP_COOLDOWN_MS;
+
+    if (!isHardBrick || hasBombPowerActive || hasFallingBomb || isBombOnCooldown) {
+      return;
+    }
+
+    if (Math.random() > BOMB_DROP_CHANCE) {
+      return;
+    }
+
+    runtime.powerUps.push(
+      createBombPowerUp(
         brick.x + brick.width / 2,
         brick.y + brick.height / 2
       )
@@ -269,6 +323,30 @@ export function useBreakoutGame() {
     createExplosion(powerUp.x, powerUp.y, "#f1c40f");
   }
 
+  function collectBombPowerUp(powerUp: FallingPowerUp) {
+    const runtime = runtimeRef.current;
+
+    powerUp.active = false;
+    runtime.ball.bombCharges = BOMB_CHARGES;
+    runtime.lastBombCollectedAt = performance.now();
+
+    setBombCharges(runtime.ball.bombCharges);
+
+    createExplosion(powerUp.x, powerUp.y, "#ff9f1a", 18, 7);
+    createShockwave(powerUp.x, powerUp.y, "#f1c40f", 44);
+  }
+
+  function collectPowerUp(powerUp: FallingPowerUp) {
+    if (powerUp.type === "heart") {
+      collectHeartPowerUp(powerUp);
+      return;
+    }
+
+    if (powerUp.type === "bomb") {
+      collectBombPowerUp(powerUp);
+    }
+  }
+
   function updatePowerUps() {
     const runtime = runtimeRef.current;
     const { paddle } = runtime;
@@ -285,7 +363,7 @@ export function useBreakoutGame() {
         powerUp.x - powerUp.radius <= paddle.x + paddle.width;
 
       if (isTouchingPaddle) {
-        collectHeartPowerUp(powerUp);
+        collectPowerUp(powerUp);
         runtime.powerUps.splice(index, 1);
         continue;
       }
@@ -377,6 +455,27 @@ export function useBreakoutGame() {
     }
   }
 
+  function destroyNormalBrickByExplosion(
+    brick: Brick,
+    points: number,
+    allowBombDrop: boolean
+  ) {
+    const runtime = runtimeRef.current;
+    const brickCenter = getBrickCenter(brick);
+
+    brick.active = false;
+    brick.hits = 0;
+
+    runtime.score += points;
+
+    createExplosion(brickCenter.x, brickCenter.y, brick.glow, 12, 6);
+    tryDropHeartFromBrick(brick);
+
+    if (allowBombDrop) {
+      tryDropBombFromBrick(brick);
+    }
+  }
+
   function explodeTntBrick(tntBrick: Brick) {
     const runtime = runtimeRef.current;
     const tntCenter = getBrickCenter(tntBrick);
@@ -386,7 +485,7 @@ export function useBreakoutGame() {
     runtime.score += TNT_BRICK_POINTS;
     runtime.shake = 18;
 
-    createShockwave(tntCenter.x, tntCenter.y, "#ff6b6b");
+    createShockwave(tntCenter.x, tntCenter.y, "#ff6b6b", TNT_EXPLOSION_RADIUS);
     createExplosion(tntCenter.x, tntCenter.y, "#ff4757", 34, 10);
     createExplosion(tntCenter.x, tntCenter.y, "#f1c40f", 20, 8);
 
@@ -405,14 +504,58 @@ export function useBreakoutGame() {
         continue;
       }
 
-      brick.active = false;
-      brick.hits = 0;
-
-      runtime.score += TNT_EXPLOSION_BRICK_POINTS;
-
-      createExplosion(brickCenter.x, brickCenter.y, brick.glow, 12, 6);
-      tryDropHeartFromBrick(brick);
+      destroyNormalBrickByExplosion(brick, TNT_EXPLOSION_BRICK_POINTS, true);
     }
+
+    setScore(runtime.score);
+    checkIfScreenWasCleared();
+  }
+
+  function explodeBombBallImpact(hitBrickTarget: Brick) {
+    const runtime = runtimeRef.current;
+    const impactCenter = getBrickCenter(hitBrickTarget);
+
+    runtime.shake = 12;
+
+    createShockwave(
+      impactCenter.x,
+      impactCenter.y,
+      "#ff9f1a",
+      BOMB_EXPLOSION_RADIUS
+    );
+
+    createExplosion(impactCenter.x, impactCenter.y, "#ff9f1a", 24, 8);
+    createExplosion(impactCenter.x, impactCenter.y, "#f1c40f", 12, 7);
+
+    for (const brick of runtime.bricks) {
+      if (!brick.active) {
+        continue;
+      }
+
+      const brickCenter = getBrickCenter(brick);
+      const distance = Math.hypot(
+        brickCenter.x - impactCenter.x,
+        brickCenter.y - impactCenter.y
+      );
+
+      if (distance > BOMB_EXPLOSION_RADIUS) {
+        continue;
+      }
+
+      if (brick.type === "tnt") {
+        explodeTntBrick(brick);
+        continue;
+      }
+
+      destroyNormalBrickByExplosion(
+        brick,
+        BOMB_EXPLOSION_BRICK_POINTS,
+        false
+      );
+    }
+
+    runtime.ball.bombCharges = Math.max(0, runtime.ball.bombCharges - 1);
+    setBombCharges(runtime.ball.bombCharges);
 
     setScore(runtime.score);
     checkIfScreenWasCleared();
@@ -420,6 +563,15 @@ export function useBreakoutGame() {
 
   function hitBrick(brick: Brick) {
     const runtime = runtimeRef.current;
+
+    if (runtime.ball.bombCharges > 0) {
+      explodeBombBallImpact(brick);
+
+      runtime.ball.vy *= -1;
+      runtime.ball.speed = Math.min(runtime.ball.speed + 0.04, 1.5);
+
+      return;
+    }
 
     if (brick.type === "tnt") {
       explodeTntBrick(brick);
@@ -446,6 +598,7 @@ export function useBreakoutGame() {
       runtime.score += 15;
 
       tryDropHeartFromBrick(brick);
+      tryDropBombFromBrick(brick);
     }
 
     runtime.ball.vy *= -1;
@@ -695,6 +848,60 @@ export function useBreakoutGame() {
     }
   }
 
+  function drawBombBallAura(ctx: CanvasRenderingContext2D) {
+    const runtime = runtimeRef.current;
+
+    if (runtime.ball.bombCharges <= 0) {
+      return;
+    }
+
+    const pulse = Math.abs(Math.sin(Date.now() / 120)) * 6;
+
+    ctx.shadowBlur = 26 + pulse;
+    ctx.shadowColor = "#ff9f1a";
+    ctx.strokeStyle = "rgba(255, 159, 26, 0.95)";
+    ctx.lineWidth = 3;
+
+    ctx.beginPath();
+    ctx.arc(
+      runtime.ball.x,
+      runtime.ball.y,
+      runtime.ball.radius + 7 + pulse * 0.2,
+      0,
+      Math.PI * 2
+    );
+    ctx.stroke();
+
+    ctx.shadowBlur = 0;
+  }
+
+  function drawBombBallTrail(ctx: CanvasRenderingContext2D) {
+    const runtime = runtimeRef.current;
+
+    if (runtime.ball.bombCharges <= 0) {
+      return;
+    }
+
+    ctx.save();
+
+    ctx.globalAlpha = 0.42;
+    ctx.shadowBlur = 16;
+    ctx.shadowColor = "#ff9f1a";
+    ctx.fillStyle = "#ff9f1a";
+
+    for (let index = 1; index <= 4; index++) {
+      const trailX = runtime.ball.x - runtime.ball.vx * index * 2.2;
+      const trailY = runtime.ball.y - runtime.ball.vy * index * 2.2;
+      const trailRadius = Math.max(2, runtime.ball.radius - index);
+
+      ctx.beginPath();
+      ctx.arc(trailX, trailY, trailRadius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.restore();
+  }
+
   function drawGame() {
     const canvas = canvasRef.current;
 
@@ -803,8 +1010,10 @@ export function useBreakoutGame() {
       999
     );
 
+    drawBombBallTrail(ctx);
+
     ctx.shadowBlur = 20;
-    ctx.shadowColor = "#4facfe";
+    ctx.shadowColor = runtime.ball.bombCharges > 0 ? "#ff9f1a" : "#4facfe";
     ctx.fillStyle = "#ffffff";
 
     ctx.beginPath();
@@ -818,6 +1027,8 @@ export function useBreakoutGame() {
     ctx.fill();
 
     ctx.shadowBlur = 0;
+
+    drawBombBallAura(ctx);
 
     for (const particle of runtime.particles) {
       ctx.globalAlpha = Math.max(0, particle.life);
@@ -852,6 +1063,7 @@ export function useBreakoutGame() {
     maxLives: MAX_LIVES,
     elapsedSeconds,
     elapsedTimeLabel: formatSurvivalTime(elapsedSeconds),
+    bombCharges,
     startGame,
     restartGame,
     handlePointerMove,

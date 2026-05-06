@@ -11,6 +11,7 @@ function BreakoutGamePage() {
     lives,
     maxLives,
     elapsedTimeLabel,
+    bombCharges,
     startGame,
     restartGame,
     handlePointerMove,
@@ -50,6 +51,10 @@ function BreakoutGamePage() {
           <div className="breakout-score-box breakout-glass-panel">
             Tempo <span>{elapsedTimeLabel}</span>
           </div>
+
+          <div className="breakout-score-box breakout-glass-panel">
+            Bomba <span>{bombCharges > 0 ? `💣 x${bombCharges}` : "0"}</span>
+          </div>
         </section>
 
         <section className="breakout-game-area">
@@ -82,7 +87,8 @@ function BreakoutGamePage() {
                   <span>Mouse ou toque para mover</span>
                   <span>Setas ou A/D também funcionam</span>
                   <span>❤️ Pegue corações para recuperar vidas</span>
-                  <span>Ao limpar a tela, os blocos voltam e o jogo continua</span>
+                  <span>💣 Pegue bombas para deixar a bolinha explosiva</span>
+                  <span>TNT explode blocos próximos e gera muitos pontos</span>
                 </div>
 
                 <button
@@ -129,9 +135,9 @@ function BreakoutGamePage() {
         <footer className="breakout-help breakout-glass-panel">
           <strong>Como jogar:</strong>
           <span>
-            Mova a raquete, rebata a bolinha e quebre todos os blocos. Quando
-            todos forem destruídos, novos blocos aparecem e a bolinha pausa na
-            raquete antes de continuar.
+            Mova a raquete, rebata a bolinha e quebre todos os blocos. Corações
+            recuperam vida, bombas deixam a bolinha explosiva por 2 impactos e a
+            TNT causa grandes explosões.
           </span>
         </footer>
       </section>

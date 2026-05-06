@@ -30,6 +30,13 @@ export const TNT_EXPLOSION_RADIUS = 92;
 export const TNT_BRICK_POINTS = 60;
 export const TNT_EXPLOSION_BRICK_POINTS = 35;
 
+// Bomba da bolinha
+export const BOMB_DROP_CHANCE = 0.2;
+export const BOMB_DROP_COOLDOWN_MS = 30000;
+export const BOMB_CHARGES = 2;
+export const BOMB_EXPLOSION_RADIUS = 66;
+export const BOMB_EXPLOSION_BRICK_POINTS = 25;
+
 export const brickColors = [
   { color: "#4facfe", glow: "#4facfe" },
   { color: "#38ef7d", glow: "#38ef7d" },

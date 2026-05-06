@@ -34,7 +34,7 @@ export type Shockwave = {
   color: string;
 };
 
-export type PowerUpType = "heart";
+export type PowerUpType = "heart" | "bomb";
 
 export type FallingPowerUp = {
   id: number;
@@ -66,6 +66,7 @@ export type BreakoutRuntime = {
     radius: number;
     speed: number;
     stuckToPaddle: boolean;
+    bombCharges: number;
   };
 
   bricks: Brick[];
@@ -77,6 +78,7 @@ export type BreakoutRuntime = {
   lives: number;
   wave: number;
   shake: number;
+  lastBombCollectedAt: number;
 
   rebuild: {
     active: boolean;
