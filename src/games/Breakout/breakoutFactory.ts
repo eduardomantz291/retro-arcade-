@@ -180,6 +180,12 @@ export function createInitialRuntime(wave = 1): BreakoutRuntime {
       lastUsedAt: -Infinity,
     },
 
+    shieldPower: {
+      active: false,
+      activatedAt: 0,
+      lastUsedAt: -Infinity,
+    },
+
     ultimatePower: {
       active: false,
       charge: 0,

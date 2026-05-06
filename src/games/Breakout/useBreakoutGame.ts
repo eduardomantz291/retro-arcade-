@@ -35,6 +35,8 @@ import {
   PADDLE_WIDTH,
   POWER_UP_FALL_SPEED,
   POWER_UP_RADIUS,
+  SHIELD_POWER_COOLDOWN_MS,
+  SHIELD_POWER_DURATION_MS,
   SKULL_DROP_CHANCE,
   TNT_BRICK_POINTS,
   TNT_EXPLOSION_BRICK_POINTS,
@@ -109,6 +111,10 @@ export function useBreakoutGame() {
   const [isHomingReady, setIsHomingReady] = useState(true);
   const [homingCooldownProgress, setHomingCooldownProgress] = useState(1);
 
+  const [isShieldActive, setIsShieldActive] = useState(false);
+  const [isShieldReady, setIsShieldReady] = useState(true);
+  const [shieldCooldownProgress, setShieldCooldownProgress] = useState(1);
+
   const [isUltimateActive, setIsUltimateActive] = useState(false);
   const [ultimateCharge, setUltimateCharge] = useState(0);
   const [ultimateTimeLabel, setUltimateTimeLabel] = useState("60s");
@@ -134,6 +140,12 @@ export function useBreakoutGame() {
       if (event.key.toLowerCase() === "w") {
         event.preventDefault();
         handleHomingPowerAction();
+        return;
+      }
+
+      if (event.key.toLowerCase() === "r") {
+        event.preventDefault();
+        handleShieldPowerAction();
         return;
       }
 
@@ -195,6 +207,7 @@ export function useBreakoutGame() {
 
     syncArrowPowerState();
     syncHomingPowerState();
+    syncShieldPowerState();
     syncUltimatePowerState();
   }
 
@@ -268,6 +281,28 @@ export function useBreakoutGame() {
     createExplosion(runtime.ball.x, runtime.ball.y, "#9b59b6", 12, 5);
   }
 
+  function isShieldBlockingHazards() {
+    const runtime = runtimeRef.current;
+    const now = performance.now();
+
+    return (
+      runtime.shieldPower.active &&
+      now - runtime.shieldPower.activatedAt < SHIELD_POWER_DURATION_MS &&
+      !runtime.ultimatePower.active
+    );
+  }
+
+  function blockBadDropWithShield(powerUp: FallingPowerUp) {
+    const runtime = runtimeRef.current;
+
+    powerUp.active = false;
+
+    runtime.shake = 5;
+
+    createExplosion(powerUp.x, powerUp.y, "#4facfe", 18, 7);
+    createShockwave(powerUp.x, powerUp.y, "#4facfe", 42);
+  }
+
   function syncArrowPowerState() {
     const runtime = runtimeRef.current;
     const now = performance.now();
@@ -337,6 +372,45 @@ export function useBreakoutGame() {
     setIsHomingActive(false);
     setIsHomingReady(progress >= 1);
     setHomingCooldownProgress(progress);
+  }
+
+  function syncShieldPowerState() {
+    const runtime = runtimeRef.current;
+    const now = performance.now();
+
+    if (runtime.ultimatePower.active) {
+      runtime.shieldPower.active = false;
+
+      setIsShieldActive(false);
+      setIsShieldReady(false);
+      setShieldCooldownProgress(0);
+      return;
+    }
+
+    if (runtime.shieldPower.active) {
+      const activeElapsed = now - runtime.shieldPower.activatedAt;
+
+      if (activeElapsed >= SHIELD_POWER_DURATION_MS) {
+        runtime.shieldPower.active = false;
+      }
+    }
+
+    if (runtime.shieldPower.active) {
+      setIsShieldActive(true);
+      setIsShieldReady(false);
+      setShieldCooldownProgress(1);
+      return;
+    }
+
+    const elapsedCooldown = now - runtime.shieldPower.lastUsedAt;
+    const progress = Math.min(
+      1,
+      Math.max(0, elapsedCooldown / SHIELD_POWER_COOLDOWN_MS)
+    );
+
+    setIsShieldActive(false);
+    setIsShieldReady(progress >= 1);
+    setShieldCooldownProgress(progress);
   }
 
   function syncUltimatePowerState() {
@@ -516,6 +590,52 @@ export function useBreakoutGame() {
     syncHomingPowerState();
   }
 
+  function handleShieldPowerAction() {
+    const runtime = runtimeRef.current;
+
+    if (screenStateRef.current !== "playing") {
+      return;
+    }
+
+    if (runtime.rebuild.active || runtime.ultimatePower.active) {
+      return;
+    }
+
+    if (runtime.shieldPower.active) {
+      return;
+    }
+
+    const now = performance.now();
+    const isCooldownReady =
+      now - runtime.shieldPower.lastUsedAt >= SHIELD_POWER_COOLDOWN_MS;
+
+    if (!isCooldownReady) {
+      syncShieldPowerState();
+      return;
+    }
+
+    runtime.shieldPower.active = true;
+    runtime.shieldPower.activatedAt = now;
+    runtime.shieldPower.lastUsedAt = now;
+
+    createExplosion(
+      runtime.paddle.x + runtime.paddle.width / 2,
+      runtime.paddle.y,
+      "#4facfe",
+      22,
+      7
+    );
+
+    createShockwave(
+      runtime.paddle.x + runtime.paddle.width / 2,
+      runtime.paddle.y,
+      "#4facfe",
+      52
+    );
+
+    syncShieldPowerState();
+  }
+
   function breakRemainingNormalBricksForUltimate() {
     const runtime = runtimeRef.current;
     let pointsEarned = 0;
@@ -554,6 +674,7 @@ export function useBreakoutGame() {
 
     runtime.arrowPower.aiming = false;
     runtime.homingPower.active = false;
+    runtime.shieldPower.active = false;
     runtime.ball.bombCharges = 0;
     runtime.ball.arrowPierceHits = 0;
     runtime.ball.stuckToPaddle = false;
@@ -1131,6 +1252,11 @@ export function useBreakoutGame() {
   function collectSkullPowerUp(powerUp: FallingPowerUp) {
     powerUp.active = false;
 
+    if (isShieldBlockingHazards()) {
+      blockBadDropWithShield(powerUp);
+      return;
+    }
+
     damagePlayerByHazard(powerUp.x, powerUp.y, "#ff4757");
   }
 
@@ -1140,6 +1266,11 @@ export function useBreakoutGame() {
     powerUp.active = false;
 
     if (runtime.ultimatePower.active) {
+      return;
+    }
+
+    if (isShieldBlockingHazards()) {
+      blockBadDropWithShield(powerUp);
       return;
     }
 
@@ -1168,6 +1299,11 @@ export function useBreakoutGame() {
     powerUp.active = false;
 
     if (runtime.ultimatePower.active) {
+      return;
+    }
+
+    if (isShieldBlockingHazards()) {
+      blockBadDropWithShield(powerUp);
       return;
     }
 
@@ -1269,6 +1405,7 @@ export function useBreakoutGame() {
     keepBallOnPaddle();
     syncArrowPowerState();
     syncHomingPowerState();
+    syncShieldPowerState();
     syncUltimatePowerState();
   }
 
@@ -1753,6 +1890,7 @@ export function useBreakoutGame() {
     updateElapsedTime();
     syncArrowPowerState();
     syncHomingPowerState();
+    syncShieldPowerState();
     syncUltimatePowerState();
     updatePaddle();
 
@@ -1888,6 +2026,7 @@ export function useBreakoutGame() {
         bounceArrowShotFromBottom();
         syncArrowPowerState();
         syncHomingPowerState();
+        syncShieldPowerState();
         syncUltimatePowerState();
         return;
       }
@@ -1898,6 +2037,7 @@ export function useBreakoutGame() {
       setLives(runtime.lives);
       syncArrowPowerState();
       syncHomingPowerState();
+      syncShieldPowerState();
       syncUltimatePowerState();
 
       if (runtime.lives <= 0) {
@@ -2277,6 +2417,45 @@ export function useBreakoutGame() {
     ctx.restore();
   }
 
+  function drawShieldAura(ctx: CanvasRenderingContext2D) {
+    const runtime = runtimeRef.current;
+
+    if (!isShieldBlockingHazards()) {
+      return;
+    }
+
+    const pulse = Math.abs(Math.sin(Date.now() / 90)) * 8;
+    const centerX = runtime.paddle.x + runtime.paddle.width / 2;
+    const centerY = runtime.paddle.y + runtime.paddle.height / 2;
+
+    ctx.save();
+
+    ctx.globalAlpha = 0.82;
+    ctx.shadowBlur = 28 + pulse;
+    ctx.shadowColor = "#4facfe";
+    ctx.strokeStyle = "rgba(79, 172, 254, 0.95)";
+    ctx.lineWidth = 3;
+
+    ctx.beginPath();
+    ctx.roundRect(
+      runtime.paddle.x - 10,
+      runtime.paddle.y - 10,
+      runtime.paddle.width + 20,
+      runtime.paddle.height + 20,
+      999
+    );
+    ctx.stroke();
+
+    ctx.globalAlpha = 0.25;
+    ctx.fillStyle = "#4facfe";
+
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, runtime.paddle.width / 2 + 8, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+
   function drawPaddle(ctx: CanvasRenderingContext2D) {
     const runtime = runtimeRef.current;
     const now = performance.now();
@@ -2309,6 +2488,8 @@ export function useBreakoutGame() {
     );
 
     ctx.restore();
+
+    drawShieldAura(ctx);
   }
 
   function drawGame() {
@@ -2494,6 +2675,9 @@ export function useBreakoutGame() {
     isHomingActive,
     isHomingReady,
     homingCooldownProgress,
+    isShieldActive,
+    isShieldReady,
+    shieldCooldownProgress,
     isUltimateActive,
     isUltimateReady,
     ultimateCharge,
@@ -2503,6 +2687,7 @@ export function useBreakoutGame() {
     handlePointerMove,
     handleArrowPowerAction,
     handleHomingPowerAction,
+    handleShieldPowerAction,
     handleUltimatePowerAction,
   };
 }

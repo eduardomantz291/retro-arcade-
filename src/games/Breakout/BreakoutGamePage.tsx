@@ -19,6 +19,9 @@ function BreakoutGamePage() {
     isHomingActive,
     isHomingReady,
     homingCooldownProgress,
+    isShieldActive,
+    isShieldReady,
+    shieldCooldownProgress,
     isUltimateActive,
     isUltimateReady,
     ultimateCharge,
@@ -28,6 +31,7 @@ function BreakoutGamePage() {
     handlePointerMove,
     handleArrowPowerAction,
     handleHomingPowerAction,
+    handleShieldPowerAction,
     handleUltimatePowerAction,
   } = useBreakoutGame();
 
@@ -37,6 +41,10 @@ function BreakoutGamePage() {
 
   const homingButtonStyle = {
     "--power-charge": homingCooldownProgress,
+  } as CSSProperties;
+
+  const shieldButtonStyle = {
+    "--power-charge": shieldCooldownProgress,
   } as CSSProperties;
 
   const ultimateButtonStyle = {
@@ -61,6 +69,17 @@ function BreakoutGamePage() {
       ? "breakout-power-ready"
       : "breakout-power-cooldown",
     isHomingActive ? "breakout-power-active" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const shieldButtonClassName = [
+    "breakout-power-button",
+    "breakout-shield-power-button",
+    isShieldReady && !isUltimateActive
+      ? "breakout-power-ready"
+      : "breakout-power-cooldown",
+    isShieldActive ? "breakout-power-active" : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -145,11 +164,11 @@ function BreakoutGamePage() {
                   <span>Setas ou A/D também funcionam</span>
                   <span>Q ou botão 🏹 ativa o poder de mira</span>
                   <span>W ou botão 🎯 ativa o poder teleguiado</span>
+                  <span>R ou botão 🛡️ ativa o escudo contra drops ruins</span>
                   <span>E ou botão ⚡ usa a Ultimate quando estiver cheia</span>
                   <span>A Ultimate carrega quebrando blocos</span>
                   <span>Durante a Ultimate, os outros poderes ficam bloqueados</span>
-                  <span>❤️ Pegue corações para recuperar vidas</span>
-                  <span>💣 Pegue bombas para deixar a bolinha explosiva</span>
+                  <span>☠️, 🔻 e 👻 são drops ruins. Desvie deles!</span>
                 </div>
 
                 <button
@@ -197,8 +216,9 @@ function BreakoutGamePage() {
           <div className="breakout-power-panel-text">
             <strong>Poderes</strong>
             <span>
-              Q usa Flecha. W usa Guia. E ativa a Ultimate quando a carga chegar
-              em 100%. Durante a Ultimate, os outros poderes ficam travados.
+              Q usa Flecha. W usa Guia. R usa Escudo. E ativa a Ultimate quando
+              a carga chegar em 100%. O Escudo bloqueia drops ruins, mas não
+              protege se a bolinha cair.
             </span>
           </div>
 
@@ -254,6 +274,30 @@ function BreakoutGamePage() {
                 </button>
 
                 <button
+                  className={shieldButtonClassName}
+                  style={shieldButtonStyle}
+                  type="button"
+                  onClick={handleShieldPowerAction}
+                  aria-label="Usar escudo"
+                >
+                  <span className="breakout-power-particles" />
+
+                  <span className="breakout-power-icon">
+                    {isShieldActive ? "🔵" : "🛡️"}
+                  </span>
+
+                  <small>
+                    {isUltimateActive
+                      ? "LOCK"
+                      : isShieldActive
+                        ? "ATIVO"
+                        : isShieldReady
+                          ? "R"
+                          : "RECARGA"}
+                  </small>
+                </button>
+
+                <button
                   className={ultimateButtonClassName}
                   style={ultimateButtonStyle}
                   type="button"
@@ -285,6 +329,11 @@ function BreakoutGamePage() {
                 <div className="breakout-power-placeholder">
                   <span>🎯</span>
                   <small>W durante o jogo</small>
+                </div>
+
+                <div className="breakout-power-placeholder">
+                  <span>🛡️</span>
+                  <small>R durante o jogo</small>
                 </div>
 
                 <div className="breakout-power-placeholder">

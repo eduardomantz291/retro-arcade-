@@ -31,6 +31,10 @@ export const PADDLE_SHRINK_AMOUNT = 18;
 export const PADDLE_SHRINK_MAX_STACKS = 3;
 export const GHOST_PADDLE_DURATION_MS = 3000;
 
+// Escudo
+export const SHIELD_POWER_DURATION_MS = 2500;
+export const SHIELD_POWER_COOLDOWN_MS = 5000;
+
 export const BRICK_REBUILD_INTERVAL = 26;
 export const BRICK_REBUILD_RELEASE_DELAY = 550;
 

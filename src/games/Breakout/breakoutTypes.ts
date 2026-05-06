@@ -94,6 +94,12 @@ export type BreakoutRuntime = {
     lastUsedAt: number;
   };
 
+  shieldPower: {
+    active: boolean;
+    activatedAt: number;
+    lastUsedAt: number;
+  };
+
   ultimatePower: {
     active: boolean;
     charge: number;
