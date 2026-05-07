@@ -1,8 +1,3 @@
-// Hook principal do Snake Game.
-// Ele concentra a lógica da partida: estados de tela, canvas, loop,
-// movimento da cobra, colisões, frutas especiais, poderes, sons e Game Over.
-// A página SnakeGamePage usa esse hook para receber dados e ações do jogo.
-
 import { useEffect, useRef, useState } from "react";
 import {
   CANVAS_SIZE,
@@ -23,6 +18,11 @@ type UseSnakeGameParams = {
 const BLACK_FRUIT_COUNT = 5;
 const MIN_BLACK_DISTANCE_FROM_PLAYER = 120;
 const MIN_DISTANCE_BETWEEN_BLACK_FRUITS = 70;
+
+// Caminho base dos áudios do Snake dentro da pasta public.
+// Como tudo que está em public é servido a partir da raiz,
+// public/audio/snakeGame vira /audio/snakeGame no navegador.
+const SNAKE_AUDIO_PATH = "/audio/snakeGame";
 
 export function useSnakeGame({ isAuthenticated }: UseSnakeGameParams) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -66,26 +66,27 @@ export function useSnakeGame({ isAuthenticated }: UseSnakeGameParams) {
   }, [highScore]);
 
   useEffect(() => {
-    // Carregamos os áudios uma única vez quando a página do jogo abre.
+    // Carrega os áudios uma única vez quando a página do jogo abre.
+    // Todos os arquivos agora ficam organizados em public/audio/snakeGame.
     soundEffectsRef.current = {
-      eat: new Audio("/audio/comer.wav"),
-      damage: new Audio("/audio/dano.wav"),
-      power: new Audio("/audio/poder.wav"),
-      frenzy: new Audio("/audio/verde.wav"),
-      death: new Audio("/audio/morte.wav"),
+      eat: new Audio(`${SNAKE_AUDIO_PATH}/comer.wav`),
+      damage: new Audio(`${SNAKE_AUDIO_PATH}/dano.wav`),
+      power: new Audio(`${SNAKE_AUDIO_PATH}/poder.wav`),
+      frenzy: new Audio(`${SNAKE_AUDIO_PATH}/verde.wav`),
+      death: new Audio(`${SNAKE_AUDIO_PATH}/morte.wav`),
     };
 
-    // Música da tela inicial do jogo.
-    titleMusicRef.current = new Audio("/audio/music-title.mp3");
+    // Música da tela inicial do Snake.
+    titleMusicRef.current = new Audio(`${SNAKE_AUDIO_PATH}/music-title.mp3`);
     titleMusicRef.current.volume = 0.35;
     titleMusicRef.current.loop = true;
 
     // Música principal da partida.
-    gameMusicRef.current = new Audio("/audio/musica-tema.mp3");
+    gameMusicRef.current = new Audio(`${SNAKE_AUDIO_PATH}/musica-tema.mp3`);
     gameMusicRef.current.volume = 0.3;
     gameMusicRef.current.loop = true;
 
-    // Alguns navegadores podem bloquear até o primeiro clique do usuário.
+    // Alguns navegadores bloqueiam áudio até o primeiro clique do usuário.
     startTitleMusic();
   }, []);
 
@@ -263,8 +264,6 @@ export function useSnakeGame({ isAuthenticated }: UseSnakeGameParams) {
   function trySpawnSpecialFruits(runtime: GameRuntime) {
     const { fruits } = runtime;
 
-    // As frutas especiais são independentes.
-    // Se uma já estiver no mapa, ela não será removida nem reposicionada.
     if (!fruits.golden.active && runtime.score >= 150 && Math.random() < 0.1) {
       placeFruit(runtime, fruits.golden);
     }
@@ -324,7 +323,6 @@ export function useSnakeGame({ isAuthenticated }: UseSnakeGameParams) {
   }
 
   function respawnBlackFruits(runtime: GameRuntime) {
-    // Durante o frenesi, as frutas pretas não podem aparecer.
     if (runtime.frenzyActive) {
       runtime.blackFruits = [];
       return;
@@ -340,7 +338,6 @@ export function useSnakeGame({ isAuthenticated }: UseSnakeGameParams) {
     runtime.blackFruits = nextBlackFruits;
   }
 
-  // Reinicia todos os dados da partida e reposiciona frutas.
   function resetGame() {
     const runtime = createInitialRuntime();
 
@@ -436,12 +433,9 @@ export function useSnakeGame({ isAuthenticated }: UseSnakeGameParams) {
     return false;
   }
 
-  // Finaliza a partida, salva recorde quando permitido e mostra a tela de Game Over.
   function showGameOver() {
     const runtime = runtimeRef.current;
 
-    // Ao morrer, paramos todas as músicas.
-    // A tela de Game Over fica sem música, apenas com o efeito de morte.
     stopGameMusic();
     stopTitleMusic();
 
@@ -451,7 +445,6 @@ export function useSnakeGame({ isAuthenticated }: UseSnakeGameParams) {
     setFinalScore(runtime.score);
     setGameScreen("game-over");
 
-    // Visitante joga, mas não salva recorde.
     if (isAuthenticatedRef.current && runtime.score > highScoreRef.current) {
       localStorage.setItem(HIGH_SCORE_KEY, String(runtime.score));
       setHighScore(runtime.score);
@@ -509,21 +502,16 @@ export function useSnakeGame({ isAuthenticated }: UseSnakeGameParams) {
   }
 
   function handleFruitWasEaten(runtime: GameRuntime) {
-    // Tentamos criar novas frutas especiais sem apagar as que já existem.
     trySpawnSpecialFruits(runtime);
 
-    // Durante o frenesi verde, as frutas pretas não aparecem.
     if (runtime.frenzyActive) {
       runtime.blackFruits = [];
       return;
     }
 
-    // Fora do frenesi, sempre que qualquer fruta for comida,
-    // as frutas pretas somem e renascem em posições seguras.
     respawnBlackFruits(runtime);
   }
 
-  // Move a cobra um passo no grid e processa todas as colisões com frutas.
   function moveSnake() {
     const runtime = runtimeRef.current;
     const { fruits } = runtime;
@@ -551,8 +539,6 @@ export function useSnakeGame({ isAuthenticated }: UseSnakeGameParams) {
       const blackFruit = runtime.blackFruits[blackFruitIndex];
 
       if (runtime.invincible) {
-        // A fruta amarela dá proteção completa.
-        // Encostar em fruta preta durante a proteção não causa dano.
         createExplosion(blackFruit.x, blackFruit.y, "#f1c40f");
         applyScreenShake(2);
       } else {
@@ -693,7 +679,6 @@ export function useSnakeGame({ isAuthenticated }: UseSnakeGameParams) {
       runtime.frenzyActive = true;
       runtime.frenzyTime = Math.max(MAX_GOLDEN_TIME, MAX_MAGNET_TIME);
 
-      // Durante o frenesi, as frutas pretas somem completamente.
       runtime.blackFruits = [];
 
       for (let index = 0; index < 7; index++) {
@@ -742,8 +727,6 @@ export function useSnakeGame({ isAuthenticated }: UseSnakeGameParams) {
 
       if (runtime.frenzyTime <= 0) {
         runtime.frenzyActive = false;
-
-        // Quando o frenesi acaba, as frutas pretas voltam ao mapa.
         respawnBlackFruits(runtime);
       }
     }
@@ -761,7 +744,6 @@ export function useSnakeGame({ isAuthenticated }: UseSnakeGameParams) {
     );
   }
 
-  // Loop lógico da partida. Roda em intervalos definidos por TICK_SPEED.
   function gameLoop() {
     if (screenStateRef.current !== "playing") {
       return;
@@ -848,7 +830,6 @@ export function useSnakeGame({ isAuthenticated }: UseSnakeGameParams) {
     ctx.shadowBlur = 0;
   }
 
-  // Desenha o estado atual da partida no canvas.
   function drawGame() {
     const canvas = canvasRef.current;
     const runtime = runtimeRef.current;
@@ -1022,7 +1003,6 @@ export function useSnakeGame({ isAuthenticated }: UseSnakeGameParams) {
     }
   }
 
-  // Começa uma nova partida, toca música e inicia a contagem regressiva.
   function startGame() {
     stopGameTimers();
     resetGame();
@@ -1060,7 +1040,17 @@ export function useSnakeGame({ isAuthenticated }: UseSnakeGameParams) {
     }, 1000);
   }
 
-  // Muda a direção da cobra pelo teclado ou por comandos vindos do swipe.
+  function backToStartScreen() {
+    stopGameTimers();
+    stopGameMusic();
+
+    resetGame();
+    setGameScreen("start");
+    setCountdownText("3");
+
+    startTitleMusic();
+  }
+
   function changeDirection(direction: string) {
     if (screenStateRef.current !== "playing") {
       return;
@@ -1110,7 +1100,6 @@ export function useSnakeGame({ isAuthenticated }: UseSnakeGameParams) {
     }
   }
 
-  // Converte o gesto de arrastar no celular em uma direção da cobra.
   function calculateSwipe(
     startX: number,
     startY: number,
@@ -1130,23 +1119,6 @@ export function useSnakeGame({ isAuthenticated }: UseSnakeGameParams) {
     }
 
     changeDirection(diffY > 0 ? "down" : "up");
-  }
-
-  // Volta para a tela inicial do Snake sem sair para a Home do site.
-  // Usamos isso no Game Over para deixar o jogador retornar ao início do próprio jogo.
-  function backToStartScreen() {
-    stopGameTimers();
-    stopGameMusic();
-    startTitleMusic();
-
-    runtimeRef.current = createInitialRuntime();
-
-    setCountdownText("3");
-    setScore(0);
-    setFinalScore(0);
-    setGoldenPercent(0);
-    setMagnetPercent(0);
-    setGameScreen("start");
   }
 
   return {
