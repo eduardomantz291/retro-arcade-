@@ -1,3 +1,8 @@
+// Hook principal do Snake Game.
+// Ele concentra a lógica da partida: estados de tela, canvas, loop,
+// movimento da cobra, colisões, frutas especiais, poderes, sons e Game Over.
+// A página SnakeGamePage usa esse hook para receber dados e ações do jogo.
+
 import { useEffect, useRef, useState } from "react";
 import {
   CANVAS_SIZE,
@@ -335,6 +340,7 @@ export function useSnakeGame({ isAuthenticated }: UseSnakeGameParams) {
     runtime.blackFruits = nextBlackFruits;
   }
 
+  // Reinicia todos os dados da partida e reposiciona frutas.
   function resetGame() {
     const runtime = createInitialRuntime();
 
@@ -430,6 +436,7 @@ export function useSnakeGame({ isAuthenticated }: UseSnakeGameParams) {
     return false;
   }
 
+  // Finaliza a partida, salva recorde quando permitido e mostra a tela de Game Over.
   function showGameOver() {
     const runtime = runtimeRef.current;
 
@@ -516,6 +523,7 @@ export function useSnakeGame({ isAuthenticated }: UseSnakeGameParams) {
     respawnBlackFruits(runtime);
   }
 
+  // Move a cobra um passo no grid e processa todas as colisões com frutas.
   function moveSnake() {
     const runtime = runtimeRef.current;
     const { fruits } = runtime;
@@ -753,6 +761,7 @@ export function useSnakeGame({ isAuthenticated }: UseSnakeGameParams) {
     );
   }
 
+  // Loop lógico da partida. Roda em intervalos definidos por TICK_SPEED.
   function gameLoop() {
     if (screenStateRef.current !== "playing") {
       return;
@@ -839,6 +848,7 @@ export function useSnakeGame({ isAuthenticated }: UseSnakeGameParams) {
     ctx.shadowBlur = 0;
   }
 
+  // Desenha o estado atual da partida no canvas.
   function drawGame() {
     const canvas = canvasRef.current;
     const runtime = runtimeRef.current;
@@ -1012,6 +1022,7 @@ export function useSnakeGame({ isAuthenticated }: UseSnakeGameParams) {
     }
   }
 
+  // Começa uma nova partida, toca música e inicia a contagem regressiva.
   function startGame() {
     stopGameTimers();
     resetGame();
@@ -1049,6 +1060,7 @@ export function useSnakeGame({ isAuthenticated }: UseSnakeGameParams) {
     }, 1000);
   }
 
+  // Muda a direção da cobra pelo teclado ou por comandos vindos do swipe.
   function changeDirection(direction: string) {
     if (screenStateRef.current !== "playing") {
       return;
@@ -1098,6 +1110,7 @@ export function useSnakeGame({ isAuthenticated }: UseSnakeGameParams) {
     }
   }
 
+  // Converte o gesto de arrastar no celular em uma direção da cobra.
   function calculateSwipe(
     startX: number,
     startY: number,
@@ -1119,6 +1132,23 @@ export function useSnakeGame({ isAuthenticated }: UseSnakeGameParams) {
     changeDirection(diffY > 0 ? "down" : "up");
   }
 
+  // Volta para a tela inicial do Snake sem sair para a Home do site.
+  // Usamos isso no Game Over para deixar o jogador retornar ao início do próprio jogo.
+  function backToStartScreen() {
+    stopGameTimers();
+    stopGameMusic();
+    startTitleMusic();
+
+    runtimeRef.current = createInitialRuntime();
+
+    setCountdownText("3");
+    setScore(0);
+    setFinalScore(0);
+    setGoldenPercent(0);
+    setMagnetPercent(0);
+    setGameScreen("start");
+  }
+
   return {
     canvasRef,
     screenState,
@@ -1129,6 +1159,7 @@ export function useSnakeGame({ isAuthenticated }: UseSnakeGameParams) {
     goldenPercent,
     magnetPercent,
     startGame,
+    backToStartScreen,
     changeDirection,
   };
 }

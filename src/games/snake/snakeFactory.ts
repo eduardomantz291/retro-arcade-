@@ -1,5 +1,10 @@
+// Factory do Snake Game.
+// Este arquivo cria objetos iniciais do jogo, como frutas e estado da partida.
+// A ideia é deixar o useSnakeGame mais limpo e evitar repetir estruturas grandes.
+
 import type { Fruit, Fruits, GameRuntime } from "./snakeTypes";
 
+// Cria todas as frutas especiais do jogo com suas cores, brilhos e pontuações.
 export function createFruits(): Fruits {
   return {
     normal: {
@@ -57,6 +62,8 @@ export function createFruits(): Fruits {
   };
 }
 
+// Cria uma fruta preta, que funciona como perigo.
+// Ela tira pontos e reduz o tamanho da cobra se o jogador encostar sem proteção.
 export function createBlackFruit(x: number, y: number): Fruit {
   return {
     active: true,
@@ -70,6 +77,8 @@ export function createBlackFruit(x: number, y: number): Fruit {
   };
 }
 
+// Cria o estado inicial completo da partida.
+// Sempre que o jogo começa ou volta para o início, essa função gera uma base limpa.
 export function createInitialRuntime(): GameRuntime {
   return {
     snake: [

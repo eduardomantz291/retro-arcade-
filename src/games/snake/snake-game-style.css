@@ -1,116 +1,221 @@
+/* Visual principal do Snake Game.
+   Este CSS controla a página inteira: fundo arcade, layout compacto,
+   canvas, overlays, tela inicial, Game Over, avisos e responsividade. */
+
 .snake-page {
   position: relative;
   min-height: 100vh;
-  padding: 24px;
+  height: 100vh;
+  overflow: hidden;
+  padding: 10px;
   display: grid;
   place-items: center;
-  overflow-x: hidden;
-  background: radial-gradient(circle at top, #2c3e50 0%, #1a252f 48%, #111820 100%);
+  background:
+    radial-gradient(circle at top left, rgba(56, 239, 125, 0.18), transparent 34%),
+    radial-gradient(circle at bottom right, rgba(79, 172, 254, 0.18), transparent 32%),
+    #101820;
   color: #ffffff;
 }
 
-.snake-shell {
-  width: min(460px, 100%);
+/* Elementos decorativos do fundo arcade. */
+.background-grid {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.18;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+  background-size: 36px 36px;
+  mask-image: radial-gradient(circle, black, transparent 75%);
 }
 
+.background-orb {
+  position: fixed;
+  width: 280px;
+  height: 280px;
+  border-radius: 999px;
+  filter: blur(18px);
+  pointer-events: none;
+  opacity: 0.32;
+}
+
+.orb-one {
+  top: -90px;
+  left: -90px;
+  background: #38ef7d;
+}
+
+.orb-two {
+  right: -90px;
+  bottom: -90px;
+  background: #4facfe;
+}
+
+/* Estrutura principal do jogo.
+   A grid evita scroll em telas normais e mantém o canvas centralizado. */
+.snake-shell {
+  position: relative;
+  z-index: 1;
+  width: min(620px, 100%);
+  height: calc(100vh - 20px);
+  display: grid;
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+  gap: 8px;
+}
+
+.glass-panel {
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  background: rgba(18, 27, 36, 0.72);
+  box-shadow:
+    0 16px 38px rgba(0, 0, 0, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* Header com link para Home e identidade do jogo. */
 .snake-topbar {
+  min-height: 58px;
+  border-radius: 18px;
+  padding: 8px 14px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 16px;
-  padding: 14px;
-  border-radius: 22px;
+  gap: 12px;
 }
 
 .snake-back-link {
-  color: #bdc3c7;
+  color: #ffffff;
   text-decoration: none;
-  font-size: 0.86rem;
-  transition: color 0.2s ease, transform 0.2s ease;
+  font-weight: 800;
+  font-size: 0.88rem;
+  padding: 9px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  transition: transform 0.2s ease, background 0.2s ease;
 }
 
 .snake-back-link:hover {
-  color: #ffffff;
-  transform: translateX(-3px);
+  transform: translateY(-2px);
+  background: rgba(56, 239, 125, 0.18);
 }
 
 .snake-title {
   display: flex;
   align-items: center;
   gap: 10px;
+  text-align: right;
 }
 
 .snake-title > span {
+  width: 42px;
+  height: 42px;
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #11998e, #38ef7d);
-  box-shadow: 0 8px 24px rgba(56, 239, 125, 0.3);
-  font-size: 1.5rem;
+  border-radius: 14px;
+  background: rgba(56, 239, 125, 0.16);
+  box-shadow: 0 0 22px rgba(56, 239, 125, 0.28);
+  font-size: 1.45rem;
 }
 
 .snake-title strong {
   display: block;
+  font-size: 1.1rem;
+  line-height: 1;
   font-weight: 900;
 }
 
 .snake-title p {
-  color: #bdc3c7;
-  font-size: 0.76rem;
+  margin: 4px 0 0;
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 0.78rem;
 }
 
+/* Placar compacto. */
 .snake-scoreboard {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
 }
 
 .snake-score-box {
-  flex: 1;
-  padding: 10px 14px;
-  border-radius: 14px;
-  color: #bdc3c7;
-  font-size: 0.8rem;
+  min-height: 54px;
+  border-radius: 16px;
+  padding: 8px 12px;
+  display: grid;
+  align-content: center;
+  gap: 2px;
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 0.76rem;
   font-weight: 800;
-  letter-spacing: 1px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .snake-score-box span {
   color: #ffffff;
-  font-size: 1.35rem;
+  font-size: 1.16rem;
   font-weight: 900;
-  margin-left: 6px;
+  letter-spacing: 0;
 }
 
+/* Painel de poderes ativos.
+   Mesmo quando a barra está em 0%, o painel mantém o layout estável. */
 .snake-power-area {
-  display: flex;
-  flex-direction: column;
+  min-height: 76px;
+  border-radius: 18px;
+  padding: 9px 12px;
+  display: grid;
+  grid-template-columns: 1fr;
   gap: 8px;
-  height: 48px;
-  margin-bottom: 14px;
+}
+
+.snake-power-panel-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.snake-power-panel-title strong {
+  font-size: 0.92rem;
+}
+
+.snake-power-panel-title span {
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 0.74rem;
+  text-align: right;
+}
+
+.snake-power-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
 }
 
 .snake-power-ui {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 11px;
-  font-size: 0.8rem;
+  display: grid;
+  gap: 6px;
+  font-size: 0.7rem;
   font-weight: 900;
-  letter-spacing: 1px;
+  letter-spacing: 0.06em;
+}
+
+.snake-power-slot {
+  min-height: 34px;
+  padding: 7px 8px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.07);
 }
 
 .snake-bar-bg {
-  width: 150px;
-  height: 8px;
+  width: 100%;
+  height: 7px;
   overflow: hidden;
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.5);
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.45);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.42);
 }
 
 .snake-bar-fill {
@@ -128,14 +233,27 @@
   box-shadow: 0 0 10px #9b59b6;
 }
 
+/* Área do canvas. */
+.snake-canvas-area {
+  min-height: 0;
+  display: grid;
+  place-items: center;
+}
+
 .snake-canvas-wrapper {
   position: relative;
-  width: min(400px, 100%);
+  width: min(100%, 430px);
+  height: min(100%, 56vh);
+  max-height: 430px;
   aspect-ratio: 1 / 1;
   margin: 0 auto;
   overflow: hidden;
-  border-radius: 18px;
-  box-shadow: 0 20px 55px rgba(0, 0, 0, 0.48);
+  border-radius: 22px;
+  border: 2px solid rgba(56, 239, 125, 0.34);
+  box-shadow:
+    0 0 0 6px rgba(56, 239, 125, 0.05),
+    0 26px 60px rgba(0, 0, 0, 0.34),
+    0 0 42px rgba(56, 239, 125, 0.16);
   touch-action: none;
 }
 
@@ -147,113 +265,114 @@
   touch-action: none;
 }
 
+/* Overlays gerais: tela inicial, countdown e Game Over. */
+.snake-screen-backdrop,
 .snake-modal-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 80;
-  display: grid;
-  place-items: center;
-  padding: 20px;
-  background: rgba(10, 14, 18, 0.72);
-  backdrop-filter: blur(7px);
-  -webkit-backdrop-filter: blur(7px);
-}
-
-.snake-warning-modal {
-  width: min(440px, 100%);
-  padding: 32px;
-  border-radius: 30px;
-  text-align: center;
-  animation: snakeModalEnter 0.35s ease forwards;
-}
-
-.snake-modal-icon {
-  display: grid;
-  place-items: center;
-  width: 78px;
-  height: 78px;
-  margin: 0 auto 18px;
-  border-radius: 26px;
-  font-size: 2.8rem;
-  background: radial-gradient(circle, rgba(241, 196, 15, 0.22), rgba(255, 255, 255, 0.06));
-  border: 1px solid rgba(255, 255, 255, 0.12);
-}
-
-.snake-warning-modal h2 {
-  margin-bottom: 12px;
-  font-size: 2rem;
-}
-
-.snake-warning-modal p {
-  color: #bdc3c7;
-  line-height: 1.65;
-}
-
-.snake-modal-actions {
-  display: grid;
-  gap: 12px;
-  margin-top: 24px;
-}
-
-.snake-screen-backdrop {
   position: fixed;
   inset: 0;
   z-index: 60;
   display: grid;
   place-items: center;
-  padding: 24px;
-  background: rgba(10, 14, 18, 0.7);
+  padding: 14px;
+  background: rgba(10, 14, 18, 0.66);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
 }
 
-.snake-screen-modal {
-  width: min(560px, 100%);
-  max-height: calc(100dvh - 48px);
-  overflow-y: auto;
-  padding: clamp(28px, 5vw, 44px);
-  border-radius: 34px;
-  text-align: center;
+.snake-modal-backdrop {
+  z-index: 80;
+  background: rgba(10, 14, 18, 0.72);
+}
+
+/* Tela inicial compacta, sem scroll interno. */
+.snake-start-modal {
+  position: relative;
+  z-index: 1;
+  width: min(640px, 96%);
+  border-radius: 28px;
+  padding: 18px;
+  display: grid;
+  gap: 14px;
   animation: snakeModalEnter 0.35s ease forwards;
 }
 
-.snake-screen-icon {
+.snake-start-main {
   display: grid;
-  place-items: center;
-  width: 92px;
-  height: 92px;
-  margin: 0 auto 20px;
-  border-radius: 30px;
-  font-size: 3.4rem;
-  background: radial-gradient(circle, rgba(56, 239, 125, 0.28), rgba(255, 255, 255, 0.07));
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 0 40px rgba(56, 239, 125, 0.2);
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 14px;
 }
 
+.snake-screen-icon,
+.snake-game-over-icon {
+  width: 68px;
+  height: 68px;
+  display: grid;
+  place-items: center;
+  border-radius: 22px;
+  font-size: 2.2rem;
+  background:
+    linear-gradient(135deg, rgba(56, 239, 125, 0.24), rgba(79, 172, 254, 0.18));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 0 30px rgba(56, 239, 125, 0.24);
+}
+
+.snake-game-over-icon {
+  margin: 0 auto 10px;
+}
+
+.snake-start-kicker {
+  display: inline-flex;
+  margin-bottom: 4px;
+  color: #38ef7d;
+  text-transform: uppercase;
+  font-size: 0.74rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+}
+
+.snake-start-modal h1,
 .snake-screen-modal h1 {
-  margin-bottom: 14px;
-  font-size: clamp(2.7rem, 8vw, 5.4rem);
-  line-height: 0.95;
+  margin: 0;
+  font-size: clamp(1.8rem, 4vw, 3rem);
+  line-height: 1;
   font-weight: 900;
   background: linear-gradient(135deg, #ffffff, #4facfe, #38ef7d);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
+.snake-start-modal p,
 .snake-screen-modal p {
-  max-width: 420px;
-  margin: 0 auto 24px;
-  color: #bdc3c7;
-  line-height: 1.65;
+  margin: 8px 0 0;
+  color: rgba(255, 255, 255, 0.74);
+  line-height: 1.45;
+  font-size: 0.95rem;
 }
 
-.snake-screen-actions {
+.snake-start-grid {
   display: grid;
-  gap: 12px;
-  width: min(320px, 100%);
-  margin: 22px auto 0;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
 }
 
+.snake-start-grid span {
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+  border-radius: 12px;
+  padding: 7px 9px;
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.78rem;
+}
+
+.snake-start-button {
+  justify-self: center;
+  min-width: min(260px, 100%);
+}
+
+/* Countdown. */
 .snake-countdown-backdrop {
   background: rgba(10, 14, 18, 0.44);
 }
@@ -261,7 +380,7 @@
 .snake-countdown-modal {
   display: grid;
   place-items: center;
-  width: min(260px, 80vw);
+  width: min(240px, 78vw);
   aspect-ratio: 1 / 1;
   border-radius: 40px;
   animation: snakePulse 0.5s ease;
@@ -274,8 +393,13 @@
   text-shadow: 0 0 25px rgba(255, 255, 255, 0.55);
 }
 
-.snake-game-over-modal {
-  width: min(620px, 100%);
+/* Game Over. */
+.snake-screen-modal {
+  width: min(520px, 94%);
+  padding: 18px;
+  border-radius: 28px;
+  text-align: center;
+  animation: snakeModalEnter 0.35s ease forwards;
 }
 
 .snake-game-over-title {
@@ -285,24 +409,24 @@
 }
 
 .snake-final-score {
-  width: min(240px, 100%);
-  margin: 0 auto;
-  padding: 16px 30px;
+  width: min(220px, 100%);
+  margin: 14px auto 0;
+  padding: 14px 24px;
   border-radius: 18px;
   background: rgba(0, 0, 0, 0.3);
 }
 
 .snake-final-score span {
   display: block;
-  color: #bdc3c7;
-  font-size: 0.8rem;
-  letter-spacing: 2px;
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 0.74rem;
+  letter-spacing: 0.12em;
 }
 
 .snake-final-score strong {
   display: block;
   color: #ffffff;
-  font-size: 3rem;
+  font-size: 2.6rem;
   line-height: 1;
 }
 
@@ -311,124 +435,83 @@
   font-size: 0.9rem;
 }
 
-.snake-start-modal {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 420px);
-  gap: clamp(22px, 4vw, 42px);
-  width: min(960px, 100%);
-  max-height: calc(100dvh - 48px);
-  overflow-y: auto;
-  padding: clamp(26px, 5vw, 46px);
-  border-radius: 36px;
+.snake-screen-actions,
+.snake-modal-actions {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+/* Modais de visitante e login. */
+.snake-warning-modal {
+  width: min(440px, 94%);
+  padding: 24px;
+  border-radius: 28px;
+  text-align: center;
   animation: snakeModalEnter 0.35s ease forwards;
 }
 
-.snake-start-left,
-.snake-start-right {
-  min-width: 0;
-}
-
-.snake-start-kicker {
-  display: inline-flex;
-  margin-bottom: 12px;
-  color: #38ef7d;
-  text-transform: uppercase;
-  font-size: 0.76rem;
-  font-weight: 900;
-  letter-spacing: 2px;
-}
-
-.snake-start-left h1 {
-  margin-bottom: 16px;
-  font-size: clamp(3rem, 8vw, 6rem);
-  line-height: 0.9;
-  font-weight: 900;
-  letter-spacing: -2px;
-  background: linear-gradient(135deg, #ffffff, #4facfe, #38ef7d);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.snake-start-left p {
-  max-width: 520px;
-  color: #bdc3c7;
-  line-height: 1.7;
-  font-size: 1rem;
-}
-
-.snake-start-summary {
+.snake-modal-icon {
   display: grid;
-  gap: 8px;
-  margin-top: 22px;
-  padding: 18px;
+  place-items: center;
+  width: 68px;
+  height: 68px;
+  margin: 0 auto 14px;
   border-radius: 22px;
-  background: rgba(0, 0, 0, 0.22);
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  font-size: 2.2rem;
+  background: radial-gradient(circle, rgba(241, 196, 15, 0.22), rgba(255, 255, 255, 0.06));
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
-.snake-start-summary strong {
-  color: #ffffff;
-  font-size: 1rem;
+.snake-warning-modal h2 {
+  margin-bottom: 10px;
+  font-size: 1.8rem;
 }
 
-.snake-start-summary span {
-  color: #bdc3c7;
-  line-height: 1.6;
-  font-size: 0.92rem;
-}
-
-.snake-start-right {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 18px;
-}
-
-.snake-tutorial-card {
-  padding: 22px;
-  border-radius: 26px;
-  background: rgba(255, 255, 255, 0.065);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.snake-tutorial-card h2 {
-  margin-bottom: 14px;
-  font-size: 1.45rem;
-}
-
-.snake-tutorial-card ul {
-  display: grid;
-  gap: 11px;
-  padding-left: 18px;
-}
-
-.snake-tutorial-card li {
-  color: #bdc3c7;
+.snake-warning-modal p {
+  color: rgba(255, 255, 255, 0.72);
   line-height: 1.55;
-  font-size: 0.92rem;
 }
 
-.snake-tutorial-card strong {
+/* Botões reutilizados pela tela do Snake. */
+.btn {
+  border: 0;
+  cursor: pointer;
+  border-radius: 999px;
+  padding: 11px 18px;
+  font-weight: 900;
+  text-decoration: none;
   color: #ffffff;
+  transition: transform 0.2s ease, filter 0.2s ease, background 0.2s ease;
 }
 
-.snake-start-button {
-  width: 100%;
-  min-height: 56px;
+.btn:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.1);
 }
 
-.snake-start-right small {
-  color: #7f8c8d;
-  line-height: 1.6;
-  text-align: center;
+.btn-primary {
+  background: linear-gradient(135deg, #38ef7d, #4facfe);
+  color: #071016;
+  box-shadow: 0 0 26px rgba(56, 239, 125, 0.3);
 }
 
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.btn-ghost {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+}
+
+/* Animações. */
 @keyframes snakeModalEnter {
   from {
     opacity: 0;
-    transform: translateY(22px) scale(0.96);
+    transform: translateY(16px) scale(0.96);
   }
 
   to {
@@ -438,151 +521,169 @@
 }
 
 @keyframes snakePulse {
-  from {
-    opacity: 0;
-    transform: scale(0.5);
+  0% {
+    transform: scale(0.9);
   }
 
-  to {
-    opacity: 1;
+  50% {
+    transform: scale(1.05);
+  }
+
+  100% {
     transform: scale(1);
   }
 }
 
-@media (max-width: 840px) {
-  .snake-start-modal {
-    grid-template-columns: 1fr;
-    width: min(620px, 100%);
-  }
-
-  .snake-start-left {
-    text-align: center;
-  }
-
-  .snake-start-left p {
-    margin: 0 auto;
-  }
-
-  .snake-screen-icon {
-    margin-left: auto;
-    margin-right: auto;
-  }
-}
-
-@media (max-width: 620px) {
+/* Ajustes para telas com pouca altura. */
+@media (max-height: 760px) {
   .snake-page {
-    padding: 12px;
-    align-items: start;
+    padding: 8px;
+  }
+
+  .snake-shell {
+    height: calc(100vh - 16px);
+    gap: 6px;
   }
 
   .snake-topbar {
-    align-items: flex-start;
-    flex-direction: column;
+    min-height: 50px;
+    padding: 6px 10px;
   }
 
-  .snake-scoreboard {
-    flex-direction: column;
+  .snake-title > span {
+    width: 36px;
+    height: 36px;
+  }
+
+  .snake-title p,
+  .snake-power-panel-title span {
+    display: none;
+  }
+
+  .snake-score-box {
+    min-height: 44px;
+    padding: 6px 10px;
+  }
+
+  .snake-score-box span {
+    font-size: 1rem;
+  }
+
+  .snake-power-area {
+    min-height: 64px;
+    padding: 7px 9px;
+  }
+
+  .snake-canvas-wrapper {
+    height: min(100%, 50vh);
+    max-height: 380px;
+  }
+
+  .snake-start-modal {
+    padding: 14px;
+    gap: 10px;
+  }
+
+  .snake-screen-icon {
+    width: 56px;
+    height: 56px;
+    font-size: 1.8rem;
+  }
+
+  .snake-start-modal p {
+    font-size: 0.86rem;
+  }
+
+  .snake-start-grid span {
+    min-height: 28px;
+    padding: 6px 8px;
+    font-size: 0.72rem;
+  }
+}
+
+/* Responsividade para celular. */
+@media (max-width: 720px) {
+  .snake-page {
+    min-height: 100svh;
+    height: 100svh;
+    padding: 8px;
+  }
+
+  .snake-shell {
+    width: 100%;
+    height: calc(100svh - 16px);
+    grid-template-rows: auto auto auto minmax(0, 1fr);
+  }
+
+  .snake-title {
+    text-align: left;
+  }
+
+  .snake-title p {
+    display: none;
+  }
+
+  .snake-score-box {
+    min-height: 44px;
+  }
+
+  .snake-power-area {
+    min-height: 70px;
+  }
+
+  .snake-power-panel-title {
+    justify-content: center;
+  }
+
+  .snake-power-panel-title span {
+    display: none;
   }
 
   .snake-canvas-wrapper {
     width: min(100%, 400px);
-  }
-
-  .snake-warning-modal {
-    padding: 26px 22px;
-  }
-}
-
-@media (max-width: 560px) {
-  .snake-screen-backdrop {
-    padding: 16px;
-  }
-
-  .snake-screen-modal {
-    border-radius: 26px;
-    padding: 28px 22px;
-  }
-
-  .snake-screen-modal h1 {
-    font-size: clamp(2.4rem, 14vw, 4rem);
-  }
-
-  .snake-screen-actions {
-    width: 100%;
-  }
-
-  .snake-screen-actions .btn,
-  .snake-screen-modal > .btn {
-    width: 100%;
+    height: auto;
+    max-height: 45vh;
   }
 
   .snake-start-modal {
-    max-height: calc(100dvh - 28px);
-    padding: 24px 18px;
-    border-radius: 26px;
+    width: min(420px, 96%);
   }
 
-  .snake-start-left h1 {
-    font-size: clamp(2.7rem, 15vw, 4rem);
-    letter-spacing: -1px;
+  .snake-start-main {
+    grid-template-columns: 1fr;
+    text-align: center;
+    justify-items: center;
   }
 
-  .snake-tutorial-card {
-    padding: 18px;
-    border-radius: 22px;
+  .snake-start-grid {
+    grid-template-columns: 1fr;
   }
 
-  .snake-tutorial-card li {
-    font-size: 0.88rem;
-  }
-
-  .snake-start-button {
-    width: 100%;
+  .snake-start-grid span {
+    justify-content: center;
   }
 }
 
-@media (max-height: 680px) and (min-width: 841px) {
-  .snake-start-modal {
-    align-items: start;
+@media (max-width: 420px) {
+  .snake-scoreboard,
+  .snake-power-list {
+    gap: 6px;
   }
 
-  .snake-screen-icon {
-    width: 72px;
-    height: 72px;
-    margin-bottom: 14px;
-    font-size: 2.6rem;
+  .snake-score-box {
+    font-size: 0.66rem;
   }
 
-  .snake-start-left h1 {
-    font-size: clamp(2.8rem, 7vw, 4.8rem);
+  .snake-score-box span {
+    font-size: 0.92rem;
   }
 
-  .snake-tutorial-card {
-    padding: 18px;
+  .snake-power-ui {
+    font-size: 0.62rem;
   }
 
-  .snake-tutorial-card ul {
-    gap: 8px;
-  }
-}
-
-@media (max-height: 620px) {
-  .snake-screen-modal {
-    padding: 22px;
-  }
-
-  .snake-screen-icon {
-    width: 70px;
-    height: 70px;
-    margin-bottom: 14px;
-    font-size: 2.5rem;
-  }
-
-  .snake-screen-modal h1 {
-    font-size: clamp(2.2rem, 10vw, 3.8rem);
-  }
-
-  .snake-screen-modal p {
-    margin-bottom: 16px;
+  .btn {
+    padding: 10px 14px;
+    font-size: 0.86rem;
   }
 }
