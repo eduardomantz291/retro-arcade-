@@ -1,10 +1,6 @@
-// Página principal do Snake Game.
-// Este arquivo cuida da interface visual: header, placar, canvas, tela inicial,
-// contagem regressiva, Game Over e avisos de login/visitante.
-// A lógica pesada do jogo fica no hook useSnakeGame.
-
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
+import LevelProgressSummary from "../../features/playerProgress/levelProgressSummary";
 import { useAuth } from "../../contexts/AuthContext";
 import { CANVAS_SIZE } from "./snakeConfig";
 import { useSnakeGame } from "./useSnakeGame";
@@ -33,20 +29,15 @@ function SnakeGamePage() {
   );
 
   useEffect(() => {
-    // Visitante pode jogar, mas precisa ver o aviso sobre progresso.
     if (isGuest && !guestWarningAccepted) {
       setShowGuestWarning(true);
     }
 
-    // Usuário sem login e sem modo visitante não joga direto.
     if (!isAuthenticated && !isGuest) {
       setShowLoginWarning(true);
     }
   }, [isAuthenticated, isGuest, guestWarningAccepted]);
 
-  // Valida se o jogador pode iniciar a partida.
-  // Usuário logado joga direto, visitante precisa aceitar o aviso,
-  // e quem não escolheu visitante nem login recebe aviso de login.
   function handleStartGame() {
     if (!isAuthenticated && !isGuest) {
       setShowLoginWarning(true);
@@ -61,11 +52,14 @@ function SnakeGamePage() {
     startGame();
   }
 
-  // Confirma o aviso de visitante e já começa o jogo.
   function handleAcceptGuestWarning() {
     setGuestWarningAccepted(true);
     setShowGuestWarning(false);
     startGame();
+  }
+
+  function handleBackToStartScreen() {
+    backToStartScreen();
   }
 
   return (
@@ -75,7 +69,7 @@ function SnakeGamePage() {
       <div className="background-grid" />
 
       <section className="snake-shell">
-        <header className="snake-topbar glass-panel">
+        <div className="snake-topbar glass-panel">
           <Link to="/" className="snake-back-link">
             ← Home
           </Link>
@@ -88,9 +82,9 @@ function SnakeGamePage() {
               <p>Frutas especiais, poderes e frenesi.</p>
             </div>
           </div>
-        </header>
+        </div>
 
-        <section className="snake-scoreboard">
+        <div className="snake-scoreboard">
           <div className="snake-score-box glass-panel">
             PONTOS <span>{score}</span>
           </div>
@@ -98,16 +92,11 @@ function SnakeGamePage() {
           <div className="snake-score-box glass-panel">
             RECORDE <span>{highScore}</span>
           </div>
-        </section>
+        </div>
 
-        <section className="snake-power-area glass-panel">
-          <div className="snake-power-panel-title">
-            <strong>Poderes</strong>
-            <span>🌟 Proteção, 🧲 Ímã e 🟢 Frenesi aparecem durante a partida.</span>
-          </div>
-
-          <div className="snake-power-list">
-            <div className="snake-power-ui snake-power-slot">
+        <div className="snake-power-area">
+          {goldenPercent > 0 && (
+            <div className="snake-power-ui">
               <span>🌟 PROTEÇÃO</span>
 
               <div className="snake-bar-bg">
@@ -117,8 +106,10 @@ function SnakeGamePage() {
                 />
               </div>
             </div>
+          )}
 
-            <div className="snake-power-ui snake-power-slot">
+          {magnetPercent > 0 && (
+            <div className="snake-power-ui">
               <span>🧲 ÍMÃ</span>
 
               <div className="snake-bar-bg">
@@ -128,57 +119,70 @@ function SnakeGamePage() {
                 />
               </div>
             </div>
-          </div>
-        </section>
+          )}
+        </div>
 
-        <section className="snake-canvas-area">
-          <div className="snake-canvas-wrapper">
-            <canvas
-              ref={canvasRef}
-              width={CANVAS_SIZE}
-              height={CANVAS_SIZE}
-              className="snake-canvas"
-            />
-          </div>
-        </section>
+        <div className="snake-canvas-wrapper">
+          <canvas
+            ref={canvasRef}
+            width={CANVAS_SIZE}
+            height={CANVAS_SIZE}
+            className="snake-canvas"
+          />
+        </div>
       </section>
 
       {screenState === "start" && (
         <div className="snake-screen-backdrop">
           <div className="snake-start-modal glass-panel">
-            <div className="snake-start-main">
+            <div className="snake-start-left">
               <span className="snake-screen-icon">🐍</span>
 
-              <div>
-                <span className="snake-start-kicker">Retro Arcade Challenge</span>
+              <span className="snake-start-kicker">Arcade Challenge</span>
 
-                <h1>Snake Arcade</h1>
+              <h1>Snake Arcade</h1>
 
-                <p>
-                  Controle a cobrinha, colete frutas, ative poderes especiais e
-                  sobreviva ao caos das frutas pretas.
-                </p>
+              <p>
+                Controle a cobrinha, colete frutas, ative poderes especiais e
+                tente sobreviver o máximo possível sem perder o ritmo.
+              </p>
+
+              <div className="snake-start-summary">
+                <strong>Objetivo</strong>
+
+                <span>
+                  Faça pontos com frutas vermelhas, aproveite os poderes raros e
+                  cuidado com as frutas pretas.
+                </span>
               </div>
             </div>
 
-            <div className="snake-start-grid">
-              <span>⬆️ Setas ou WASD controlam</span>
-              <span>📱 No celular, deslize o dedo</span>
-              <span>🍎 Vermelha soma pontos</span>
-              <span>🌟 Amarela dá proteção</span>
-              <span>🧲 Roxa atrai frutas</span>
-              <span>🟢 Verde ativa frenesi</span>
-              <span>⚫ Preta causa dano</span>
-              <span>🏆 Logado salva recorde</span>
-            </div>
+            <div className="snake-start-right">
+              <div className="snake-tutorial-card">
+                <h2>Como jogar</h2>
 
-            <button
-              className="btn btn-primary snake-start-button"
-              type="button"
-              onClick={handleStartGame}
-            >
-              Iniciar jogo
-            </button>
+                <div className="snake-start-grid">
+                  <span>🎮 Setas, WASD ou deslize o dedo</span>
+                  <span>🍎 Fruta vermelha dá pontos</span>
+                  <span>🌟 Fruta amarela dá proteção</span>
+                  <span>🧲 Fruta roxa ativa o ímã</span>
+                  <span>🟢 Fruta verde ativa o frenesi</span>
+                  <span>⚫ Fruta preta causa dano</span>
+                </div>
+              </div>
+
+              <button
+                className="btn btn-primary snake-start-button"
+                type="button"
+                onClick={handleStartGame}
+              >
+                Iniciar jogo
+              </button>
+
+              <small className="snake-start-tip">
+                Dica: pegue a fruta roxa antes de tentar alcançar a verde.
+              </small>
+            </div>
           </div>
         </div>
       )}
@@ -194,14 +198,18 @@ function SnakeGamePage() {
       {screenState === "game-over" && (
         <div className="snake-screen-backdrop">
           <div className="snake-screen-modal snake-game-over-modal glass-panel">
-            <span className="snake-game-over-icon">💥</span>
-
             <h1 className="snake-game-over-title">Fim de jogo</h1>
 
             <div className="snake-final-score">
               <span>PONTOS</span>
               <strong>{finalScore}</strong>
             </div>
+
+            <LevelProgressSummary
+              gameId="snake"
+              score={finalScore}
+              awardId={`snake-${finalScore}`}
+            />
 
             {!isAuthenticated && (
               <p className="snake-save-warning">
@@ -221,7 +229,7 @@ function SnakeGamePage() {
               <button
                 className="btn btn-secondary"
                 type="button"
-                onClick={backToStartScreen}
+                onClick={handleBackToStartScreen}
               >
                 Voltar ao início
               </button>

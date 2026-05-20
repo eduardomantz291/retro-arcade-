@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import { Link } from "react-router";
+import LevelProgressSummary from "../../features/playerProgress/LevelProgressSummary";
 import { CANVAS_HEIGHT, CANVAS_WIDTH } from "./breakoutConfig";
 import { useBreakoutGame } from "./useBreakoutGame";
 import "./breakout-game-style.css";
@@ -11,6 +12,7 @@ function BreakoutGamePage() {
     score,
     lives,
     maxLives,
+    elapsedSeconds,
     elapsedTimeLabel,
     bombCharges,
     isArrowAiming,
@@ -156,7 +158,9 @@ function BreakoutGamePage() {
 
                   <div>
                     <p className="breakout-eyebrow">Retro Arcade Challenge</p>
+
                     <h1>Brick Breaker</h1>
+
                     <p>
                       Quebre blocos, desvie dos drops ruins, carregue a Ultimate
                       e tente sobreviver o máximo possível.
@@ -196,6 +200,13 @@ function BreakoutGamePage() {
                   <strong>{elapsedTimeLabel}</strong>.
                 </p>
 
+                <LevelProgressSummary
+                  gameId="breakout"
+                  score={score}
+                  elapsedSeconds={elapsedSeconds}
+                  awardId={`breakout-${score}-${elapsedSeconds}`}
+                />
+
                 <div className="breakout-modal-actions">
                   <button
                     className="breakout-btn breakout-btn-primary"
@@ -221,6 +232,7 @@ function BreakoutGamePage() {
         <section className="breakout-power-panel breakout-glass-panel">
           <div className="breakout-power-panel-text">
             <strong>Poderes</strong>
+
             <span>
               Q Flecha, W Guia, R Escudo e E Ultimate. O escudo bloqueia drops
               ruins, mas não salva a bolinha.
@@ -238,9 +250,11 @@ function BreakoutGamePage() {
                   aria-label="Usar poder de flecha"
                 >
                   <span className="breakout-power-particles" />
+
                   <span className="breakout-power-icon">
                     {isArrowAiming ? "🎯" : "🏹"}
                   </span>
+
                   <small>
                     {isUltimateActive
                       ? "LOCK"
@@ -260,9 +274,11 @@ function BreakoutGamePage() {
                   aria-label="Usar poder teleguiado"
                 >
                   <span className="breakout-power-particles" />
+
                   <span className="breakout-power-icon">
                     {isHomingActive ? "🟣" : "🎯"}
                   </span>
+
                   <small>
                     {isUltimateActive
                       ? "LOCK"
@@ -282,9 +298,11 @@ function BreakoutGamePage() {
                   aria-label="Usar escudo"
                 >
                   <span className="breakout-power-particles" />
+
                   <span className="breakout-power-icon">
                     {isShieldActive ? "🔵" : "🛡️"}
                   </span>
+
                   <small>
                     {isUltimateActive
                       ? "LOCK"
@@ -304,9 +322,11 @@ function BreakoutGamePage() {
                   aria-label="Usar ultimate"
                 >
                   <span className="breakout-power-particles" />
+
                   <span className="breakout-power-icon">
                     {isUltimateActive ? "🟢" : "⚡"}
                   </span>
+
                   <small>
                     {isUltimateActive
                       ? ultimateTimeLabel
