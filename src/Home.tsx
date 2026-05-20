@@ -1,5 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
+import PlayerLevelBadge from "./features/playerProgress/playerLevelBadge";
+import {
+  getPlayerProgress,
+  getXpNeededForLevel,
+  PLAYER_PROGRESS_EVENT,
+  type PlayerProgress,
+} from "./features/playerProgress/playerProgress";
 import { useAuth } from "./contexts/AuthContext";
 import "./home-style.css";
 
@@ -105,30 +112,68 @@ function Home() {
     useState<HomeContentView>("games");
 
   const [featuredGameIndex, setFeaturedGameIndex] = useState(0);
+  const [playerProgress, setPlayerProgress] = useState<PlayerProgress>(() =>
+    getPlayerProgress()
+  );
 
-  const userLevel = user?.level ?? 0;
-  const userPoints = user?.points ?? 0;
+  const userLevel = isAuthenticated ? playerProgress.level : isGuest ? 1 : 0;
+  const userXp = isAuthenticated ? playerProgress.totalXp : 0;
   const userName = user?.username ?? "";
   const featuredGame = games[featuredGameIndex];
 
+  const nextLevelXp = getXpNeededForLevel(playerProgress.level);
+  const currentLevelProgress = playerProgress.xp;
+  const progressPercent = Math.min(
+    100,
+    (currentLevelProgress / nextLevelXp) * 100
+  );
+
+  const unlockedGamesCount = games.filter((game) => {
+    if (game.status === "coming-soon") {
+      return false;
+    }
+
+    return userLevel >= game.requiredLevel;
+  }).length;
+
   useEffect(() => {
-    // Se o usuário estiver logado ou em modo visitante,
-    // fechamos o aviso inicial.
+    function syncProgress() {
+      setPlayerProgress(getPlayerProgress());
+    }
+
+    function handleProgressEvent(event: Event) {
+      const customEvent = event as CustomEvent<PlayerProgress>;
+
+      if (customEvent.detail) {
+        setPlayerProgress(customEvent.detail);
+        return;
+      }
+
+      syncProgress();
+    }
+
+    window.addEventListener(PLAYER_PROGRESS_EVENT, handleProgressEvent);
+    window.addEventListener("storage", syncProgress);
+
+    return () => {
+      window.removeEventListener(PLAYER_PROGRESS_EVENT, handleProgressEvent);
+      window.removeEventListener("storage", syncProgress);
+    };
+  }, []);
+
+  useEffect(() => {
     if (isAuthenticated || isGuest) {
       setShowAuthWarning(false);
     }
   }, [isAuthenticated, isGuest]);
 
   useEffect(() => {
-    // Se o usuário sair da conta enquanto estiver vendo Minha Conta,
-    // voltamos automaticamente para a lista de jogos.
     if (!isAuthenticated && activeContentView === "account") {
       setActiveContentView("games");
     }
   }, [isAuthenticated, activeContentView]);
 
   useEffect(() => {
-    // Troca o jogo em destaque automaticamente a cada 10 segundos.
     const intervalId = window.setInterval(() => {
       setFeaturedGameIndex((currentIndex) => {
         return (currentIndex + 1) % games.length;
@@ -150,14 +195,11 @@ function Home() {
   }
 
   function handleGuestMode() {
-    // Modo visitante: pode explorar a Home e jogar,
-    // mas não acessa áreas protegidas como Perfil e Minha Conta.
     continueAsGuest();
     setShowAuthWarning(false);
   }
 
   function handleProtectedAction() {
-    // Sempre que uma área exigir login real, mostramos o aviso.
     if (!isAuthenticated) {
       setShowAuthWarning(true);
     }
@@ -185,11 +227,8 @@ function Home() {
   }
 
   function getEffectiveLevel() {
-    // Usuário logado usa o nível real.
-    // Visitante recebe nível 1 apenas para testar o Snake.
-    // Usuário sem login e sem modo visitante fica com nível 0.
     if (isAuthenticated) {
-      return userLevel;
+      return playerProgress.level;
     }
 
     if (isGuest) {
@@ -206,7 +245,7 @@ function Home() {
   }
 
   function renderFeaturedGameAction() {
-    if (isAuthenticated || isGuest) {
+    if (featuredGame.id === 1 && (isAuthenticated || isGuest)) {
       return (
         <Link className="btn btn-primary full-width" to="/games/snake">
           Jogar agora
@@ -214,13 +253,29 @@ function Home() {
       );
     }
 
+    if (featuredGame.id === 5 && (isAuthenticated || isGuest)) {
+      return (
+        <Link className="btn btn-primary full-width" to="/games/breakout">
+          Jogar agora
+        </Link>
+      );
+    }
+
+    if (!isAuthenticated && !isGuest) {
+      return (
+        <button
+          className="btn btn-primary full-width"
+          type="button"
+          onClick={handleProtectedAction}
+        >
+          Jogar agora
+        </button>
+      );
+    }
+
     return (
-      <button
-        className="btn btn-primary full-width"
-        type="button"
-        onClick={handleProtectedAction}
-      >
-        Jogar agora
+      <button className="btn btn-primary full-width" type="button" disabled>
+        {featuredGame.status === "coming-soon" ? "Em breve" : "Bloqueado"}
       </button>
     );
   }
@@ -260,7 +315,7 @@ function Home() {
         <div className="header-actions">
           {isAuthenticated && user ? (
             <>
-              <Link className="user-pill" to="/profile">
+              <Link className="user-pill user-pill-with-progress" to="/profile">
                 <span className="user-avatar">
                   {user.avatarUrl ? (
                     <img
@@ -273,7 +328,8 @@ function Home() {
                 </span>
 
                 <span>{userName}</span>
-                <strong>Lv. {userLevel}</strong>
+
+                <PlayerLevelBadge compact showTitle={false} />
               </Link>
 
               <button className="btn btn-ghost" type="button" onClick={logout}>
@@ -321,8 +377,8 @@ function Home() {
           </h1>
 
           <p>
-            Jogue, acumule pontos, suba de nível e desbloqueie novos games
-            dentro da sua própria central arcade.
+            Jogue, acumule XP, suba de nível e desbloqueie novos games dentro da
+            sua própria central arcade.
           </p>
 
           <div className="hero-actions">
@@ -396,21 +452,7 @@ function Home() {
                 </div>
               </div>
 
-              {featuredGame.id === 1 ? (
-                renderFeaturedGameAction()
-              ) : featuredGame.id === 5 && canPlayGame(featuredGame) ? (
-                <Link className="btn btn-primary full-width" to="/games/breakout">
-                  Jogar agora
-                </Link>
-              ) : (
-                <button
-                  className="btn btn-primary full-width"
-                  type="button"
-                  disabled
-                >
-                  {featuredGame.status === "coming-soon" ? "Em breve" : "Bloqueado"}
-                </button>
-              )}
+              {renderFeaturedGameAction()}
             </div>
           </div>
         </aside>
@@ -435,8 +477,8 @@ function Home() {
 
         <p>
           {activeContentView === "games"
-            ? "Alguns jogos estarão bloqueados por nível. Quando o backend entrar, isso vai vir da conta real do usuário."
-            : "Veja rapidamente seus dados principais sem sair da página inicial."}
+            ? "Alguns jogos estarão bloqueados por nível. Quanto mais você joga, mais XP acumula."
+            : "Veja rapidamente seu nível, XP e progresso para o próximo nível."}
         </p>
       </section>
 
@@ -449,16 +491,16 @@ function Home() {
 
             return (
               <article
-                className={`game-card glass-panel ${canPlay ? "game-card-active" : "game-card-locked"
-                  }`}
+                className={`game-card glass-panel ${
+                  canPlay ? "game-card-active" : "game-card-locked"
+                }`}
                 key={game.id}
               >
                 <div className="game-card-top">
                   <span className="game-icon">{game.emoji}</span>
 
                   <span
-                    className={`game-tag ${canPlay ? "tag-open" : "tag-locked"
-                      }`}
+                    className={`game-tag ${canPlay ? "tag-open" : "tag-locked"}`}
                   >
                     {canPlay ? "Liberado" : game.tag}
                   </span>
@@ -514,19 +556,21 @@ function Home() {
             </div>
           </div>
 
+          <PlayerLevelBadge />
+
           <div className="home-account-stats">
             <div>
-              <strong>{user.points}</strong>
-              <span>Pontos</span>
+              <strong>{userXp}</strong>
+              <span>XP total</span>
             </div>
 
             <div>
-              <strong>{user.level}</strong>
-              <span>Nível</span>
+              <strong>{userLevel}</strong>
+              <span>Nível atual</span>
             </div>
 
             <div>
-              <strong>{user.gamesUnlocked}</strong>
+              <strong>{unlockedGamesCount}</strong>
               <span>Jogos liberados</span>
             </div>
           </div>
@@ -558,15 +602,15 @@ function Home() {
           </h2>
 
           <p>
-            Seu perfil vai guardar pontos, nível, jogos recentes, conquistas e
+            Seu perfil guarda XP, nível, jogos recentes, conquistas e
             desbloqueios.
           </p>
         </div>
 
         <div className="profile-stats">
           <div>
-            <strong>{userPoints}</strong>
-            <span>Pontos</span>
+            <strong>{userXp}</strong>
+            <span>XP total</span>
           </div>
 
           <div>
@@ -575,10 +619,22 @@ function Home() {
           </div>
 
           <div>
-            <strong>{isAuthenticated ? user?.gamesUnlocked : 0}</strong>
+            <strong>{isAuthenticated ? unlockedGamesCount : 0}</strong>
             <span>Jogos liberados</span>
           </div>
         </div>
+
+        {isAuthenticated && (
+          <div className="profile-preview-progress">
+            <div className="profile-progress-bar">
+              <span style={{ width: `${progressPercent}%` }} />
+            </div>
+
+            <small>
+              {currentLevelProgress} / {nextLevelXp} XP para o próximo nível.
+            </small>
+          </div>
+        )}
       </section>
 
       {!isAuthenticated && showAuthWarning && (
@@ -598,7 +654,7 @@ function Home() {
             <h2>Você precisa entrar na sua conta</h2>
 
             <p>
-              Para acessar Perfil, Minha Conta, salvar pontos, subir de nível e
+              Para acessar Perfil, Minha Conta, salvar XP, subir de nível e
               desbloquear jogos, você precisa entrar ou criar um cadastro.
             </p>
 

@@ -475,3 +475,49 @@
     font-size: clamp(2.1rem, 12vw, 3.4rem);
   }
 }
+
+/* ==========================================
+   Progresso de XP/nível no Profile Dashboard
+   Usa o sistema novo de playerProgress
+   ========================================== */
+
+.profile-sidebar-level {
+  width: 100%;
+  margin-bottom: 22px;
+}
+
+.profile-progress-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.profile-progress-info strong {
+  color: #f1c40f;
+  font-size: 1rem;
+}
+
+.profile-progress-info span {
+  color: #bdc3c7;
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.profile-progress-card .profile-progress-bar span {
+  background: linear-gradient(90deg, #38ef7d, #4facfe, #f1c40f);
+  box-shadow:
+    0 0 18px rgba(56, 239, 125, 0.42),
+    0 0 28px rgba(79, 172, 254, 0.18);
+}
+
+@media (max-width: 540px) {
+  .profile-progress-info {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

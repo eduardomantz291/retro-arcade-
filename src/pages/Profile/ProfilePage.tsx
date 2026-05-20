@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { Link, useNavigate } from "react-router";
+import PlayerLevelBadge from "../../features/playerProgress/playerLevelBadge";
+import {
+  getPlayerProgress,
+  getXpNeededForLevel,
+  PLAYER_PROGRESS_EVENT,
+  type PlayerProgress,
+} from "../../features/playerProgress/playerProgress";
 import { useAuth } from "../../contexts/AuthContext";
 import "./profile-style.css";
 
@@ -26,12 +33,46 @@ function ProfilePage() {
   const [passwordMessage, setPasswordMessage] = useState("");
   const [passwordError, setPasswordError] = useState("");
 
+  const [playerProgress, setPlayerProgress] = useState<PlayerProgress>(() =>
+    getPlayerProgress()
+  );
+
+  const nextLevelXp = getXpNeededForLevel(playerProgress.level);
+  const progressPercent = Math.min(
+    100,
+    (playerProgress.xp / nextLevelXp) * 100
+  );
+
+  useEffect(() => {
+    function syncProgress() {
+      setPlayerProgress(getPlayerProgress());
+    }
+
+    function handleProgressEvent(event: Event) {
+      const customEvent = event as CustomEvent<PlayerProgress>;
+
+      if (customEvent.detail) {
+        setPlayerProgress(customEvent.detail);
+        return;
+      }
+
+      syncProgress();
+    }
+
+    window.addEventListener(PLAYER_PROGRESS_EVENT, handleProgressEvent);
+    window.addEventListener("storage", syncProgress);
+
+    return () => {
+      window.removeEventListener(PLAYER_PROGRESS_EVENT, handleProgressEvent);
+      window.removeEventListener("storage", syncProgress);
+    };
+  }, []);
+
   useEffect(() => {
     if (!user) {
       return;
     }
 
-    // Mantemos o formulário sincronizado com o usuário atual.
     setUsername(user.username);
     setEmail(user.email);
     setAvatarPreview(user.avatarUrl);
@@ -41,15 +82,7 @@ function ProfilePage() {
     return null;
   }
 
-  const nextLevelTarget = Math.max(user.level * 500, 500);
-  const currentLevelProgress = user.points % nextLevelTarget;
-  const progressPercent = Math.min(
-    (currentLevelProgress / nextLevelTarget) * 100,
-    100
-  );
-
   function handleLogout() {
-    // Logout fake: remove o usuário atual do navegador.
     logout();
     navigate("/");
   }
@@ -173,6 +206,8 @@ function ProfilePage() {
             </div>
           </div>
 
+          <PlayerLevelBadge className="profile-sidebar-level" />
+
           <div className="profile-tabs">
             <button
               className={activeTab === "dashboard" ? "active" : ""}
@@ -214,12 +249,12 @@ function ProfilePage() {
 
               <div className="profile-data-grid">
                 <div>
-                  <strong>{user.points}</strong>
-                  <span>Pontos totais</span>
+                  <strong>{playerProgress.totalXp}</strong>
+                  <span>XP total</span>
                 </div>
 
                 <div>
-                  <strong>{user.level}</strong>
+                  <strong>{playerProgress.level}</strong>
                   <span>Nível atual</span>
                 </div>
 
@@ -233,8 +268,16 @@ function ProfilePage() {
                 <div>
                   <h3>Progresso de nível</h3>
                   <p>
-                    Continue jogando para acumular pontos e liberar novos jogos.
+                    Continue jogando Snake Arcade e Brick Breaker para ganhar XP
+                    e liberar novos jogos.
                   </p>
+                </div>
+
+                <div className="profile-progress-info">
+                  <strong>Lv. {playerProgress.level}</strong>
+                  <span>
+                    {playerProgress.xp} / {nextLevelXp} XP
+                  </span>
                 </div>
 
                 <div className="profile-progress-bar">
@@ -242,8 +285,8 @@ function ProfilePage() {
                 </div>
 
                 <small>
-                  {currentLevelProgress} / {nextLevelTarget} pontos para o
-                  próximo ciclo de evolução.
+                  Faltam {Math.max(0, nextLevelXp - playerProgress.xp)} XP para
+                  o próximo nível.
                 </small>
               </div>
 
@@ -270,7 +313,8 @@ function ProfilePage() {
 
                   <ul className="profile-list">
                     <li>🐍 Primeiro jogo liberado: Snake Arcade</li>
-                    <li>🔒 Próximas conquistas serão liberadas em breve</li>
+                    <li>🧱 Brick Breaker disponível no arcade</li>
+                    <li>⚡ Sistema de XP local implementado</li>
                     <li>🏆 Ranking global ainda será implementado</li>
                   </ul>
                 </div>
@@ -311,7 +355,9 @@ function ProfilePage() {
                           alt={`Avatar de ${username}`}
                         />
                       ) : (
-                        <span>{username.trim().charAt(0).toUpperCase() || "P"}</span>
+                        <span>
+                          {username.trim().charAt(0).toUpperCase() || "P"}
+                        </span>
                       )}
                     </div>
 

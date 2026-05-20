@@ -17,6 +17,8 @@ export type XpRewardResult = {
   progressPercent: number;
 };
 
+export const PLAYER_PROGRESS_EVENT = "arcade-player-progress-updated";
+
 const PLAYER_PROGRESS_KEY = "arcadePlayerProgress";
 const XP_AWARD_RESULTS_KEY = "arcadeXpAwardResults";
 
@@ -57,6 +59,12 @@ export function getPlayerProgress(): PlayerProgress {
 
 export function savePlayerProgress(progress: PlayerProgress) {
   localStorage.setItem(PLAYER_PROGRESS_KEY, JSON.stringify(progress));
+
+  window.dispatchEvent(
+    new CustomEvent<PlayerProgress>(PLAYER_PROGRESS_EVENT, {
+      detail: progress,
+    })
+  );
 }
 
 function getAwardResults() {
