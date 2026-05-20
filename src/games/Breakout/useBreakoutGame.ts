@@ -54,6 +54,10 @@ import {
   createInitialRuntime,
   createUltimateBricks,
 } from "./breakoutFactory";
+import {
+  createBreakoutAudioController,
+  type BreakoutAudioController,
+} from "./breakoutAudio";
 import type {
   BreakoutRuntime,
   BreakoutScreenState,
@@ -91,6 +95,8 @@ export function useBreakoutGame() {
   const frameRef = useRef<number | null>(null);
   const runtimeRef = useRef<BreakoutRuntime>(createInitialRuntime());
   const screenStateRef = useRef<BreakoutScreenState>("start");
+  const audioRef = useRef<BreakoutAudioController | null>(null);
+
   const powerUpIdRef = useRef(0);
   const ultimateExtraBallIdRef = useRef(0);
   const gameStartedAtRef = useRef(0);
@@ -122,6 +128,9 @@ export function useBreakoutGame() {
   const isUltimateReady = ultimateCharge >= ULTIMATE_MAX_CHARGE;
 
   useEffect(() => {
+    audioRef.current = createBreakoutAudioController();
+    audioRef.current.startMenuTheme();
+
     drawGame();
 
     function handleKeyDown(event: KeyboardEvent) {
@@ -170,6 +179,9 @@ export function useBreakoutGame() {
 
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
+
+      audioRef.current?.destroy();
+      audioRef.current = null;
 
       if (frameRef.current !== null) {
         cancelAnimationFrame(frameRef.current);
@@ -296,8 +308,9 @@ export function useBreakoutGame() {
     const runtime = runtimeRef.current;
 
     powerUp.active = false;
-
     runtime.shake = 5;
+
+    audioRef.current?.play("shieldActivate");
 
     createExplosion(powerUp.x, powerUp.y, "#4facfe", 18, 7);
     createShockwave(powerUp.x, powerUp.y, "#4facfe", 42);
@@ -501,6 +514,8 @@ export function useBreakoutGame() {
 
     keepBallOnPaddle();
 
+    audioRef.current?.play("arrowActivate");
+
     createExplosion(runtime.ball.x, runtime.ball.y, "#4facfe", 16, 5);
     syncArrowPowerState();
   }
@@ -515,6 +530,8 @@ export function useBreakoutGame() {
     runtime.ball.vy = shotVelocity.vy;
     runtime.ball.speed = 1;
     runtime.ball.arrowPierceHits = ARROW_POWER_PIERCE_HITS;
+
+    audioRef.current?.play("arrowActivate");
 
     createExplosion(runtime.ball.x, runtime.ball.y, "#4facfe", 26, 8);
     createShockwave(runtime.ball.x, runtime.ball.y, "#4facfe", 48);
@@ -584,6 +601,8 @@ export function useBreakoutGame() {
       setBallVectorSpeed(HOMING_MIN_BALL_SPEED);
     }
 
+    audioRef.current?.play("homingActivate");
+
     createExplosion(runtime.ball.x, runtime.ball.y, "#9b59b6", 18, 6);
     createShockwave(runtime.ball.x, runtime.ball.y, "#9b59b6", 48);
 
@@ -617,6 +636,8 @@ export function useBreakoutGame() {
     runtime.shieldPower.active = true;
     runtime.shieldPower.activatedAt = now;
     runtime.shieldPower.lastUsedAt = now;
+
+    audioRef.current?.play("shieldActivate");
 
     createExplosion(
       runtime.paddle.x + runtime.paddle.width / 2,
@@ -687,6 +708,8 @@ export function useBreakoutGame() {
 
     forceUltimateBallSpeed();
 
+    audioRef.current?.play("ultimateActivate");
+
     runtime.shake = 18;
 
     createExplosion(runtime.ball.x, runtime.ball.y, "#38ef7d", 42, 10);
@@ -750,7 +773,11 @@ export function useBreakoutGame() {
     startUltimateMode();
   }
 
-  function createUltimateExtraBall(hitPosition: number, index: number, total: number) {
+  function createUltimateExtraBall(
+    hitPosition: number,
+    index: number,
+    total: number
+  ) {
     const runtime = runtimeRef.current;
 
     if (!runtime.ultimatePower.active) {
@@ -805,7 +832,13 @@ export function useBreakoutGame() {
       createUltimateExtraBall(hitPosition, index, amountToSpawn);
     }
 
-    createExplosion(runtime.ball.x, runtime.ball.y, "#38ef7d", 8 + amountToSpawn, 5);
+    createExplosion(
+      runtime.ball.x,
+      runtime.ball.y,
+      "#38ef7d",
+      8 + amountToSpawn,
+      5
+    );
   }
 
   function findNearestActiveBrick() {
@@ -851,7 +884,6 @@ export function useBreakoutGame() {
     }
 
     const targetCenter = getBrickCenter(targetBrick);
-
     const isArrowHomingCombo = runtime.ball.arrowPierceHits > 0;
 
     const homingStrength = isArrowHomingCombo
@@ -914,6 +946,8 @@ export function useBreakoutGame() {
     setElapsedSeconds(0);
     syncStateFromRuntime();
 
+    audioRef.current?.startGameplayTheme();
+
     setGameScreen("playing");
     frameRef.current = requestAnimationFrame(gameLoop);
   }
@@ -935,6 +969,9 @@ export function useBreakoutGame() {
 
     setElapsedSeconds(0);
     syncStateFromRuntime();
+
+    audioRef.current?.startMenuTheme();
+
     setGameScreen("start");
   }
 
@@ -1094,10 +1131,7 @@ export function useBreakoutGame() {
     }
 
     runtime.powerUps.push(
-      createHeartPowerUp(
-        brick.x + brick.width / 2,
-        brick.y + brick.height / 2
-      )
+      createHeartPowerUp(brick.x + brick.width / 2, brick.y + brick.height / 2)
     );
   }
 
@@ -1151,10 +1185,7 @@ export function useBreakoutGame() {
     }
 
     runtime.powerUps.push(
-      createSkullPowerUp(
-        brick.x + brick.width / 2,
-        brick.y + brick.height / 2
-      )
+      createSkullPowerUp(brick.x + brick.width / 2, brick.y + brick.height / 2)
     );
   }
 
@@ -1189,10 +1220,7 @@ export function useBreakoutGame() {
     }
 
     runtime.powerUps.push(
-      createBombPowerUp(
-        brick.x + brick.width / 2,
-        brick.y + brick.height / 2
-      )
+      createBombPowerUp(brick.x + brick.width / 2, brick.y + brick.height / 2)
     );
   }
 
@@ -1202,6 +1230,9 @@ export function useBreakoutGame() {
     if (runtime.lives > 0) {
       return;
     }
+
+    audioRef.current?.stopAllThemes();
+    audioRef.current?.play("gameOver");
 
     setGameScreen("game-over");
 
@@ -1216,6 +1247,8 @@ export function useBreakoutGame() {
 
     runtime.lives -= 1;
     runtime.shake = 16;
+
+    audioRef.current?.play("damageHit");
 
     setLives(runtime.lives);
 
@@ -1233,6 +1266,8 @@ export function useBreakoutGame() {
     }
 
     powerUp.active = false;
+
+    audioRef.current?.play("heartPickup");
 
     if (runtime.lives < MAX_LIVES) {
       runtime.lives += 1;
@@ -1256,6 +1291,9 @@ export function useBreakoutGame() {
     }
 
     powerUp.active = false;
+
+    audioRef.current?.play("bombExplosion");
+
     runtime.ball.bombCharges = BOMB_CHARGES;
     runtime.lastBombCollectedAt = performance.now();
 
@@ -1273,6 +1311,8 @@ export function useBreakoutGame() {
       return;
     }
 
+    audioRef.current?.play("debuffHit");
+
     damagePlayerByHazard(powerUp.x, powerUp.y, "#ff4757");
   }
 
@@ -1289,6 +1329,8 @@ export function useBreakoutGame() {
       blockBadDropWithShield(powerUp);
       return;
     }
+
+    audioRef.current?.play("debuffHit");
 
     const currentCenter = runtime.paddle.x + runtime.paddle.width / 2;
 
@@ -1322,6 +1364,8 @@ export function useBreakoutGame() {
       blockBadDropWithShield(powerUp);
       return;
     }
+
+    audioRef.current?.play("debuffHit");
 
     runtime.paddle.ghostUntil = performance.now() + GHOST_PADDLE_DURATION_MS;
     runtime.shake = 10;
@@ -1498,6 +1542,8 @@ export function useBreakoutGame() {
     brick.active = false;
     brick.hits = 0;
 
+    audioRef.current?.play("brickBreak");
+
     runtime.score += points;
 
     addUltimateCharge();
@@ -1519,6 +1565,8 @@ export function useBreakoutGame() {
     brick.active = false;
     brick.hits = 0;
 
+    audioRef.current?.play("brickBreak");
+
     runtime.score += 20;
     runtime.shake = 8;
 
@@ -1538,6 +1586,8 @@ export function useBreakoutGame() {
     const tntCenter = getBrickCenter(tntBrick);
 
     tntBrick.active = false;
+
+    audioRef.current?.play("tntExplosion");
 
     runtime.score += TNT_BRICK_POINTS;
     runtime.shake = 18;
@@ -1578,6 +1628,8 @@ export function useBreakoutGame() {
   function explodeBombBallImpact(hitBrickTarget: Brick) {
     const runtime = runtimeRef.current;
     const impactCenter = getBrickCenter(hitBrickTarget);
+
+    audioRef.current?.play("bombExplosion");
 
     runtime.shake = 12;
 
@@ -1642,6 +1694,8 @@ export function useBreakoutGame() {
       brick.active = false;
       brick.hits = 0;
 
+      audioRef.current?.play("brickBreak");
+
       runtime.score += 25;
 
       addUltimateCharge();
@@ -1667,6 +1721,8 @@ export function useBreakoutGame() {
 
     brick.active = false;
     brick.hits = 0;
+
+    audioRef.current?.play("brickBreak");
 
     runtime.score += points;
 
@@ -1742,6 +1798,8 @@ export function useBreakoutGame() {
     if (brick.hits <= 0) {
       brick.active = false;
       runtime.score += 15;
+
+      audioRef.current?.play("brickBreak");
 
       addUltimateCharge();
 
@@ -1973,6 +2031,8 @@ export function useBreakoutGame() {
       ball.vy > 0;
 
     if (isBallTouchingPaddle) {
+      audioRef.current?.play("paddleHit");
+
       const paddleCenter = paddle.x + paddle.width / 2;
       const hitPosition = (ball.x - paddleCenter) / (paddle.width / 2);
 
@@ -2050,6 +2110,8 @@ export function useBreakoutGame() {
       runtime.lives -= 1;
       runtime.shake = 12;
 
+      audioRef.current?.play("damageHit");
+
       setLives(runtime.lives);
       syncArrowPowerState();
       syncHomingPowerState();
@@ -2057,6 +2119,9 @@ export function useBreakoutGame() {
       syncUltimatePowerState();
 
       if (runtime.lives <= 0) {
+        audioRef.current?.stopAllThemes();
+        audioRef.current?.play("gameOver");
+
         setGameScreen("game-over");
 
         if (frameRef.current !== null) {
