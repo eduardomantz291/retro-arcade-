@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { Link } from "react-router";
 import { useAuth } from "../../contexts/AuthContext";
 import { CANVAS_HEIGHT, CANVAS_WIDTH } from "./spaceInvadersConfig";
@@ -13,12 +14,46 @@ function SpaceInvadersGamePage() {
     score,
     lives,
     wave,
+    isLaserReady,
+    isLaserActive,
+    laserCooldownProgress,
+    isSupportReady,
+    isSupportActive,
+    supportCooldownProgress,
     startGame,
     restartGame,
     backToStartScreen,
     handlePointerMove,
     handleShootAction,
+    handleLaserPowerAction,
+    handleSupportPowerAction,
   } = useSpaceInvadersGame();
+
+  const laserPowerStyle = {
+    "--space-power-charge": laserCooldownProgress,
+  } as CSSProperties;
+
+  const supportPowerStyle = {
+    "--space-power-charge": supportCooldownProgress,
+  } as CSSProperties;
+
+  const laserPowerClassName = [
+    "space-power-button",
+    "space-laser-power-button",
+    isLaserReady ? "space-power-ready" : "space-power-cooldown",
+    isLaserActive ? "space-power-active" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const supportPowerClassName = [
+    "space-power-button",
+    "space-support-power-button",
+    isSupportReady ? "space-power-ready" : "space-power-cooldown",
+    isSupportActive ? "space-power-active" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   function handleStartGame() {
     if (!isAuthenticated && !isGuest) {
@@ -90,15 +125,15 @@ function SpaceInvadersGamePage() {
                 <h1>Space Invaders</h1>
 
                 <p>
-                  Mova sua nave, atire nos invasores e sobreviva o máximo que
-                  conseguir. Por enquanto, essa é a base clássica do jogo.
+                  Mova sua nave, atire nos invasores e use poderes especiais
+                  para sobreviver às ondas inimigas.
                 </p>
 
                 <div className="space-start-grid">
                   <span>⬅️ ➡️ ou A/D movem a nave</span>
                   <span>Espaço ou W atira</span>
-                  <span>Toque/mouse move no celular</span>
-                  <span>Botão Atirar no mobile</span>
+                  <span>Q ativa o Laser</span>
+                  <span>E chama a nave de suporte</span>
                 </div>
 
                 {canStartGame ? (
@@ -173,17 +208,45 @@ function SpaceInvadersGamePage() {
         <section className="space-control-panel space-glass-panel">
           <div>
             <strong>Controles</strong>
-            <span>Setas/A-D para mover, Espaço/W para atirar.</span>
+            <span>
+              Mouse/A-D para mover, Espaço/W para atirar, Q Laser e E Suporte.
+            </span>
           </div>
 
-          <button
-            className="space-shoot-button"
-            type="button"
-            onClick={handleShootAction}
-            disabled={screenState !== "playing"}
-          >
-            🔥 Atirar
-          </button>
+          <div className="space-action-buttons">
+            <button
+              className="space-shoot-button"
+              type="button"
+              onClick={handleShootAction}
+              disabled={screenState !== "playing"}
+            >
+              🔥 Atirar
+            </button>
+
+            <button
+              className={laserPowerClassName}
+              style={laserPowerStyle}
+              type="button"
+              onClick={handleLaserPowerAction}
+              disabled={screenState !== "playing"}
+            >
+              <span>⚡</span>
+              <small>{isLaserActive ? "ATIVO" : isLaserReady ? "Q" : "REC"}</small>
+            </button>
+
+            <button
+              className={supportPowerClassName}
+              style={supportPowerStyle}
+              type="button"
+              onClick={handleSupportPowerAction}
+              disabled={screenState !== "playing"}
+            >
+              <span>🚀</span>
+              <small>
+                {isSupportActive ? "ATIVO" : isSupportReady ? "E" : "REC"}
+              </small>
+            </button>
+          </div>
         </section>
       </section>
     </main>

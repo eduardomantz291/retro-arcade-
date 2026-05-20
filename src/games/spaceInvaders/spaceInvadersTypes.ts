@@ -18,8 +18,13 @@ export type Invader = {
   width: number;
   height: number;
   active: boolean;
+  row: number;
   variant: "square" | "circle" | "triangle";
+  color: string;
+  glow: string;
 };
+
+export type BulletSource = "player" | "support" | "enemy";
 
 export type Bullet = {
   id: number;
@@ -29,6 +34,7 @@ export type Bullet = {
   height: number;
   vy: number;
   active: boolean;
+  source: BulletSource;
 };
 
 export type Particle = {
@@ -38,6 +44,31 @@ export type Particle = {
   vy: number;
   life: number;
   color: string;
+};
+
+export type LaserPower = {
+  active: boolean;
+  activatedAt: number;
+  lastUsedAt: number;
+  x: number;
+};
+
+export type SupportShip = {
+  active: boolean;
+  x: number;
+  y: number;
+  targetX: number;
+  width: number;
+  height: number;
+  spawnedAt: number;
+  expiresAt: number;
+  nextMoveAt: number;
+  nextShotAt: number;
+};
+
+export type SupportPower = {
+  lastUsedAt: number;
+  ship: SupportShip;
 };
 
 export type SpaceInvadersRuntime = {
@@ -59,6 +90,9 @@ export type SpaceInvadersRuntime = {
     right: boolean;
     shooting: boolean;
   };
+
+  laserPower: LaserPower;
+  supportPower: SupportPower;
 
   lastPlayerShotAt: number;
   shake: number;

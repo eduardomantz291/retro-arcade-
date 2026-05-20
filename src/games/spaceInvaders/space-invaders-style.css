@@ -155,7 +155,7 @@
 }
 
 .space-canvas-wrapper {
-  width: min(100%, 850px);
+  width: min(100%, 880px);
   height: 100%;
   min-height: 0;
   display: grid;
@@ -165,10 +165,10 @@
 .space-canvas {
   display: block;
   width: auto;
-  height: min(100%, 54vh);
+  height: min(100%, 58vh);
   max-width: 100%;
   max-height: 100%;
-  aspect-ratio: 600 / 420;
+  aspect-ratio: 600 / 460;
   border-radius: 22px;
   border: 2px solid rgba(79, 172, 254, 0.34);
   box-shadow:
@@ -327,6 +327,13 @@
   font-size: 0.78rem;
 }
 
+.space-action-buttons {
+  display: flex !important;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
 .space-shoot-button {
   min-width: 132px;
   min-height: 46px;
@@ -342,6 +349,89 @@
   cursor: not-allowed;
   filter: grayscale(1);
   opacity: 0.5;
+}
+
+.space-power-button {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 18px;
+  color: #ffffff;
+  cursor: pointer;
+  background:
+    linear-gradient(
+      to top,
+      rgba(56, 239, 125, 0.24) calc(var(--space-power-charge) * 100%),
+      rgba(255, 255, 255, 0.08) calc(var(--space-power-charge) * 100%)
+    );
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 12px 24px rgba(0, 0, 0, 0.2);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    filter 0.2s ease;
+}
+
+.space-power-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.space-power-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  filter: grayscale(1);
+}
+
+.space-power-button span {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.space-power-button small {
+  font-size: 0.56rem;
+  font-weight: 1000;
+  letter-spacing: 0.05em;
+}
+
+.space-power-ready {
+  box-shadow:
+    0 0 24px rgba(56, 239, 125, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.space-power-active {
+  animation: space-power-pulse 0.8s ease infinite;
+}
+
+.space-laser-power-button.space-power-ready {
+  background:
+    radial-gradient(circle at top, rgba(79, 172, 254, 0.35), transparent 55%),
+    rgba(79, 172, 254, 0.14);
+  border-color: rgba(79, 172, 254, 0.42);
+}
+
+.space-support-power-button.space-power-ready {
+  background:
+    radial-gradient(circle at top, rgba(241, 196, 15, 0.32), transparent 55%),
+    rgba(241, 196, 15, 0.13);
+  border-color: rgba(241, 196, 15, 0.42);
+}
+
+@keyframes space-power-pulse {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+
+  50% {
+    transform: translateY(-2px) scale(1.04);
+  }
 }
 
 @keyframes space-pop {
@@ -379,7 +469,7 @@
   }
 
   .space-canvas {
-    height: min(100%, 50vh);
+    height: min(100%, 54vh);
   }
 
   .space-control-panel {
@@ -409,7 +499,7 @@
   .space-canvas {
     width: 100%;
     height: auto;
-    max-height: 45vh;
+    max-height: 48vh;
     border-radius: 18px;
   }
 
@@ -423,7 +513,17 @@
     text-align: center;
   }
 
+  .space-action-buttons {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
   .space-shoot-button {
     width: 100%;
+  }
+
+  .space-power-button {
+    flex: 1;
+    min-width: 72px;
   }
 }
