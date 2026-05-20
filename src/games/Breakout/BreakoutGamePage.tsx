@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 import { Link } from "react-router";
-import LevelProgressSummary from "../../features/playerProgress/LevelProgressSummary";
+import LevelProgressSummary from "../../features/playerProgress/levelProgressSummary";
 import { CANVAS_HEIGHT, CANVAS_WIDTH } from "./breakoutConfig";
 import { useBreakoutGame } from "./useBreakoutGame";
 import "./breakout-game-style.css";
@@ -53,6 +53,8 @@ function BreakoutGamePage() {
   const ultimateButtonStyle = {
     "--power-charge": ultimateCharge / 100,
   } as CSSProperties;
+
+  const xpAwardId = `breakout-${score}-${elapsedSeconds}-${screenState}`;
 
   const arrowButtonClassName = [
     "breakout-power-button",
@@ -204,7 +206,7 @@ function BreakoutGamePage() {
                   gameId="breakout"
                   score={score}
                   elapsedSeconds={elapsedSeconds}
-                  awardId={`breakout-${score}-${elapsedSeconds}`}
+                  awardId={xpAwardId}
                 />
 
                 <div className="breakout-modal-actions">

@@ -18,7 +18,7 @@ export type XpRewardResult = {
 };
 
 const PLAYER_PROGRESS_KEY = "arcadePlayerProgress";
-const XP_AWARD_HISTORY_KEY = "arcadeXpAwardHistory";
+const XP_AWARD_RESULTS_KEY = "arcadeXpAwardResults";
 
 const BASE_LEVEL_XP = 120;
 const LEVEL_GROWTH = 1.55;
@@ -59,44 +59,46 @@ export function savePlayerProgress(progress: PlayerProgress) {
   localStorage.setItem(PLAYER_PROGRESS_KEY, JSON.stringify(progress));
 }
 
-function getAwardHistory() {
-  const storedHistory = localStorage.getItem(XP_AWARD_HISTORY_KEY);
+function getAwardResults() {
+  const storedResults = localStorage.getItem(XP_AWARD_RESULTS_KEY);
 
-  if (!storedHistory) {
-    return [];
+  if (!storedResults) {
+    return {};
   }
 
   try {
-    return JSON.parse(storedHistory) as string[];
+    return JSON.parse(storedResults) as Record<string, XpRewardResult>;
   } catch {
-    return [];
+    return {};
   }
 }
 
-function saveAwardHistory(history: string[]) {
-  localStorage.setItem(XP_AWARD_HISTORY_KEY, JSON.stringify(history.slice(-40)));
+function saveAwardResults(results: Record<string, XpRewardResult>) {
+  const entries = Object.entries(results).slice(-40);
+  const trimmedResults = Object.fromEntries(entries);
+
+  localStorage.setItem(XP_AWARD_RESULTS_KEY, JSON.stringify(trimmedResults));
 }
 
-export function wasXpAlreadyAwarded(awardId: string) {
-  const history = getAwardHistory();
+function getStoredAwardResult(awardId: string) {
+  const results = getAwardResults();
 
-  return history.includes(awardId);
+  return results[awardId] || null;
 }
 
-export function markXpAsAwarded(awardId: string) {
-  const history = getAwardHistory();
+function saveAwardResult(awardId: string, result: XpRewardResult) {
+  const results = getAwardResults();
 
-  if (history.includes(awardId)) {
-    return;
-  }
+  results[awardId] = result;
 
-  saveAwardHistory([...history, awardId]);
+  saveAwardResults(results);
 }
 
 export function calculateBreakoutXp(score: number, elapsedSeconds: number) {
   const scoreXp = Math.floor(score * 0.06);
   const survivalXp = Math.floor(elapsedSeconds * 1.2);
-  const bonusXp = score >= 2500 ? 80 : score >= 1500 ? 45 : score >= 700 ? 20 : 0;
+  const bonusXp =
+    score >= 2500 ? 80 : score >= 1500 ? 45 : score >= 700 ? 20 : 0;
 
   return Math.max(15, scoreXp + survivalXp + bonusXp);
 }
@@ -161,20 +163,10 @@ export function awardGameXp(params: {
   elapsedSeconds?: number;
   awardId: string;
 }) {
-  if (wasXpAlreadyAwarded(params.awardId)) {
-    const currentProgress = getPlayerProgress();
-    const nextLevelXp = getXpNeededForLevel(currentProgress.level);
+  const storedResult = getStoredAwardResult(params.awardId);
 
-    return {
-      before: currentProgress,
-      after: currentProgress,
-      gainedXp: 0,
-      leveledUp: false,
-      levelsGained: 0,
-      currentLevelXp: currentProgress.xp,
-      nextLevelXp,
-      progressPercent: Math.min(100, (currentProgress.xp / nextLevelXp) * 100),
-    };
+  if (storedResult) {
+    return storedResult;
   }
 
   const gainedXp = calculateGameXp(params.gameId, {
@@ -182,7 +174,9 @@ export function awardGameXp(params: {
     elapsedSeconds: params.elapsedSeconds,
   });
 
-  markXpAsAwarded(params.awardId);
+  const result = addPlayerXp(gainedXp);
 
-  return addPlayerXp(gainedXp);
+  saveAwardResult(params.awardId, result);
+
+  return result;
 }

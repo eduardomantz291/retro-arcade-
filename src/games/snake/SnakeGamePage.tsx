@@ -28,6 +28,8 @@ function SnakeGamePage() {
     !isAuthenticated && !isGuest
   );
 
+  const xpAwardId = `snake-${finalScore}-${screenState}`;
+
   useEffect(() => {
     if (isGuest && !guestWarningAccepted) {
       setShowGuestWarning(true);
@@ -208,7 +210,7 @@ function SnakeGamePage() {
             <LevelProgressSummary
               gameId="snake"
               score={finalScore}
-              awardId={`snake-${finalScore}`}
+              awardId={xpAwardId}
             />
 
             {!isAuthenticated && (
