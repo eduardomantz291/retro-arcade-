@@ -72,16 +72,17 @@ const games: Game[] = [
   },
   {
     id: 4,
-    title: "Space Shooter",
-    description: "Controle uma nave, desvie de obstáculos e destrua inimigos.",
-    emoji: "🚀",
-    status: "coming-soon",
-    requiredLevel: 8,
-    tag: "Em breve",
-    highlightLabel: "Em desenvolvimento",
+    title: "Space Invaders",
+    description:
+      "Defenda a Terra de invasores geométricos em uma missão arcade clássica.",
+    emoji: "👾",
+    status: "available",
+    requiredLevel: 2,
+    tag: "Nível 2",
+    highlightLabel: "Missão espacial",
     bonusLabel: "Wave",
     powerUps: "Laser",
-    replayValue: "Boss",
+    replayValue: "Skill",
   },
   {
     id: 5,
@@ -131,6 +132,10 @@ function Home() {
   const unlockedGamesCount = games.filter((game) => {
     if (game.status === "coming-soon") {
       return false;
+    }
+
+    if (game.id === 4) {
+      return isAuthenticated || isGuest;
     }
 
     return userLevel >= game.requiredLevel;
@@ -241,21 +246,33 @@ function Home() {
   function canPlayGame(game: Game) {
     const effectiveLevel = getEffectiveLevel();
 
+    if (game.id === 4) {
+      return game.status === "available" && (isAuthenticated || isGuest);
+    }
+
     return game.status === "available" && effectiveLevel >= game.requiredLevel;
   }
 
-  function renderFeaturedGameAction() {
-    if (featuredGame.id === 1 && (isAuthenticated || isGuest)) {
-      return (
-        <Link className="btn btn-primary full-width" to="/games/snake">
-          Jogar agora
-        </Link>
-      );
+  function getGameRoute(game: Game) {
+    if (game.id === 1) {
+      return "/games/snake";
     }
 
-    if (featuredGame.id === 5 && (isAuthenticated || isGuest)) {
+    if (game.id === 4) {
+      return "/games/space-invaders";
+    }
+
+    if (game.id === 5) {
+      return "/games/breakout";
+    }
+
+    return "/";
+  }
+
+  function renderFeaturedGameAction() {
+    if (canPlayGame(featuredGame)) {
       return (
-        <Link className="btn btn-primary full-width" to="/games/breakout">
+        <Link className="btn btn-primary full-width" to={getGameRoute(featuredGame)}>
           Jogar agora
         </Link>
       );
@@ -485,9 +502,8 @@ function Home() {
       {activeContentView === "games" && (
         <section className="games-grid home-view-enter">
           {games.map((game) => {
-            const isLockedByLevel = getEffectiveLevel() < game.requiredLevel;
             const isComingSoon = game.status === "coming-soon";
-            const canPlay = game.status === "available" && !isLockedByLevel;
+            const canPlay = canPlayGame(game);
 
             return (
               <article
@@ -513,12 +529,8 @@ function Home() {
                 <div className="game-card-footer">
                   <span>Nível mínimo: {game.requiredLevel}</span>
 
-                  {canPlay && game.id === 1 ? (
-                    <Link className="btn btn-small" to="/games/snake">
-                      Jogar
-                    </Link>
-                  ) : canPlay && game.id === 5 ? (
-                    <Link className="btn btn-small" to="/games/breakout">
+                  {canPlay ? (
+                    <Link className="btn btn-small" to={getGameRoute(game)}>
                       Jogar
                     </Link>
                   ) : (

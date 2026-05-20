@@ -7,6 +7,7 @@ import ProfilePage from "./pages/Profile/ProfilePage";
 import SnakeGamePage from "./games/snake/SnakeGamePage";
 import RankingPage from "./pages/Ranking/RankingPage"
 import BreakoutGamePage from "./games/Breakout/BreakoutGamePage";
+import SpaceInvadersGamePage from "./games/spaceInvaders/SpaceInvadersGamePage";
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
       <Route path="/ranking" element={<RankingPage />} />
       <Route path="/games/snake" element={<SnakeGamePage/>} />
       <Route path="/games/breakout" element={<BreakoutGamePage/>} />
+      <Route path="/games/space-invaders" element={<SpaceInvadersGamePage />} />
     </Routes>
   );
 }
