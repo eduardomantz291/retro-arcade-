@@ -24,7 +24,23 @@ export type Invader = {
   glow: string;
 };
 
-export type BulletSource = "player" | "support" | "enemy";
+export type Boss = {
+  active: boolean;
+  defeated: boolean;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  health: number;
+  maxHealth: number;
+  direction: 1 | -1;
+  spawnedAt: number;
+  nextAttackAt: number;
+  burstShotsLeft: number;
+  nextBurstShotAt: number;
+};
+
+export type BulletSource = "player" | "support" | "enemy" | "boss";
 
 export type Bullet = {
   id: number;
@@ -32,6 +48,7 @@ export type Bullet = {
   y: number;
   width: number;
   height: number;
+  vx: number;
   vy: number;
   active: boolean;
   source: BulletSource;
@@ -51,6 +68,7 @@ export type LaserPower = {
   activatedAt: number;
   lastUsedAt: number;
   x: number;
+  lastBossDamageAt: number;
 };
 
 export type SupportShip = {
@@ -71,9 +89,19 @@ export type SupportPower = {
   ship: SupportShip;
 };
 
+export type ShieldPower = {
+  active: boolean;
+  activatedAt: number;
+  lastBrokenAt: number;
+  hitsTaken: number;
+  breaking: boolean;
+  brokenAt: number;
+};
+
 export type SpaceInvadersRuntime = {
   player: Player;
   invaders: Invader[];
+  boss: Boss;
   playerBullets: Bullet[];
   enemyBullets: Bullet[];
   particles: Particle[];
@@ -93,6 +121,7 @@ export type SpaceInvadersRuntime = {
 
   laserPower: LaserPower;
   supportPower: SupportPower;
+  shieldPower: ShieldPower;
 
   lastPlayerShotAt: number;
   shake: number;

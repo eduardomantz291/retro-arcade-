@@ -1,5 +1,10 @@
 import {
+  BOSS_HEIGHT,
+  BOSS_MAX_HEALTH,
+  BOSS_START_Y,
+  BOSS_WIDTH,
   CANVAS_WIDTH,
+  INVADER_BASE_SPEED,
   INVADER_COLUMNS,
   INVADER_GAP_X,
   INVADER_GAP_Y,
@@ -8,14 +13,18 @@ import {
   INVADER_START_X,
   INVADER_START_Y,
   INVADER_WIDTH,
+  LASER_POWER_COOLDOWN_MS,
   PLAYER_HEIGHT,
   PLAYER_LIVES,
   PLAYER_WIDTH,
   PLAYER_Y,
+  SHIELD_POWER_COOLDOWN_MS,
+  SUPPORT_SHIP_COOLDOWN_MS,
   SUPPORT_SHIP_HEIGHT,
   SUPPORT_SHIP_WIDTH,
 } from "./spaceInvadersConfig";
 import type {
+  Boss,
   Invader,
   SpaceInvadersRuntime,
   SupportShip,
@@ -44,8 +53,7 @@ function getInvaderVisualByRow(row: number) {
   };
 }
 
-// Cria a formação inicial dos inimigos.
-// Por enquanto eles são feitos só com formas geométricas no canvas.
+// Cria a formação inicial dos inimigos comuns.
 export function createInvaders(wave = 1): Invader[] {
   const invaders: Invader[] = [];
   let id = 0;
@@ -80,6 +88,42 @@ export function createInvaders(wave = 1): Invader[] {
   }));
 }
 
+export function createBoss(): Boss {
+  return {
+    active: true,
+    defeated: false,
+    x: CANVAS_WIDTH / 2 - BOSS_WIDTH / 2,
+    y: BOSS_START_Y,
+    width: BOSS_WIDTH,
+    height: BOSS_HEIGHT,
+    health: BOSS_MAX_HEALTH,
+    maxHealth: BOSS_MAX_HEALTH,
+    direction: 1,
+    spawnedAt: performance.now(),
+    nextAttackAt: performance.now() + 900,
+    burstShotsLeft: 0,
+    nextBurstShotAt: 0,
+  };
+}
+
+export function createInactiveBoss(): Boss {
+  return {
+    active: false,
+    defeated: false,
+    x: CANVAS_WIDTH / 2 - BOSS_WIDTH / 2,
+    y: BOSS_START_Y,
+    width: BOSS_WIDTH,
+    height: BOSS_HEIGHT,
+    health: BOSS_MAX_HEALTH,
+    maxHealth: BOSS_MAX_HEALTH,
+    direction: 1,
+    spawnedAt: 0,
+    nextAttackAt: 0,
+    burstShotsLeft: 0,
+    nextBurstShotAt: 0,
+  };
+}
+
 function createInactiveSupportShip(): SupportShip {
   return {
     active: false,
@@ -107,6 +151,7 @@ export function createInitialSpaceInvadersRuntime(): SpaceInvadersRuntime {
     },
 
     invaders: createInvaders(1),
+    boss: createInactiveBoss(),
     playerBullets: [],
     enemyBullets: [],
     particles: [],
@@ -116,7 +161,7 @@ export function createInitialSpaceInvadersRuntime(): SpaceInvadersRuntime {
     wave: 1,
 
     invaderDirection: 1,
-    invaderSpeed: 0.42,
+    invaderSpeed: INVADER_BASE_SPEED,
 
     keys: {
       left: false,
@@ -127,13 +172,23 @@ export function createInitialSpaceInvadersRuntime(): SpaceInvadersRuntime {
     laserPower: {
       active: false,
       activatedAt: 0,
-      lastUsedAt: -15000,
+      lastUsedAt: -LASER_POWER_COOLDOWN_MS,
       x: CANVAS_WIDTH / 2,
+      lastBossDamageAt: 0,
     },
 
     supportPower: {
-      lastUsedAt: -10000,
+      lastUsedAt: -SUPPORT_SHIP_COOLDOWN_MS,
       ship: createInactiveSupportShip(),
+    },
+
+    shieldPower: {
+      active: false,
+      activatedAt: 0,
+      lastBrokenAt: -SHIELD_POWER_COOLDOWN_MS,
+      hitsTaken: 0,
+      breaking: false,
+      brokenAt: 0,
     },
 
     lastPlayerShotAt: 0,

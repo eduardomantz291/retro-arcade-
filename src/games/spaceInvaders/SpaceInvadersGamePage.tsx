@@ -14,12 +14,19 @@ function SpaceInvadersGamePage() {
     score,
     lives,
     wave,
+    isBossActive,
+    bossHealth,
+    bossMaxHealth,
     isLaserReady,
     isLaserActive,
     laserCooldownProgress,
     isSupportReady,
     isSupportActive,
     supportCooldownProgress,
+    isShieldReady,
+    isShieldActive,
+    shieldCooldownProgress,
+    shieldHitsLeft,
     startGame,
     restartGame,
     backToStartScreen,
@@ -27,6 +34,7 @@ function SpaceInvadersGamePage() {
     handleShootAction,
     handleLaserPowerAction,
     handleSupportPowerAction,
+    handleShieldPowerAction,
   } = useSpaceInvadersGame();
 
   const laserPowerStyle = {
@@ -36,6 +44,13 @@ function SpaceInvadersGamePage() {
   const supportPowerStyle = {
     "--space-power-charge": supportCooldownProgress,
   } as CSSProperties;
+
+  const shieldPowerStyle = {
+    "--space-power-charge": shieldCooldownProgress,
+  } as CSSProperties;
+
+  const bossHealthPercent =
+    bossMaxHealth > 0 ? Math.max(0, (bossHealth / bossMaxHealth) * 100) : 0;
 
   const laserPowerClassName = [
     "space-power-button",
@@ -51,6 +66,15 @@ function SpaceInvadersGamePage() {
     "space-support-power-button",
     isSupportReady ? "space-power-ready" : "space-power-cooldown",
     isSupportActive ? "space-power-active" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const shieldPowerClassName = [
+    "space-power-button",
+    "space-shield-power-button",
+    isShieldReady ? "space-power-ready" : "space-power-cooldown",
+    isShieldActive ? "space-power-active" : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -101,6 +125,21 @@ function SpaceInvadersGamePage() {
           </div>
         </section>
 
+        {isBossActive && (
+          <section className="space-boss-panel space-glass-panel">
+            <div>
+              <strong>👾 Boss Alienígena</strong>
+              <span>
+                {bossHealth}/{bossMaxHealth} HP
+              </span>
+            </div>
+
+            <div className="space-boss-health-bar">
+              <span style={{ width: `${bossHealthPercent}%` }} />
+            </div>
+          </section>
+        )}
+
         <section className="space-game-area">
           <div className="space-canvas-wrapper">
             <canvas
@@ -125,8 +164,8 @@ function SpaceInvadersGamePage() {
                 <h1>Space Invaders</h1>
 
                 <p>
-                  Mova sua nave, atire nos invasores e use poderes especiais
-                  para sobreviver às ondas inimigas.
+                  Mova sua nave, atire nos invasores, complete ondas para ganhar
+                  vidas e prepare-se para enfrentar o boss na onda 5.
                 </p>
 
                 <div className="space-start-grid">
@@ -134,6 +173,8 @@ function SpaceInvadersGamePage() {
                   <span>Espaço ou W atira</span>
                   <span>Q ativa o Laser</span>
                   <span>E chama a nave de suporte</span>
+                  <span>R ativa o Escudo</span>
+                  <span>Boss aparece na onda 5</span>
                 </div>
 
                 {canStartGame ? (
@@ -209,7 +250,8 @@ function SpaceInvadersGamePage() {
           <div>
             <strong>Controles</strong>
             <span>
-              Mouse/A-D para mover, Espaço/W para atirar, Q Laser e E Suporte.
+              Mouse/A-D para mover, Espaço/W para atirar, Q Laser, E Suporte e R
+              Escudo.
             </span>
           </div>
 
@@ -244,6 +286,23 @@ function SpaceInvadersGamePage() {
               <span>🚀</span>
               <small>
                 {isSupportActive ? "ATIVO" : isSupportReady ? "E" : "REC"}
+              </small>
+            </button>
+
+            <button
+              className={shieldPowerClassName}
+              style={shieldPowerStyle}
+              type="button"
+              onClick={handleShieldPowerAction}
+              disabled={screenState !== "playing"}
+            >
+              <span>🛡️</span>
+              <small>
+                {isShieldActive
+                  ? `${shieldHitsLeft}/2`
+                  : isShieldReady
+                    ? "R"
+                    : "REC"}
               </small>
             </button>
           </div>
