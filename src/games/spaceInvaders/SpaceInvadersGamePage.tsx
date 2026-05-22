@@ -125,22 +125,22 @@ function SpaceInvadersGamePage() {
           </div>
         </section>
 
-        {isBossActive && (
-          <section className="space-boss-panel space-glass-panel">
-            <div>
-              <strong>👾 Boss Alienígena</strong>
-              <span>
-                {bossHealth}/{bossMaxHealth} HP
-              </span>
-            </div>
-
-            <div className="space-boss-health-bar">
-              <span style={{ width: `${bossHealthPercent}%` }} />
-            </div>
-          </section>
-        )}
-
         <section className="space-game-area">
+          {isBossActive && (
+            <div className="space-boss-panel space-glass-panel">
+              <div>
+                <strong>👾 Boss Alienígena</strong>
+                <span>
+                  {bossHealth}/{bossMaxHealth} HP
+                </span>
+              </div>
+
+              <div className="space-boss-health-bar">
+                <span style={{ width: `${bossHealthPercent}%` }} />
+              </div>
+            </div>
+          )}
+
           <div className="space-canvas-wrapper">
             <canvas
               ref={canvasRef}
