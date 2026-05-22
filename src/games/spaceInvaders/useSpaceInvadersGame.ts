@@ -1,13 +1,19 @@
 import { useEffect, useRef, useState } from "react";
 import {
+  BOSS_AIM_ERROR_RANGE,
   BOSS_ATTACK_INTERVAL_MS,
+  BOSS_ATTACK_REST_TIME_MS,
   BOSS_BULLET_SPEED,
-  BOSS_BURST_INTERVAL_MS,
   BOSS_MOVE_SPEED,
   BOSS_POINTS,
+  BOSS_RAIN_BULLET_COUNT,
   BOSS_WAVE_INTERVAL,
   CANVAS_HEIGHT,
   CANVAS_WIDTH,
+  DEBUG_BOSS_WAVE,
+  DEBUG_PLAYER_LIVES_BY_BOSS_WAVE,
+  DEBUG_PLAYER_LIVES_OVERRIDE,
+  DEBUG_START_ON_BOSS_WAVE,
   ENEMY_BULLET_HEIGHT,
   ENEMY_BULLET_SPEED,
   ENEMY_BULLET_WIDTH,
@@ -25,6 +31,7 @@ import {
   PLAYER_BULLET_HEIGHT,
   PLAYER_BULLET_SPEED,
   PLAYER_BULLET_WIDTH,
+  PLAYER_LIVES,
   PLAYER_MAX_LIVES,
   PLAYER_SPEED,
   POINTS_PER_INVADER,
@@ -53,6 +60,8 @@ import type {
   SpaceInvadersScreenState,
   SupportShip,
 } from "./spaceInvadersTypes";
+
+type BossAttackType = "triple" | "focus" | "rain" | "wide" | "cross";
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
@@ -249,6 +258,32 @@ export function useSpaceInvadersGame() {
     );
   }
 
+  function getDebugPlayerLivesForBossWave(bossWave: number) {
+    if (DEBUG_PLAYER_LIVES_OVERRIDE !== null) {
+      return DEBUG_PLAYER_LIVES_OVERRIDE;
+    }
+
+    return DEBUG_PLAYER_LIVES_BY_BOSS_WAVE[bossWave] ?? PLAYER_LIVES;
+  }
+
+  function startDebugBossWave() {
+    const runtime = runtimeRef.current;
+    const bossWave = DEBUG_BOSS_WAVE;
+
+    runtime.wave = bossWave;
+    runtime.lives = getDebugPlayerLivesForBossWave(bossWave);
+    runtime.invaders = [];
+    runtime.boss = createBoss();
+    runtime.enemyBullets = [];
+    runtime.playerBullets = [];
+    runtime.invaderDirection = 1;
+    runtime.invaderSpeed = getInvaderSpeedForWave(bossWave);
+    runtime.shake = 10;
+
+    createParticleExplosion(CANVAS_WIDTH / 2, 86, "#be2edd");
+    createParticleExplosion(CANVAS_WIDTH / 2, 86, "#f1c40f");
+  }
+
   function startGame() {
     if (frameRef.current !== null) {
       cancelAnimationFrame(frameRef.current);
@@ -256,6 +291,10 @@ export function useSpaceInvadersGame() {
 
     bulletIdRef.current = 0;
     runtimeRef.current = createInitialSpaceInvadersRuntime();
+
+    if (DEBUG_START_ON_BOSS_WAVE) {
+      startDebugBossWave();
+    }
 
     syncStateFromRuntime();
     syncPowerState();
@@ -330,7 +369,8 @@ export function useSpaceInvadersGame() {
       return;
     }
 
-    const isReady = now - runtime.laserPower.lastUsedAt >= LASER_POWER_COOLDOWN_MS;
+    const isReady =
+      now - runtime.laserPower.lastUsedAt >= LASER_POWER_COOLDOWN_MS;
 
     if (!isReady) {
       syncPowerState();
@@ -635,7 +675,8 @@ export function useSpaceInvadersGame() {
 
     if (runtime.boss.active) {
       const bossCenter = runtime.boss.x + runtime.boss.width / 2;
-      const isBossInsideLaser = bossCenter >= laserLeft && bossCenter <= laserRight;
+      const isBossInsideLaser =
+        bossCenter >= laserLeft && bossCenter <= laserRight;
 
       if (isBossInsideLaser && now - runtime.laserPower.lastBossDamageAt > 45) {
         damageBoss(LASER_BOSS_DAMAGE_PER_FRAME);
@@ -796,7 +837,10 @@ export function useSpaceInvadersGame() {
     const randomShooter =
       activeInvaders[Math.floor(Math.random() * activeInvaders.length)];
 
-    if (randomShooter && Math.random() < getInvaderShootChanceForWave(runtime.wave)) {
+    if (
+      randomShooter &&
+      Math.random() < getInvaderShootChanceForWave(runtime.wave)
+    ) {
       shootEnemyBullet(randomShooter);
     }
 
@@ -807,6 +851,117 @@ export function useSpaceInvadersGame() {
     if (hasInvaderReachedPlayer) {
       showGameOver();
     }
+  }
+
+  function getRandomBossAttackType(): BossAttackType {
+    const randomValue = Math.random();
+
+    // Ataque principal, aparece bastante.
+    if (randomValue < 0.32) {
+      return "triple";
+    }
+
+    // Mira perto do player, mais perigoso, mas ainda com erro.
+    if (randomValue < 0.56) {
+      return "focus";
+    }
+
+    // Chuva moderada para forçar movimento.
+    if (randomValue < 0.76) {
+      return "rain";
+    }
+
+    // Ataque aberto, mais raro.
+    if (randomValue < 0.9) {
+      return "wide";
+    }
+
+    // Ataque cruzado, raro, mas cria uma tensão boa.
+    return "cross";
+  }
+
+  function shootBossTripleAttack(boss: Boss) {
+    const bossCenterX = boss.x + boss.width / 2;
+    const bulletY = boss.y + boss.height - 6;
+
+    shootBossBullet(bossCenterX - 4, bulletY, 0, BOSS_BULLET_SPEED);
+    shootBossBullet(bossCenterX - 28, bulletY, -0.9, BOSS_BULLET_SPEED * 0.94);
+    shootBossBullet(bossCenterX + 24, bulletY, 0.9, BOSS_BULLET_SPEED * 0.94);
+  }
+
+  function shootBossFocusAttack(boss: Boss) {
+    const runtime = runtimeRef.current;
+    const bossCenterX = boss.x + boss.width / 2;
+    const bulletY = boss.y + boss.height - 4;
+
+    const playerCenterX = runtime.player.x + runtime.player.width / 2;
+    const aimError = (Math.random() - 0.5) * BOSS_AIM_ERROR_RANGE;
+    const targetX = playerCenterX + aimError;
+
+    const distanceX = targetX - bossCenterX;
+    const normalizedX = clamp(distanceX / 170, -1.15, 1.15);
+
+    shootBossBullet(
+      bossCenterX - 4,
+      bulletY,
+      normalizedX,
+      BOSS_BULLET_SPEED * 1.08
+    );
+
+    const sideOffset = Math.random() > 0.5 ? 0.42 : -0.42;
+
+    shootBossBullet(
+      bossCenterX - 4,
+      bulletY + 2,
+      normalizedX + sideOffset,
+      BOSS_BULLET_SPEED * 0.94
+    );
+  }
+
+  function shootBossRainAttack() {
+    for (let index = 0; index < BOSS_RAIN_BULLET_COUNT; index++) {
+      const x = 44 + Math.random() * (CANVAS_WIDTH - 88);
+      const y = 64 + Math.random() * 34;
+
+      shootBossBullet(
+        x,
+        y,
+        (Math.random() - 0.5) * 0.42,
+        BOSS_BULLET_SPEED * (0.82 + Math.random() * 0.26)
+      );
+    }
+  }
+
+  function shootBossWideAttack(boss: Boss) {
+    const bossCenterX = boss.x + boss.width / 2;
+    const bulletY = boss.y + boss.height - 6;
+
+    shootBossBullet(bossCenterX - 4, bulletY, 0, BOSS_BULLET_SPEED * 0.94);
+    shootBossBullet(bossCenterX - 34, bulletY, -0.82, BOSS_BULLET_SPEED * 0.88);
+    shootBossBullet(bossCenterX + 30, bulletY, 0.82, BOSS_BULLET_SPEED * 0.88);
+    shootBossBullet(bossCenterX - 54, bulletY, -1.28, BOSS_BULLET_SPEED * 0.78);
+    shootBossBullet(bossCenterX + 50, bulletY, 1.28, BOSS_BULLET_SPEED * 0.78);
+  }
+
+  function shootBossCrossAttack(boss: Boss) {
+    const bossCenterX = boss.x + boss.width / 2;
+    const bulletY = boss.y + boss.height - 6;
+
+    shootBossBullet(bossCenterX - 48, bulletY, 1.08, BOSS_BULLET_SPEED * 0.9);
+    shootBossBullet(bossCenterX + 44, bulletY, -1.08, BOSS_BULLET_SPEED * 0.9);
+
+    shootBossBullet(
+      bossCenterX - 22,
+      bulletY + 4,
+      0.48,
+      BOSS_BULLET_SPEED * 1.02
+    );
+    shootBossBullet(
+      bossCenterX + 18,
+      bulletY + 4,
+      -0.48,
+      BOSS_BULLET_SPEED * 1.02
+    );
   }
 
   function updateBoss() {
@@ -831,23 +986,34 @@ export function useSpaceInvadersGame() {
       boss.direction = -1;
     }
 
-    if (now >= boss.nextAttackAt) {
-      boss.burstShotsLeft = 3;
-      boss.nextBurstShotAt = now;
-      boss.nextAttackAt = now + BOSS_ATTACK_INTERVAL_MS;
+    if (now < boss.nextAttackAt) {
+      return;
     }
 
-    if (boss.burstShotsLeft > 0 && now >= boss.nextBurstShotAt) {
-      const bossCenterX = boss.x + boss.width / 2;
-      const bulletY = boss.y + boss.height - 6;
+    const attackType = getRandomBossAttackType();
 
-      shootBossBullet(bossCenterX - 4, bulletY, 0, BOSS_BULLET_SPEED);
-      shootBossBullet(bossCenterX - 24, bulletY, -1.25, BOSS_BULLET_SPEED * 0.92);
-      shootBossBullet(bossCenterX + 20, bulletY, 1.25, BOSS_BULLET_SPEED * 0.92);
-
-      boss.burstShotsLeft -= 1;
-      boss.nextBurstShotAt = now + BOSS_BURST_INTERVAL_MS;
+    if (attackType === "triple") {
+      shootBossTripleAttack(boss);
     }
+
+    if (attackType === "focus") {
+      shootBossFocusAttack(boss);
+    }
+
+    if (attackType === "rain") {
+      shootBossRainAttack();
+    }
+
+    if (attackType === "wide") {
+      shootBossWideAttack(boss);
+    }
+
+    if (attackType === "cross") {
+      shootBossCrossAttack(boss);
+    }
+
+    boss.nextAttackAt =
+      now + BOSS_ATTACK_INTERVAL_MS + Math.random() * BOSS_ATTACK_REST_TIME_MS;
   }
 
   function updateBullets() {
@@ -914,9 +1080,21 @@ export function useSpaceInvadersGame() {
     runtime.boss.defeated = true;
     runtime.shake = 18;
 
-    createParticleExplosion(boss.x + boss.width / 2, boss.y + boss.height / 2, "#be2edd");
-    createParticleExplosion(boss.x + boss.width / 2, boss.y + boss.height / 2, "#f1c40f");
-    createParticleExplosion(boss.x + boss.width / 2, boss.y + boss.height / 2, "#4facfe");
+    createParticleExplosion(
+      boss.x + boss.width / 2,
+      boss.y + boss.height / 2,
+      "#be2edd"
+    );
+    createParticleExplosion(
+      boss.x + boss.width / 2,
+      boss.y + boss.height / 2,
+      "#f1c40f"
+    );
+    createParticleExplosion(
+      boss.x + boss.width / 2,
+      boss.y + boss.height / 2,
+      "#4facfe"
+    );
 
     const nextWave = runtime.wave + 1;
     advanceToNextNormalWave(nextWave);
@@ -1572,12 +1750,28 @@ export function useSpaceInvadersGame() {
     ctx.fillStyle = bodyGradient;
 
     ctx.beginPath();
-    ctx.ellipse(centerX, centerY, boss.width / 2, boss.height / 2, 0, 0, Math.PI * 2);
+    ctx.ellipse(
+      centerX,
+      centerY,
+      boss.width / 2,
+      boss.height / 2,
+      0,
+      0,
+      Math.PI * 2
+    );
     ctx.fill();
 
     ctx.fillStyle = "rgba(0, 0, 0, 0.28)";
     ctx.beginPath();
-    ctx.ellipse(centerX, centerY + 8, boss.width * 0.36, boss.height * 0.22, 0, 0, Math.PI * 2);
+    ctx.ellipse(
+      centerX,
+      centerY + 8,
+      boss.width * 0.36,
+      boss.height * 0.22,
+      0,
+      0,
+      Math.PI * 2
+    );
     ctx.fill();
 
     ctx.shadowBlur = 18;
@@ -1629,7 +1823,15 @@ export function useSpaceInvadersGame() {
     ctx.lineWidth = 1.5;
 
     ctx.beginPath();
-    ctx.ellipse(centerX, centerY, boss.width * 0.44, boss.height * 0.36, 0, 0, Math.PI * 2);
+    ctx.ellipse(
+      centerX,
+      centerY,
+      boss.width * 0.44,
+      boss.height * 0.36,
+      0,
+      0,
+      Math.PI * 2
+    );
     ctx.stroke();
 
     ctx.restore();
