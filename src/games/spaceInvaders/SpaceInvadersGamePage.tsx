@@ -1,12 +1,111 @@
-import type { CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { Link } from "react-router";
 import { useAuth } from "../../contexts/AuthContext";
 import { CANVAS_HEIGHT, CANVAS_WIDTH } from "./spaceInvadersConfig";
 import { useSpaceInvadersGame } from "./useSpaceInvadersGame";
 import "./space-invaders-style.css";
 
+type PowerSlot = "attack" | "support" | "defense";
+
+type PowerOption = {
+  id: string;
+  name: string;
+  icon: string;
+  summary: string;
+  status: "available" | "locked";
+};
+
+const powerOptions: Record<PowerSlot, PowerOption[]> = {
+  attack: [
+    {
+      id: "laser",
+      name: "Laser",
+      icon: "⚡",
+      summary: "Feixe vertical que atravessa invasores e causa dano no boss.",
+      status: "available",
+    },
+    {
+      id: "bomb",
+      name: "Bomba",
+      icon: "💣",
+      summary: "Explosão em área para limpar colunas perigosas.",
+      status: "locked",
+    },
+    {
+      id: "burst",
+      name: "Rajada",
+      icon: "🔥",
+      summary: "Sequência curta de tiros rápidos para pressionar bosses.",
+      status: "locked",
+    },
+  ],
+  support: [
+    {
+      id: "support-ship",
+      name: "Nave de suporte",
+      icon: "🚀",
+      summary: "Aliado temporario que acompanha a nave e dispara automaticamente.",
+      status: "available",
+    },
+    {
+      id: "homing-shot",
+      name: "Tiro teleguiado",
+      icon: "🎯",
+      summary: "Disparo especial que procura o alvo mais próximo.",
+      status: "locked",
+    },
+    {
+      id: "drone",
+      name: "Drone sentinela",
+      icon: "🛰️",
+      summary: "Pequeno drone que protege uma faixa da arena.",
+      status: "locked",
+    },
+  ],
+  defense: [
+    {
+      id: "shield",
+      name: "Escudo",
+      icon: "🛡️",
+      summary: "Cúpula energética que bloqueia dois ataques inimigos.",
+      status: "available",
+    },
+    {
+      id: "barrier",
+      name: "Barreira",
+      icon: "🧱",
+      summary: "Parede curta que segura uma chuva de tiros.",
+      status: "locked",
+    },
+    {
+      id: "repair",
+      name: "Reparo",
+      icon: "❤️",
+      summary: "Recupera parte da nave quando a partida aperta.",
+      status: "locked",
+    },
+  ],
+};
+
+const passiveOptions = [
+  "Recarga mais curta",
+  "Tiro principal mais rápido",
+  "Vida extra inicial",
+  "Mais dano contra bosses",
+];
+
 function SpaceInvadersGamePage() {
   const { isAuthenticated, isGuest } = useAuth();
+  const loadoutCanvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  const [showLoadout, setShowLoadout] = useState(false);
+  const [selectedPowers, setSelectedPowers] = useState<Record<PowerSlot, string>>(
+    {
+      attack: "laser",
+      support: "support-ship",
+      defense: "shield",
+    }
+  );
 
   const {
     canvasRef,
@@ -52,6 +151,16 @@ function SpaceInvadersGamePage() {
   const bossHealthPercent =
     bossMaxHealth > 0 ? Math.max(0, (bossHealth / bossMaxHealth) * 100) : 0;
 
+  const selectedAttackPower = powerOptions.attack.find(
+    (option) => option.id === selectedPowers.attack
+  );
+  const selectedSupportPower = powerOptions.support.find(
+    (option) => option.id === selectedPowers.support
+  );
+  const selectedDefensePower = powerOptions.defense.find(
+    (option) => option.id === selectedPowers.defense
+  );
+
   const laserPowerClassName = [
     "space-power-button",
     "space-laser-power-button",
@@ -79,12 +188,222 @@ function SpaceInvadersGamePage() {
     .filter(Boolean)
     .join(" ");
 
+  useEffect(() => {
+    if (!showLoadout) {
+      return;
+    }
+
+    const canvas = loadoutCanvasRef.current;
+
+    if (!canvas) {
+      return;
+    }
+
+    const ctx = canvas.getContext("2d");
+
+    if (!ctx) {
+      return;
+    }
+
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2 + 18;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const backgroundGlow = ctx.createRadialGradient(
+      centerX,
+      centerY,
+      12,
+      centerX,
+      centerY,
+      170
+    );
+
+    backgroundGlow.addColorStop(0, "rgba(79, 172, 254, 0.26)");
+    backgroundGlow.addColorStop(0.5, "rgba(56, 239, 125, 0.12)");
+    backgroundGlow.addColorStop(1, "rgba(79, 172, 254, 0)");
+
+    ctx.fillStyle = backgroundGlow;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, 170, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+    ctx.lineWidth = 1;
+
+    for (let x = 20; x < canvas.width; x += 28) {
+      ctx.beginPath();
+      ctx.moveTo(x, 18);
+      ctx.lineTo(x, canvas.height - 18);
+      ctx.stroke();
+    }
+
+    for (let y = 18; y < canvas.height; y += 28) {
+      ctx.beginPath();
+      ctx.moveTo(20, y);
+      ctx.lineTo(canvas.width - 20, y);
+      ctx.stroke();
+    }
+
+    ctx.save();
+    ctx.translate(centerX, centerY);
+    ctx.scale(2.75, 2.75);
+
+    ctx.shadowBlur = 18;
+    ctx.shadowColor = "#4facfe";
+
+    const engineGlow = ctx.createRadialGradient(0, 38, 2, 0, 42, 32);
+    engineGlow.addColorStop(0, "rgba(79, 172, 254, 0.9)");
+    engineGlow.addColorStop(0.42, "rgba(56, 239, 125, 0.35)");
+    engineGlow.addColorStop(1, "rgba(79, 172, 254, 0)");
+
+    ctx.fillStyle = engineGlow;
+    ctx.beginPath();
+    ctx.ellipse(0, 42, 35, 15, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    const wingGradient = ctx.createLinearGradient(-45, -2, 45, 38);
+    wingGradient.addColorStop(0, "#38ef7d");
+    wingGradient.addColorStop(0.5, "#4facfe");
+    wingGradient.addColorStop(1, "#38ef7d");
+
+    ctx.fillStyle = wingGradient;
+    ctx.beginPath();
+    ctx.moveTo(0, -39);
+    ctx.lineTo(47, 34);
+    ctx.lineTo(19, 27);
+    ctx.lineTo(12, 40);
+    ctx.lineTo(0, 33);
+    ctx.lineTo(-12, 40);
+    ctx.lineTo(-19, 27);
+    ctx.lineTo(-47, 34);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.42)";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    ctx.shadowBlur = 16;
+    ctx.shadowColor = "#38ef7d";
+    ctx.fillStyle = "#38ef7d";
+    ctx.beginPath();
+    ctx.moveTo(-49, 33);
+    ctx.lineTo(-28, 23);
+    ctx.lineTo(-17, 39);
+    ctx.lineTo(-35, 48);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(49, 33);
+    ctx.lineTo(28, 23);
+    ctx.lineTo(17, 39);
+    ctx.lineTo(35, 48);
+    ctx.closePath();
+    ctx.fill();
+
+    const bodyGradient = ctx.createLinearGradient(0, -44, 0, 43);
+    bodyGradient.addColorStop(0, "#ffffff");
+    bodyGradient.addColorStop(0.24, "#9ee7ff");
+    bodyGradient.addColorStop(0.56, "#4facfe");
+    bodyGradient.addColorStop(1, "#11998e");
+
+    ctx.shadowBlur = 28;
+    ctx.shadowColor = "#4facfe";
+    ctx.fillStyle = bodyGradient;
+    ctx.beginPath();
+    ctx.moveTo(0, -48);
+    ctx.lineTo(28, 34);
+    ctx.lineTo(10, 28);
+    ctx.lineTo(0, 37);
+    ctx.lineTo(-10, 28);
+    ctx.lineTo(-28, 34);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.76)";
+    ctx.lineWidth = 1.15;
+    ctx.stroke();
+
+    ctx.shadowBlur = 14;
+    ctx.shadowColor = "#ffffff";
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.58)";
+    ctx.lineWidth = 0.9;
+
+    ctx.beginPath();
+    ctx.moveTo(-14, -1);
+    ctx.lineTo(-7, 23);
+    ctx.lineTo(-18, 29);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(14, -1);
+    ctx.lineTo(7, 23);
+    ctx.lineTo(18, 29);
+    ctx.stroke();
+
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath();
+    ctx.roundRect(-3.8, -42, 7.6, 35, 999);
+    ctx.fill();
+
+    ctx.shadowBlur = 18;
+    ctx.shadowColor = "#f1c40f";
+    ctx.fillStyle = "#f1c40f";
+    ctx.beginPath();
+    ctx.ellipse(0, -9, 8.5, 11.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = "rgba(7, 16, 22, 0.42)";
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.ellipse(0, -9, 8.5, 11.5, 0, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = "#38ef7d";
+    ctx.fillStyle = "#071016";
+    ctx.beginPath();
+    ctx.roundRect(-18, 31, 36, 11, 5);
+    ctx.fill();
+
+    ctx.fillStyle = "#4facfe";
+    ctx.beginPath();
+    ctx.roundRect(-12, 34, 7, 5, 3);
+    ctx.roundRect(5, 34, 7, 5, 3);
+    ctx.fill();
+
+    ctx.restore();
+  }, [showLoadout]);
+
   function handleStartGame() {
     if (!isAuthenticated && !isGuest) {
       return;
     }
 
+    setShowLoadout(true);
+  }
+
+  function handleConfirmLoadout() {
+    setShowLoadout(false);
     startGame();
+  }
+
+  function handleBackToStartScreen() {
+    setShowLoadout(false);
+    backToStartScreen();
+  }
+
+  function handleSelectPower(slot: PowerSlot, option: PowerOption) {
+    if (option.status === "locked") {
+      return;
+    }
+
+    setSelectedPowers((currentPowers) => ({
+      ...currentPowers,
+      [slot]: option.id,
+    }));
   }
 
   const canStartGame = isAuthenticated || isGuest;
@@ -154,7 +473,7 @@ function SpaceInvadersGamePage() {
             />
           </div>
 
-          {screenState === "start" && (
+          {screenState === "start" && !showLoadout && (
             <div className="space-overlay">
               <div className="space-start-card space-glass-panel">
                 <span className="space-start-icon">👾</span>
@@ -183,7 +502,7 @@ function SpaceInvadersGamePage() {
                     type="button"
                     onClick={handleStartGame}
                   >
-                    Iniciar jogo
+                    Preparar nave
                   </button>
                 ) : (
                   <div className="space-login-warning">
@@ -204,6 +523,134 @@ function SpaceInvadersGamePage() {
                     </div>
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+
+          {screenState === "start" && showLoadout && (
+            <div className="space-overlay space-loadout-overlay">
+              <div className="space-loadout-card space-glass-panel">
+                <div className="space-loadout-preview">
+                  <div className="space-loadout-preview-heading">
+                    <span className="space-eyebrow">Hangar</span>
+                    <h2>Nave pronta para missão</h2>
+                  </div>
+
+                  <canvas
+                    ref={loadoutCanvasRef}
+                    width={420}
+                    height={360}
+                    className="space-loadout-canvas"
+                  />
+
+                  <div className="space-loadout-summary">
+                    <div>
+                      <strong>{selectedAttackPower?.icon}</strong>
+                      <span>{selectedAttackPower?.name}</span>
+                    </div>
+
+                    <div>
+                      <strong>{selectedSupportPower?.icon}</strong>
+                      <span>{selectedSupportPower?.name}</span>
+                    </div>
+
+                    <div>
+                      <strong>{selectedDefensePower?.icon}</strong>
+                      <span>{selectedDefensePower?.name}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-loadout-panel">
+                  <div className="space-loadout-heading">
+                    <span className="space-eyebrow">Loadout</span>
+                    <h1>Escolha seus poderes</h1>
+                    <p>
+                      Esta primeira versão prepara os slots da nave. Novos
+                      poderes e passivas serão desbloqueados conforme a
+                      progressão evoluir.
+                    </p>
+                  </div>
+
+                  <div className="space-loadout-columns">
+                    {(
+                      [
+                        ["attack", "Ataque"],
+                        ["support", "Suporte"],
+                        ["defense", "Defesa"],
+                      ] as [PowerSlot, string][]
+                    ).map(([slot, title]) => (
+                      <section className="space-loadout-column" key={slot}>
+                        <h2>{title}</h2>
+
+                        {powerOptions[slot].map((option) => {
+                          const isSelected = selectedPowers[slot] === option.id;
+                          const isLocked = option.status === "locked";
+
+                          return (
+                            <button
+                              className={[
+                                "space-loadout-option",
+                                isSelected ? "space-loadout-option-selected" : "",
+                                isLocked ? "space-loadout-option-locked" : "",
+                              ]
+                                .filter(Boolean)
+                                .join(" ")}
+                              disabled={isLocked}
+                              key={option.id}
+                              type="button"
+                              onClick={() => handleSelectPower(slot, option)}
+                            >
+                              <span className="space-loadout-option-icon">
+                                {option.icon}
+                              </span>
+
+                              <span className="space-loadout-option-copy">
+                                <strong>{option.name}</strong>
+                                <small>{option.summary}</small>
+                              </span>
+
+                              <span className="space-loadout-option-status">
+                                {isLocked ? "Bloqueado" : "Equipado"}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </section>
+                    ))}
+                  </div>
+
+                  <section className="space-passive-row">
+                    <div>
+                      <span className="space-eyebrow">Passivas</span>
+                      <h2>Módulos futuros</h2>
+                    </div>
+
+                    <div className="space-passive-list">
+                      {passiveOptions.map((passive) => (
+                        <span key={passive}>{passive}</span>
+                      ))}
+                    </div>
+                  </section>
+
+                  <div className="space-loadout-actions">
+                    <button
+                      className="space-btn space-btn-secondary"
+                      type="button"
+                      onClick={() => setShowLoadout(false)}
+                    >
+                      Voltar
+                    </button>
+
+                    <button
+                      className="space-btn space-btn-primary"
+                      type="button"
+                      onClick={handleConfirmLoadout}
+                    >
+                      Começar missão
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -232,7 +679,7 @@ function SpaceInvadersGamePage() {
                   <button
                     className="space-btn space-btn-secondary"
                     type="button"
-                    onClick={backToStartScreen}
+                    onClick={handleBackToStartScreen}
                   >
                     Voltar ao início
                   </button>

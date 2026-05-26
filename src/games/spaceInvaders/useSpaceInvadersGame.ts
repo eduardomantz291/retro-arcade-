@@ -1412,80 +1412,143 @@ export function useSpaceInvadersGame() {
   function drawPlayer(ctx: CanvasRenderingContext2D) {
     const { player } = runtimeRef.current;
     const centerX = player.x + player.width / 2;
-    const bottomY = player.y + player.height;
+    const centerY = player.y + 17.5;
 
     ctx.save();
+    ctx.translate(centerX, centerY);
+    ctx.scale(player.width / 100, (player.height + 11) / 96);
 
-    ctx.shadowBlur = 22;
+    ctx.shadowBlur = 18;
     ctx.shadowColor = "#4facfe";
 
-    const baseGradient = ctx.createLinearGradient(
-      player.x,
-      player.y,
-      player.x + player.width,
-      bottomY
-    );
+    const engineGlow = ctx.createRadialGradient(0, 38, 2, 0, 42, 32);
+    engineGlow.addColorStop(0, "rgba(79, 172, 254, 0.9)");
+    engineGlow.addColorStop(0.42, "rgba(56, 239, 125, 0.35)");
+    engineGlow.addColorStop(1, "rgba(79, 172, 254, 0)");
 
-    baseGradient.addColorStop(0, "#00f2fe");
-    baseGradient.addColorStop(0.5, "#4facfe");
-    baseGradient.addColorStop(1, "#38ef7d");
-
-    ctx.fillStyle = baseGradient;
-    drawRoundedRect(ctx, player.x + 3, player.y + 13, player.width - 6, 12, 999);
-
-    const bodyGradient = ctx.createLinearGradient(
-      centerX,
-      player.y,
-      centerX,
-      bottomY
-    );
-
-    bodyGradient.addColorStop(0, "#ffffff");
-    bodyGradient.addColorStop(0.36, "#4facfe");
-    bodyGradient.addColorStop(1, "#11998e");
-
-    ctx.fillStyle = bodyGradient;
+    ctx.fillStyle = engineGlow;
     ctx.beginPath();
-    ctx.moveTo(centerX, player.y - 2);
-    ctx.lineTo(player.x + player.width - 5, bottomY);
-    ctx.lineTo(centerX + 10, bottomY - 5);
-    ctx.lineTo(centerX, bottomY - 1);
-    ctx.lineTo(centerX - 10, bottomY - 5);
-    ctx.lineTo(player.x + 5, bottomY);
+    ctx.ellipse(0, 42, 35, 15, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    const wingGradient = ctx.createLinearGradient(-45, -2, 45, 38);
+    wingGradient.addColorStop(0, "#38ef7d");
+    wingGradient.addColorStop(0.5, "#4facfe");
+    wingGradient.addColorStop(1, "#38ef7d");
+
+    ctx.fillStyle = wingGradient;
+    ctx.beginPath();
+    ctx.moveTo(0, -39);
+    ctx.lineTo(47, 34);
+    ctx.lineTo(19, 27);
+    ctx.lineTo(12, 40);
+    ctx.lineTo(0, 33);
+    ctx.lineTo(-12, 40);
+    ctx.lineTo(-19, 27);
+    ctx.lineTo(-47, 34);
     ctx.closePath();
     ctx.fill();
 
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.42)";
+    ctx.lineWidth = 1.6;
+    ctx.stroke();
+
     ctx.shadowBlur = 16;
+    ctx.shadowColor = "#38ef7d";
+    ctx.fillStyle = "#38ef7d";
+
+    ctx.beginPath();
+    ctx.moveTo(-49, 33);
+    ctx.lineTo(-28, 23);
+    ctx.lineTo(-17, 39);
+    ctx.lineTo(-35, 48);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(49, 33);
+    ctx.lineTo(28, 23);
+    ctx.lineTo(17, 39);
+    ctx.lineTo(35, 48);
+    ctx.closePath();
+    ctx.fill();
+
+    const bodyGradient = ctx.createLinearGradient(0, -44, 0, 43);
+
+    bodyGradient.addColorStop(0, "#ffffff");
+    bodyGradient.addColorStop(0.24, "#9ee7ff");
+    bodyGradient.addColorStop(0.56, "#4facfe");
+    bodyGradient.addColorStop(1, "#11998e");
+
+    ctx.shadowBlur = 28;
+    ctx.shadowColor = "#4facfe";
+    ctx.fillStyle = bodyGradient;
+    ctx.beginPath();
+    ctx.moveTo(0, -48);
+    ctx.lineTo(28, 34);
+    ctx.lineTo(10, 28);
+    ctx.lineTo(0, 37);
+    ctx.lineTo(-10, 28);
+    ctx.lineTo(-28, 34);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.76)";
+    ctx.lineWidth = 1.8;
+    ctx.stroke();
+
+    ctx.shadowBlur = 14;
+    ctx.shadowColor = "#ffffff";
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.58)";
+    ctx.lineWidth = 1.3;
+
+    ctx.beginPath();
+    ctx.moveTo(-14, -1);
+    ctx.lineTo(-7, 23);
+    ctx.lineTo(-18, 29);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(14, -1);
+    ctx.lineTo(7, 23);
+    ctx.lineTo(18, 29);
+    ctx.stroke();
+
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath();
+    ctx.roundRect(-3.8, -42, 7.6, 35, 999);
+    ctx.fill();
+
+    ctx.shadowBlur = 18;
     ctx.shadowColor = "#f1c40f";
     ctx.fillStyle = "#f1c40f";
     ctx.beginPath();
-    ctx.ellipse(centerX, player.y + 12, 6, 8, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, -9, 8.5, 11.5, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.shadowBlur = 12;
-    ctx.shadowColor = "#ffffff";
-    ctx.fillStyle = "#ffffff";
-    drawRoundedRect(ctx, centerX - 3, player.y + 1, 6, 16, 999);
+    ctx.strokeStyle = "rgba(7, 16, 22, 0.42)";
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.ellipse(0, -9, 8.5, 11.5, 0, 0, Math.PI * 2);
+    ctx.stroke();
 
-    ctx.shadowBlur = 14;
+    ctx.shadowBlur = 15;
     ctx.shadowColor = "#38ef7d";
-    ctx.fillStyle = "rgba(56, 239, 125, 0.92)";
-
+    ctx.fillStyle = "#071016";
     ctx.beginPath();
-    ctx.moveTo(player.x + 8, bottomY - 2);
-    ctx.lineTo(player.x - 2, bottomY + 8);
-    ctx.lineTo(player.x + 22, bottomY - 4);
-    ctx.closePath();
+    ctx.roundRect(-18, 31, 36, 11, 5);
     ctx.fill();
 
+    ctx.fillStyle = "#4facfe";
     ctx.beginPath();
-    ctx.moveTo(player.x + player.width - 8, bottomY - 2);
-    ctx.lineTo(player.x + player.width + 2, bottomY + 8);
-    ctx.lineTo(player.x + player.width - 22, bottomY - 4);
-    ctx.closePath();
+    ctx.roundRect(-12, 34, 7, 5, 3);
+    ctx.roundRect(5, 34, 7, 5, 3);
     ctx.fill();
+
+    ctx.restore();
 
     if (runtimeRef.current.laserPower.active) {
+      ctx.save();
       ctx.globalAlpha = 0.42;
       ctx.shadowBlur = 24;
       ctx.shadowColor = "#4facfe";
@@ -1496,10 +1559,8 @@ export function useSpaceInvadersGame() {
       ctx.arc(centerX, player.y + 10, 34, 0, Math.PI * 2);
       ctx.stroke();
 
-      ctx.globalAlpha = 1;
+      ctx.restore();
     }
-
-    ctx.restore();
   }
 
   function drawSupportShip(ctx: CanvasRenderingContext2D) {
