@@ -442,7 +442,7 @@
 
 @media (max-width: 760px) {
   .profile-page {
-    padding: 16px;
+    padding: 12px;
   }
 
   .profile-data-grid,
@@ -453,17 +453,56 @@
 
   .profile-panel,
   .profile-sidebar {
-    border-radius: 24px;
+    border-radius: 20px;
+    padding: 18px;
+  }
+
+  .profile-layout,
+  .profile-content {
+    gap: 14px;
+  }
+
+  .profile-section-heading {
+    margin-bottom: 18px;
+  }
+
+  .profile-section-heading h2 {
+    line-height: 1;
+    letter-spacing: 0;
+  }
+
+  .profile-section-heading p {
+    line-height: 1.55;
+  }
+
+  .profile-data-grid {
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .profile-progress-card,
+  .profile-section-card,
+  .profile-form {
+    padding: 16px;
+    border-radius: 18px;
   }
 }
 
 @media (max-width: 540px) {
   .profile-user-card {
-    grid-template-columns: 1fr;
+    grid-template-columns: auto 1fr;
+    gap: 12px;
+    text-align: left;
   }
 
   .profile-tabs {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .profile-tabs button {
+    min-height: 44px;
+    padding: 10px;
   }
 
   .profile-avatar-settings {
@@ -472,7 +511,13 @@
   }
 
   .profile-section-heading h2 {
-    font-size: clamp(2.1rem, 12vw, 3.4rem);
+    font-size: clamp(1.9rem, 10vw, 2.8rem);
+  }
+
+  .profile-avatar {
+    width: 62px;
+    height: 62px;
+    border-radius: 20px;
   }
 }
 

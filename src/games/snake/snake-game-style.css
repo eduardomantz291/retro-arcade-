@@ -606,13 +606,25 @@
   .snake-page {
     min-height: 100svh;
     height: 100svh;
-    padding: 8px;
+    padding: 6px;
   }
 
   .snake-shell {
     width: 100%;
-    height: calc(100svh - 16px);
+    height: calc(100svh - 12px);
     grid-template-rows: auto auto auto minmax(0, 1fr);
+    gap: 6px;
+  }
+
+  .snake-topbar {
+    min-height: 50px;
+    padding: 7px 10px;
+    border-radius: 14px;
+  }
+
+  .snake-back-link {
+    padding: 8px 10px;
+    font-size: 0.8rem;
   }
 
   .snake-title {
@@ -623,12 +635,19 @@
     display: none;
   }
 
+  .snake-title strong {
+    font-size: 0.98rem;
+  }
+
   .snake-score-box {
-    min-height: 44px;
+    min-height: 42px;
+    padding: 7px 8px;
+    border-radius: 13px;
   }
 
   .snake-power-area {
-    min-height: 70px;
+    min-height: 62px;
+    border-radius: 16px;
   }
 
   .snake-power-panel-title {
@@ -642,11 +661,14 @@
   .snake-canvas-wrapper {
     width: min(100%, 400px);
     height: auto;
-    max-height: 45vh;
+    max-height: 42vh;
+    border-radius: 14px;
   }
 
   .snake-start-modal {
     width: min(420px, 96%);
+    padding: 18px;
+    border-radius: 20px;
   }
 
   .snake-start-main {
@@ -665,6 +687,10 @@
 }
 
 @media (max-width: 420px) {
+  .snake-title > span {
+    display: none;
+  }
+
   .snake-scoreboard,
   .snake-power-list {
     gap: 6px;

@@ -433,27 +433,35 @@
 
 @media (max-width: 720px) {
   .ranking-page {
-    padding: 16px;
+    padding: 12px;
   }
 
   .ranking-header,
   .ranking-current-user,
   .ranking-podium-card,
   .ranking-table-card {
-    border-radius: 24px;
+    border-radius: 20px;
+  }
+
+  .ranking-header,
+  .ranking-table-card {
+    padding: 18px;
   }
 
   .ranking-title-area h1 {
-    font-size: clamp(2.7rem, 13vw, 4.5rem);
-    letter-spacing: -1.5px;
+    font-size: clamp(2.2rem, 12vw, 3.5rem);
+    line-height: 1;
+    letter-spacing: 0;
   }
 
   .ranking-stats-row {
     grid-template-columns: 1fr;
+    gap: 10px;
   }
 
   .ranking-current-user {
     grid-template-columns: 1fr;
+    padding: 18px;
   }
 
   .ranking-table-header {
@@ -463,6 +471,8 @@
 
   .ranking-row {
     grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 14px;
   }
 
   .ranking-row-info,

@@ -535,16 +535,24 @@
   .breakout-page {
     min-height: 100svh;
     height: 100svh;
-    padding: 8px;
+    padding: 6px;
   }
 
   .breakout-shell {
-    height: calc(100svh - 16px);
+    height: calc(100svh - 12px);
     grid-template-rows: auto auto minmax(0, 1fr) auto;
+    gap: 6px;
   }
 
   .breakout-topbar {
-    border-radius: 16px;
+    min-height: 50px;
+    padding: 7px 10px;
+    border-radius: 14px;
+  }
+
+  .breakout-back-link {
+    padding: 8px 10px;
+    font-size: 0.8rem;
   }
 
   .breakout-title {
@@ -555,24 +563,33 @@
     display: none;
   }
 
+  .breakout-title strong {
+    font-size: 0.98rem;
+  }
+
   .breakout-scoreboard {
     grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
   }
 
   .breakout-score-box {
-    min-height: 44px;
+    min-height: 42px;
+    padding: 7px 8px;
+    border-radius: 13px;
   }
 
   .breakout-canvas {
     width: 100%;
     height: auto;
-    max-height: 45vh;
-    border-radius: 18px;
+    max-height: 42vh;
+    border-radius: 14px;
   }
 
   .breakout-power-panel {
     grid-template-columns: 1fr;
     gap: 8px;
+    padding: 8px;
+    border-radius: 16px;
   }
 
   .breakout-power-panel-text {
@@ -590,6 +607,8 @@
 
   .breakout-start-card {
     width: min(420px, 96%);
+    padding: 18px;
+    border-radius: 20px;
   }
 
   .breakout-start-main {
@@ -608,6 +627,10 @@
 }
 
 @media (max-width: 420px) {
+  .breakout-title > span {
+    display: none;
+  }
+
   .breakout-scoreboard {
     gap: 6px;
   }

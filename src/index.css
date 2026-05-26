@@ -66,6 +66,28 @@ body {
   margin: 0;
 }
 
+canvas,
+img,
+svg {
+  max-width: 100%;
+}
+
+@media (max-width: 760px) {
+  #root {
+    width: 100%;
+    border-inline: 0;
+  }
+
+  body {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  h1,
+  h2 {
+    letter-spacing: 0;
+  }
+}
+
 h1,
 h2 {
   font-family: var(--heading);

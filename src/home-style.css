@@ -408,8 +408,33 @@ a {
 
 .games-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(260px, 300px);
   gap: 18px;
+  margin-inline: -2px;
+  padding: 2px 2px 16px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-inline: contain;
+  scroll-padding-inline: 2px;
+  scroll-snap-type: inline mandatory;
+  scrollbar-color: rgba(56, 239, 125, 0.72) rgba(255, 255, 255, 0.09);
+  scrollbar-width: thin;
+}
+
+.games-grid::-webkit-scrollbar {
+  height: 10px;
+}
+
+.games-grid::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.games-grid::-webkit-scrollbar-thumb {
+  border: 2px solid rgba(18, 27, 36, 0.82);
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--green-end), var(--blue-end));
 }
 
 .game-card {
@@ -418,6 +443,9 @@ a {
   min-height: 300px;
   padding: 22px;
   border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  scroll-snap-align: start;
   transition:
     transform 0.2s ease,
     border-color 0.2s ease,
@@ -486,7 +514,8 @@ a {
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  margin-top: 28px;
+  margin-top: auto;
+  padding-top: 28px;
 }
 
 .game-card-footer span {
@@ -620,7 +649,7 @@ a {
   }
 
   .games-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-columns: minmax(270px, 42vw);
   }
 
   .profile-preview {
@@ -630,13 +659,26 @@ a {
 
 @media (max-width: 620px) {
   .app {
-    width: min(100% - 20px, 1180px);
-    padding-top: 10px;
+    width: min(100% - 16px, 1180px);
+    padding: 8px 0 44px;
   }
 
   .site-header {
-    top: 10px;
-    border-radius: 20px;
+    top: 8px;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 18px;
+  }
+
+  .brand-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 14px;
+    font-size: 1.25rem;
+  }
+
+  .brand p {
+    display: none;
   }
 
   .brand {
@@ -652,13 +694,76 @@ a {
   }
 
   .main-nav {
-    justify-content: space-between;
+    justify-content: flex-start;
     gap: 8px;
+    overflow-x: auto;
+    padding: 6px 0 2px;
     font-size: 0.82rem;
+    white-space: nowrap;
+    scrollbar-width: none;
+  }
+
+  .main-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .main-nav a {
+    flex: 0 0 auto;
+    padding: 8px 10px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  .hero-section {
+    gap: 18px;
+    padding: 34px 0 30px;
+  }
+
+  .hero-badge {
+    align-items: flex-start;
+    border-radius: 18px;
+    line-height: 1.35;
   }
 
   .hero-content h1 {
-    letter-spacing: -1.5px;
+    font-size: clamp(2.25rem, 13vw, 3.75rem);
+    line-height: 1.02;
+    letter-spacing: 0;
+  }
+
+  .hero-content p,
+  .section-header p,
+  .profile-preview p {
+    line-height: 1.55;
+  }
+
+  .hero-card {
+    padding: 20px;
+    border-radius: 20px;
+  }
+
+  .featured-game-icon {
+    width: 86px;
+    height: 86px;
+    border-radius: 24px;
+    font-size: 3.4rem;
+  }
+
+  .stats-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .stats-row div {
+    padding: 12px 8px;
+  }
+
+  .stats-row strong {
+    font-size: 1.2rem;
+  }
+
+  .stats-row span {
+    font-size: 0.68rem;
   }
 
   .hero-actions {
@@ -671,6 +776,16 @@ a {
 
   .section-header {
     display: block;
+    margin: 18px 0 12px;
+  }
+
+  .home-switch-header {
+    scroll-margin-top: 250px;
+  }
+
+  .section-header h2,
+  .profile-preview h2 {
+    letter-spacing: 0;
   }
 
   .section-header p {
@@ -678,17 +793,38 @@ a {
   }
 
   .games-grid {
+    grid-auto-columns: minmax(258px, 86vw);
+    gap: 12px;
+    margin-inline: -8px;
+    padding-inline: 8px;
+    padding-bottom: 14px;
+  }
+
+  .profile-stats {
     grid-template-columns: 1fr;
   }
 
-  .stats-row,
-  .profile-stats {
-    grid-template-columns: 1fr;
+  .game-card {
+    min-height: 280px;
+    padding: 18px;
+    border-radius: 20px;
+  }
+
+  .game-card-top {
+    margin-bottom: 18px;
+  }
+
+  .game-icon {
+    width: 54px;
+    height: 54px;
+    border-radius: 18px;
+    font-size: 2rem;
   }
 
   .game-card-footer {
     align-items: stretch;
     flex-direction: column;
+    padding-top: 22px;
   }
 
   .game-card-footer .btn {
@@ -1125,5 +1261,9 @@ a {
 
   .profile-preview-progress {
     padding: 14px;
+  }
+
+  .home-switch-header {
+    scroll-margin-top: 260px;
   }
 }

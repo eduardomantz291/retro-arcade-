@@ -880,11 +880,23 @@
   .space-page {
     min-height: 100svh;
     height: 100svh;
-    padding: 8px;
+    padding: 6px;
   }
 
   .space-shell {
-    height: calc(100svh - 16px);
+    height: calc(100svh - 12px);
+    gap: 6px;
+  }
+
+  .space-topbar {
+    min-height: 50px;
+    padding: 7px 10px;
+    border-radius: 14px;
+  }
+
+  .space-back-link {
+    padding: 8px 10px;
+    font-size: 0.8rem;
   }
 
   .space-title {
@@ -893,6 +905,21 @@
 
   .space-title p {
     display: none;
+  }
+
+  .space-title strong {
+    font-size: 0.98rem;
+  }
+
+  .space-scoreboard {
+    gap: 6px;
+  }
+
+  .space-score-box {
+    min-height: 46px;
+    padding: 7px 8px;
+    border-radius: 13px;
+    font-size: 0.68rem;
   }
 
   .space-boss-panel {
@@ -906,8 +933,8 @@
   .space-canvas {
     width: 100%;
     height: auto;
-    max-height: 44vh;
-    border-radius: 18px;
+    max-height: 42vh;
+    border-radius: 14px;
   }
 
   .space-start-grid {
@@ -951,7 +978,8 @@
     grid-template-columns: 1fr;
     align-items: stretch;
     text-align: center;
-    padding: 10px;
+    padding: 8px;
+    border-radius: 16px;
   }
 
   .space-action-buttons {
@@ -966,5 +994,32 @@
   .space-power-button {
     flex: 1;
     min-width: 72px;
+  }
+}
+
+@media (max-width: 420px) {
+  .space-title > span {
+    display: none;
+  }
+
+  .space-score-box span {
+    font-size: 0.95rem;
+  }
+
+  .space-loadout-overlay {
+    inset: 6px;
+  }
+
+  .space-loadout-card {
+    width: 100%;
+    border-radius: 18px;
+    padding: 10px;
+  }
+
+  .space-loadout-panel,
+  .space-loadout-preview,
+  .space-loadout-column,
+  .space-passive-row {
+    border-radius: 16px;
   }
 }
