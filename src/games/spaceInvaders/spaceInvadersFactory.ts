@@ -1,7 +1,15 @@
 import {
+  BOSS_AIM_ERROR_RANGE,
+  BOSS_ATTACK_INTERVAL_MS,
+  BOSS_ATTACK_REST_TIME_MS,
+  BOSS_BULLET_SPEED,
   BOSS_HEIGHT,
   BOSS_MAX_HEALTH,
+  BOSS_MOVE_SPEED,
+  BOSS_POINTS,
+  BOSS_RAIN_BULLET_COUNT,
   BOSS_START_Y,
+  BOSS_WAVE_INTERVAL,
   BOSS_WIDTH,
   CANVAS_WIDTH,
   INVADER_BASE_SPEED,
@@ -18,6 +26,17 @@ import {
   PLAYER_LIVES,
   PLAYER_WIDTH,
   PLAYER_Y,
+  SECOND_BOSS_AIM_ERROR_RANGE,
+  SECOND_BOSS_ATTACK_INTERVAL_MS,
+  SECOND_BOSS_ATTACK_REST_TIME_MS,
+  SECOND_BOSS_BULLET_SPEED,
+  SECOND_BOSS_HEIGHT,
+  SECOND_BOSS_MAX_HEALTH,
+  SECOND_BOSS_MOVE_SPEED,
+  SECOND_BOSS_POINTS,
+  SECOND_BOSS_RAIN_BULLET_COUNT,
+  SECOND_BOSS_START_Y,
+  SECOND_BOSS_WIDTH,
   SHIELD_POWER_COOLDOWN_MS,
   SUPPORT_SHIP_COOLDOWN_MS,
   SUPPORT_SHIP_HEIGHT,
@@ -25,10 +44,64 @@ import {
 } from "./spaceInvadersConfig";
 import type {
   Boss,
+  BossTier,
   Invader,
   SpaceInvadersRuntime,
   SupportShip,
 } from "./spaceInvadersTypes";
+
+type BossStats = {
+  tier: BossTier;
+  width: number;
+  height: number;
+  y: number;
+  maxHealth: number;
+  points: number;
+  moveSpeed: number;
+  bulletSpeed: number;
+  attackIntervalMs: number;
+  attackRestTimeMs: number;
+  aimErrorRange: number;
+  rainBulletCount: number;
+};
+
+function getNormalWaveCycleStep(wave: number) {
+  return ((wave - 1) % BOSS_WAVE_INTERVAL) + 1;
+}
+
+function getBossStatsForWave(wave: number): BossStats {
+  if (wave > 0 && wave % 10 === 0) {
+    return {
+      tier: "overlord",
+      width: SECOND_BOSS_WIDTH,
+      height: SECOND_BOSS_HEIGHT,
+      y: SECOND_BOSS_START_Y,
+      maxHealth: SECOND_BOSS_MAX_HEALTH,
+      points: SECOND_BOSS_POINTS,
+      moveSpeed: SECOND_BOSS_MOVE_SPEED,
+      bulletSpeed: SECOND_BOSS_BULLET_SPEED,
+      attackIntervalMs: SECOND_BOSS_ATTACK_INTERVAL_MS,
+      attackRestTimeMs: SECOND_BOSS_ATTACK_REST_TIME_MS,
+      aimErrorRange: SECOND_BOSS_AIM_ERROR_RANGE,
+      rainBulletCount: SECOND_BOSS_RAIN_BULLET_COUNT,
+    };
+  }
+
+  return {
+    tier: "scout",
+    width: BOSS_WIDTH,
+    height: BOSS_HEIGHT,
+    y: BOSS_START_Y,
+    maxHealth: BOSS_MAX_HEALTH,
+    points: BOSS_POINTS,
+    moveSpeed: BOSS_MOVE_SPEED,
+    bulletSpeed: BOSS_BULLET_SPEED,
+    attackIntervalMs: BOSS_ATTACK_INTERVAL_MS,
+    attackRestTimeMs: BOSS_ATTACK_REST_TIME_MS,
+    aimErrorRange: BOSS_AIM_ERROR_RANGE,
+    rainBulletCount: BOSS_RAIN_BULLET_COUNT,
+  };
+}
 
 function getInvaderVisualByRow(row: number) {
   // Fileiras de cima ficam mais especiais visualmente.
@@ -57,6 +130,7 @@ function getInvaderVisualByRow(row: number) {
 export function createInvaders(wave = 1): Invader[] {
   const invaders: Invader[] = [];
   let id = 0;
+  const cycleStep = getNormalWaveCycleStep(wave);
 
   for (let row = 0; row < INVADER_ROWS; row++) {
     for (let column = 0; column < INVADER_COLUMNS; column++) {
@@ -84,20 +158,31 @@ export function createInvaders(wave = 1): Invader[] {
 
   return invaders.map((invader) => ({
     ...invader,
-    y: invader.y + Math.min(wave - 1, 4) * 6,
+    y: invader.y + Math.min(cycleStep - 1, 4) * 6,
   }));
 }
 
-export function createBoss(): Boss {
+export function createBoss(wave = BOSS_WAVE_INTERVAL): Boss {
+  const stats = getBossStatsForWave(wave);
+
   return {
     active: true,
     defeated: false,
-    x: CANVAS_WIDTH / 2 - BOSS_WIDTH / 2,
-    y: BOSS_START_Y,
-    width: BOSS_WIDTH,
-    height: BOSS_HEIGHT,
-    health: BOSS_MAX_HEALTH,
-    maxHealth: BOSS_MAX_HEALTH,
+    wave,
+    tier: stats.tier,
+    x: CANVAS_WIDTH / 2 - stats.width / 2,
+    y: stats.y,
+    width: stats.width,
+    height: stats.height,
+    health: stats.maxHealth,
+    maxHealth: stats.maxHealth,
+    points: stats.points,
+    moveSpeed: stats.moveSpeed,
+    bulletSpeed: stats.bulletSpeed,
+    attackIntervalMs: stats.attackIntervalMs,
+    attackRestTimeMs: stats.attackRestTimeMs,
+    aimErrorRange: stats.aimErrorRange,
+    rainBulletCount: stats.rainBulletCount,
     direction: 1,
     spawnedAt: performance.now(),
     nextAttackAt: performance.now() + 900,
@@ -107,15 +192,26 @@ export function createBoss(): Boss {
 }
 
 export function createInactiveBoss(): Boss {
+  const stats = getBossStatsForWave(BOSS_WAVE_INTERVAL);
+
   return {
     active: false,
     defeated: false,
-    x: CANVAS_WIDTH / 2 - BOSS_WIDTH / 2,
-    y: BOSS_START_Y,
-    width: BOSS_WIDTH,
-    height: BOSS_HEIGHT,
-    health: BOSS_MAX_HEALTH,
-    maxHealth: BOSS_MAX_HEALTH,
+    wave: 0,
+    tier: stats.tier,
+    x: CANVAS_WIDTH / 2 - stats.width / 2,
+    y: stats.y,
+    width: stats.width,
+    height: stats.height,
+    health: stats.maxHealth,
+    maxHealth: stats.maxHealth,
+    points: stats.points,
+    moveSpeed: stats.moveSpeed,
+    bulletSpeed: stats.bulletSpeed,
+    attackIntervalMs: stats.attackIntervalMs,
+    attackRestTimeMs: stats.attackRestTimeMs,
+    aimErrorRange: stats.aimErrorRange,
+    rainBulletCount: stats.rainBulletCount,
     direction: 1,
     spawnedAt: 0,
     nextAttackAt: 0,

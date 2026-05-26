@@ -21,6 +21,8 @@ export const SUPPORT_BULLET_SPEED = 7.6;
 export const ENEMY_BULLET_WIDTH = 4;
 export const ENEMY_BULLET_HEIGHT = 12;
 export const ENEMY_BULLET_SPEED = 3.7;
+export const ENEMY_BULLET_SPEED_MAX = 5.25;
+export const ENEMY_BULLET_SPEED_MAX_WAVE = 10;
 
 export const INVADER_ROWS = 4;
 export const INVADER_COLUMNS = 9;
@@ -36,9 +38,10 @@ export const INVADER_BASE_SPEED = 0.42;
 export const INVADER_SPEED_STEP = 0.1;
 export const INVADER_SPEED_CYCLE_LENGTH = 5;
 export const INVADER_DROP_DISTANCE = 14;
-export const INVADER_SHOOT_CHANCE = 0.008;
-export const INVADER_SHOOT_CHANCE_STEP = 0.0025;
-export const INVADER_SHOOT_CHANCE_MAX = 0.018;
+export const INVADER_SHOOT_CHANCE = 0.0075;
+export const INVADER_SHOOT_CHANCE_STEP = 0.00175;
+export const INVADER_SHOOT_CHANCE_MAX = 0.023;
+export const INVADER_SHOOT_CHANCE_MAX_WAVE = 10;
 
 export const PLAYER_LIVES = 3;
 export const PLAYER_MAX_LIVES = 6;
@@ -62,6 +65,21 @@ export const BOSS_BURST_INTERVAL_MS = 230;
 export const BOSS_ATTACK_REST_TIME_MS = 420;
 export const BOSS_AIM_ERROR_RANGE = 58;
 export const BOSS_RAIN_BULLET_COUNT = 6;
+
+// Segundo boss.
+// Aparece na onda 10 e funciona como uma versÃ£o mais agressiva,
+// com mais vida, ataques mais densos e visual prÃ³prio no canvas.
+export const SECOND_BOSS_WIDTH = 178;
+export const SECOND_BOSS_HEIGHT = 84;
+export const SECOND_BOSS_START_Y = 36;
+export const SECOND_BOSS_MAX_HEALTH = 1180;
+export const SECOND_BOSS_MOVE_SPEED = 1.55;
+export const SECOND_BOSS_POINTS = 1400;
+export const SECOND_BOSS_BULLET_SPEED = 4.08;
+export const SECOND_BOSS_ATTACK_INTERVAL_MS = 900;
+export const SECOND_BOSS_ATTACK_REST_TIME_MS = 280;
+export const SECOND_BOSS_AIM_ERROR_RANGE = 42;
+export const SECOND_BOSS_RAIN_BULLET_COUNT = 8;
 
 // Poder Laser.
 // O laser fica ativo por pouco tempo, mas destrói tudo dentro da largura dele.
@@ -88,13 +106,13 @@ export const SHIELD_POWER_MAX_HITS = 2;
 // Modo de teste.
 // Deixe true só enquanto estiver testando boss.
 // Antes de fazer commit final, volte para false.
-export const DEBUG_START_ON_BOSS_WAVE = true;
+export const DEBUG_START_ON_BOSS_WAVE = false;
 
 // Escolha qual boss você quer testar.
 // 5 = boss da onda 5.
-// 10 = futuro boss da onda 10.
+// 10 = boss da onda 10.
 // 15 = futuro boss da onda 15.
-export const DEBUG_BOSS_WAVE = 5;
+export const DEBUG_BOSS_WAVE = 10;
 
 // Caso queira forçar uma quantidade específica de vidas no debug,
 // coloque um número aqui.

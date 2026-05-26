@@ -1,12 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  BOSS_AIM_ERROR_RANGE,
-  BOSS_ATTACK_INTERVAL_MS,
-  BOSS_ATTACK_REST_TIME_MS,
-  BOSS_BULLET_SPEED,
-  BOSS_MOVE_SPEED,
-  BOSS_POINTS,
-  BOSS_RAIN_BULLET_COUNT,
   BOSS_WAVE_INTERVAL,
   CANVAS_HEIGHT,
   CANVAS_WIDTH,
@@ -16,11 +9,14 @@ import {
   DEBUG_START_ON_BOSS_WAVE,
   ENEMY_BULLET_HEIGHT,
   ENEMY_BULLET_SPEED,
+  ENEMY_BULLET_SPEED_MAX,
+  ENEMY_BULLET_SPEED_MAX_WAVE,
   ENEMY_BULLET_WIDTH,
   INVADER_BASE_SPEED,
   INVADER_DROP_DISTANCE,
   INVADER_SHOOT_CHANCE,
   INVADER_SHOOT_CHANCE_MAX,
+  INVADER_SHOOT_CHANCE_MAX_WAVE,
   INVADER_SHOOT_CHANCE_STEP,
   INVADER_SPEED_CYCLE_LENGTH,
   INVADER_SPEED_STEP,
@@ -61,7 +57,14 @@ import type {
   SupportShip,
 } from "./spaceInvadersTypes";
 
-type BossAttackType = "triple" | "focus" | "rain" | "wide" | "cross";
+type BossAttackType =
+  | "triple"
+  | "focus"
+  | "rain"
+  | "wide"
+  | "cross"
+  | "sweep"
+  | "burstRain";
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
@@ -83,6 +86,10 @@ function getWaveDifficultyStep(wave: number) {
   return ((wave - 1) % INVADER_SPEED_CYCLE_LENGTH) + 1;
 }
 
+function getCappedDifficultyWave(wave: number, maxWave: number) {
+  return clamp(wave, 1, maxWave);
+}
+
 function getInvaderSpeedForWave(wave: number) {
   const difficultyStep = getWaveDifficultyStep(wave);
 
@@ -90,11 +97,25 @@ function getInvaderSpeedForWave(wave: number) {
 }
 
 function getInvaderShootChanceForWave(wave: number) {
-  const difficultyStep = getWaveDifficultyStep(wave);
+  const difficultyStep = getCappedDifficultyWave(
+    wave,
+    INVADER_SHOOT_CHANCE_MAX_WAVE
+  );
   const nextChance =
     INVADER_SHOOT_CHANCE + (difficultyStep - 1) * INVADER_SHOOT_CHANCE_STEP;
 
   return Math.min(INVADER_SHOOT_CHANCE_MAX, nextChance);
+}
+
+function getEnemyBulletSpeedForWave(wave: number) {
+  const cappedWave = getCappedDifficultyWave(wave, ENEMY_BULLET_SPEED_MAX_WAVE);
+  const progress =
+    (cappedWave - 1) / Math.max(1, ENEMY_BULLET_SPEED_MAX_WAVE - 1);
+
+  return (
+    ENEMY_BULLET_SPEED +
+    (ENEMY_BULLET_SPEED_MAX - ENEMY_BULLET_SPEED) * progress
+  );
 }
 
 function isBossWave(wave: number) {
@@ -139,31 +160,32 @@ export function useSpaceInvadersGame() {
 
     function handleKeyDown(event: KeyboardEvent) {
       const runtime = runtimeRef.current;
+      const normalizedKey = event.key.toLowerCase();
 
-      if (event.key === "ArrowLeft" || event.key.toLowerCase() === "a") {
+      if (event.key === "ArrowLeft" || normalizedKey === "a") {
         runtime.keys.left = true;
       }
 
-      if (event.key === "ArrowRight" || event.key.toLowerCase() === "d") {
+      if (event.key === "ArrowRight" || normalizedKey === "d") {
         runtime.keys.right = true;
       }
 
-      if (event.key === " " || event.key.toLowerCase() === "w") {
+      if (event.key === " " || normalizedKey === "w") {
         event.preventDefault();
         runtime.keys.shooting = true;
       }
 
-      if (event.key.toLowerCase() === "q") {
+      if (normalizedKey === "q") {
         event.preventDefault();
         handleLaserPowerAction();
       }
 
-      if (event.key.toLowerCase() === "e") {
+      if (normalizedKey === "e") {
         event.preventDefault();
         handleSupportPowerAction();
       }
 
-      if (event.key.toLowerCase() === "r") {
+      if (normalizedKey === "r") {
         event.preventDefault();
         handleShieldPowerAction();
       }
@@ -171,16 +193,17 @@ export function useSpaceInvadersGame() {
 
     function handleKeyUp(event: KeyboardEvent) {
       const runtime = runtimeRef.current;
+      const normalizedKey = event.key.toLowerCase();
 
-      if (event.key === "ArrowLeft" || event.key.toLowerCase() === "a") {
+      if (event.key === "ArrowLeft" || normalizedKey === "a") {
         runtime.keys.left = false;
       }
 
-      if (event.key === "ArrowRight" || event.key.toLowerCase() === "d") {
+      if (event.key === "ArrowRight" || normalizedKey === "d") {
         runtime.keys.right = false;
       }
 
-      if (event.key === " " || event.key.toLowerCase() === "w") {
+      if (event.key === " " || normalizedKey === "w") {
         runtime.keys.shooting = false;
       }
     }
@@ -273,7 +296,7 @@ export function useSpaceInvadersGame() {
     runtime.wave = bossWave;
     runtime.lives = getDebugPlayerLivesForBossWave(bossWave);
     runtime.invaders = [];
-    runtime.boss = createBoss();
+    runtime.boss = createBoss(bossWave);
     runtime.enemyBullets = [];
     runtime.playerBullets = [];
     runtime.invaderDirection = 1;
@@ -580,7 +603,7 @@ export function useSpaceInvadersGame() {
         invader.y + invader.height,
         ENEMY_BULLET_WIDTH,
         ENEMY_BULLET_HEIGHT,
-        ENEMY_BULLET_SPEED,
+        getEnemyBulletSpeedForWave(runtime.wave),
         "enemy"
       )
     );
@@ -755,7 +778,7 @@ export function useSpaceInvadersGame() {
 
     runtime.wave = nextWave;
     runtime.invaders = [];
-    runtime.boss = createBoss();
+    runtime.boss = createBoss(nextWave);
     runtime.enemyBullets = [];
     runtime.invaderDirection = 1;
     runtime.invaderSpeed = getInvaderSpeedForWave(nextWave);
@@ -853,8 +876,32 @@ export function useSpaceInvadersGame() {
     }
   }
 
-  function getRandomBossAttackType(): BossAttackType {
+  function getRandomBossAttackType(boss: Boss): BossAttackType {
     const randomValue = Math.random();
+
+    if (boss.tier === "overlord") {
+      if (randomValue < 0.2) {
+        return "focus";
+      }
+
+      if (randomValue < 0.38) {
+        return "rain";
+      }
+
+      if (randomValue < 0.56) {
+        return "cross";
+      }
+
+      if (randomValue < 0.74) {
+        return "sweep";
+      }
+
+      if (randomValue < 0.9) {
+        return "wide";
+      }
+
+      return "burstRain";
+    }
 
     // Ataque principal, aparece bastante.
     if (randomValue < 0.32) {
@@ -884,9 +931,9 @@ export function useSpaceInvadersGame() {
     const bossCenterX = boss.x + boss.width / 2;
     const bulletY = boss.y + boss.height - 6;
 
-    shootBossBullet(bossCenterX - 4, bulletY, 0, BOSS_BULLET_SPEED);
-    shootBossBullet(bossCenterX - 28, bulletY, -0.9, BOSS_BULLET_SPEED * 0.94);
-    shootBossBullet(bossCenterX + 24, bulletY, 0.9, BOSS_BULLET_SPEED * 0.94);
+    shootBossBullet(bossCenterX - 4, bulletY, 0, boss.bulletSpeed);
+    shootBossBullet(bossCenterX - 28, bulletY, -0.9, boss.bulletSpeed * 0.94);
+    shootBossBullet(bossCenterX + 24, bulletY, 0.9, boss.bulletSpeed * 0.94);
   }
 
   function shootBossFocusAttack(boss: Boss) {
@@ -895,7 +942,7 @@ export function useSpaceInvadersGame() {
     const bulletY = boss.y + boss.height - 4;
 
     const playerCenterX = runtime.player.x + runtime.player.width / 2;
-    const aimError = (Math.random() - 0.5) * BOSS_AIM_ERROR_RANGE;
+    const aimError = (Math.random() - 0.5) * boss.aimErrorRange;
     const targetX = playerCenterX + aimError;
 
     const distanceX = targetX - bossCenterX;
@@ -905,7 +952,7 @@ export function useSpaceInvadersGame() {
       bossCenterX - 4,
       bulletY,
       normalizedX,
-      BOSS_BULLET_SPEED * 1.08
+      boss.bulletSpeed * 1.08
     );
 
     const sideOffset = Math.random() > 0.5 ? 0.42 : -0.42;
@@ -914,12 +961,12 @@ export function useSpaceInvadersGame() {
       bossCenterX - 4,
       bulletY + 2,
       normalizedX + sideOffset,
-      BOSS_BULLET_SPEED * 0.94
+      boss.bulletSpeed * 0.94
     );
   }
 
-  function shootBossRainAttack() {
-    for (let index = 0; index < BOSS_RAIN_BULLET_COUNT; index++) {
+  function shootBossRainAttack(boss: Boss) {
+    for (let index = 0; index < boss.rainBulletCount; index++) {
       const x = 44 + Math.random() * (CANVAS_WIDTH - 88);
       const y = 64 + Math.random() * 34;
 
@@ -927,7 +974,7 @@ export function useSpaceInvadersGame() {
         x,
         y,
         (Math.random() - 0.5) * 0.42,
-        BOSS_BULLET_SPEED * (0.82 + Math.random() * 0.26)
+        boss.bulletSpeed * (0.82 + Math.random() * 0.26)
       );
     }
   }
@@ -936,31 +983,81 @@ export function useSpaceInvadersGame() {
     const bossCenterX = boss.x + boss.width / 2;
     const bulletY = boss.y + boss.height - 6;
 
-    shootBossBullet(bossCenterX - 4, bulletY, 0, BOSS_BULLET_SPEED * 0.94);
-    shootBossBullet(bossCenterX - 34, bulletY, -0.82, BOSS_BULLET_SPEED * 0.88);
-    shootBossBullet(bossCenterX + 30, bulletY, 0.82, BOSS_BULLET_SPEED * 0.88);
-    shootBossBullet(bossCenterX - 54, bulletY, -1.28, BOSS_BULLET_SPEED * 0.78);
-    shootBossBullet(bossCenterX + 50, bulletY, 1.28, BOSS_BULLET_SPEED * 0.78);
+    shootBossBullet(bossCenterX - 4, bulletY, 0, boss.bulletSpeed * 0.94);
+    shootBossBullet(bossCenterX - 34, bulletY, -0.82, boss.bulletSpeed * 0.88);
+    shootBossBullet(bossCenterX + 30, bulletY, 0.82, boss.bulletSpeed * 0.88);
+    shootBossBullet(bossCenterX - 54, bulletY, -1.28, boss.bulletSpeed * 0.78);
+    shootBossBullet(bossCenterX + 50, bulletY, 1.28, boss.bulletSpeed * 0.78);
   }
 
   function shootBossCrossAttack(boss: Boss) {
     const bossCenterX = boss.x + boss.width / 2;
     const bulletY = boss.y + boss.height - 6;
 
-    shootBossBullet(bossCenterX - 48, bulletY, 1.08, BOSS_BULLET_SPEED * 0.9);
-    shootBossBullet(bossCenterX + 44, bulletY, -1.08, BOSS_BULLET_SPEED * 0.9);
+    shootBossBullet(bossCenterX - 48, bulletY, 1.08, boss.bulletSpeed * 0.9);
+    shootBossBullet(bossCenterX + 44, bulletY, -1.08, boss.bulletSpeed * 0.9);
 
     shootBossBullet(
       bossCenterX - 22,
       bulletY + 4,
       0.48,
-      BOSS_BULLET_SPEED * 1.02
+      boss.bulletSpeed * 1.02
     );
     shootBossBullet(
       bossCenterX + 18,
       bulletY + 4,
       -0.48,
-      BOSS_BULLET_SPEED * 1.02
+      boss.bulletSpeed * 1.02
+    );
+  }
+
+  function shootBossSweepAttack(boss: Boss) {
+    const bossCenterX = boss.x + boss.width / 2;
+    const bulletY = boss.y + boss.height - 8;
+
+    for (let index = 0; index < 7; index++) {
+      const offset = index - 3;
+
+      shootBossBullet(
+        bossCenterX + offset * 16,
+        bulletY,
+        offset * 0.38,
+        boss.bulletSpeed * (0.82 + Math.abs(offset) * 0.025)
+      );
+    }
+  }
+
+  function shootBossBurstRainAttack(boss: Boss) {
+    const runtime = runtimeRef.current;
+    const playerCenterX = runtime.player.x + runtime.player.width / 2;
+
+    for (let index = 0; index < boss.rainBulletCount + 2; index++) {
+      const laneProgress = index / Math.max(1, boss.rainBulletCount + 1);
+      const x = 36 + laneProgress * (CANVAS_WIDTH - 72);
+      const waveOffset = Math.sin(index * 1.7 + Date.now() / 180) * 10;
+
+      shootBossBullet(
+        x + waveOffset,
+        54 + Math.random() * 28,
+        (Math.random() - 0.5) * 0.32,
+        boss.bulletSpeed * (0.78 + Math.random() * 0.18)
+      );
+    }
+
+    const bossCenterX = boss.x + boss.width / 2;
+    const targetOffset = clamp((playerCenterX - bossCenterX) / 190, -0.95, 0.95);
+
+    shootBossBullet(
+      bossCenterX - 18,
+      boss.y + boss.height - 8,
+      targetOffset - 0.28,
+      boss.bulletSpeed * 1.03
+    );
+    shootBossBullet(
+      bossCenterX + 14,
+      boss.y + boss.height - 8,
+      targetOffset + 0.28,
+      boss.bulletSpeed * 1.03
     );
   }
 
@@ -974,7 +1071,7 @@ export function useSpaceInvadersGame() {
 
     const now = performance.now();
 
-    boss.x += boss.direction * BOSS_MOVE_SPEED;
+    boss.x += boss.direction * boss.moveSpeed;
 
     if (boss.x <= 28) {
       boss.x = 28;
@@ -990,7 +1087,7 @@ export function useSpaceInvadersGame() {
       return;
     }
 
-    const attackType = getRandomBossAttackType();
+    const attackType = getRandomBossAttackType(boss);
 
     if (attackType === "triple") {
       shootBossTripleAttack(boss);
@@ -1001,7 +1098,7 @@ export function useSpaceInvadersGame() {
     }
 
     if (attackType === "rain") {
-      shootBossRainAttack();
+      shootBossRainAttack(boss);
     }
 
     if (attackType === "wide") {
@@ -1012,8 +1109,16 @@ export function useSpaceInvadersGame() {
       shootBossCrossAttack(boss);
     }
 
+    if (attackType === "sweep") {
+      shootBossSweepAttack(boss);
+    }
+
+    if (attackType === "burstRain") {
+      shootBossBurstRainAttack(boss);
+    }
+
     boss.nextAttackAt =
-      now + BOSS_ATTACK_INTERVAL_MS + Math.random() * BOSS_ATTACK_REST_TIME_MS;
+      now + boss.attackIntervalMs + Math.random() * boss.attackRestTimeMs;
   }
 
   function updateBullets() {
@@ -1073,7 +1178,7 @@ export function useSpaceInvadersGame() {
       return;
     }
 
-    runtime.score += BOSS_POINTS;
+    runtime.score += boss.points;
     runtime.lives = Math.min(PLAYER_MAX_LIVES, runtime.lives + 1);
     runtime.enemyBullets = [];
     runtime.boss.active = false;
@@ -1721,8 +1826,138 @@ export function useSpaceInvadersGame() {
     ctx.restore();
   }
 
+  function drawOverlordBoss(ctx: CanvasRenderingContext2D, boss: Boss) {
+    const centerX = boss.x + boss.width / 2;
+    const centerY = boss.y + boss.height / 2;
+    const pulse = Math.abs(Math.sin(Date.now() / 150));
+
+    ctx.save();
+
+    ctx.shadowBlur = 34 + pulse * 16;
+    ctx.shadowColor = "#ff4757";
+
+    const wingGradient = ctx.createLinearGradient(
+      boss.x,
+      boss.y,
+      boss.x + boss.width,
+      boss.y + boss.height
+    );
+
+    wingGradient.addColorStop(0, "#4facfe");
+    wingGradient.addColorStop(0.32, "#be2edd");
+    wingGradient.addColorStop(0.62, "#ff4757");
+    wingGradient.addColorStop(1, "#f1c40f");
+
+    ctx.fillStyle = wingGradient;
+
+    ctx.beginPath();
+    ctx.moveTo(centerX, boss.y - 6);
+    ctx.lineTo(boss.x + boss.width + 18, centerY + 10);
+    ctx.lineTo(boss.x + boss.width - 24, boss.y + boss.height + 12);
+    ctx.lineTo(centerX + 28, boss.y + boss.height - 10);
+    ctx.lineTo(centerX, boss.y + boss.height + 18);
+    ctx.lineTo(centerX - 28, boss.y + boss.height - 10);
+    ctx.lineTo(boss.x + 24, boss.y + boss.height + 12);
+    ctx.lineTo(boss.x - 18, centerY + 10);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.globalAlpha = 0.72;
+    ctx.fillStyle = "rgba(16, 24, 32, 0.78)";
+    drawRoundedRect(
+      ctx,
+      boss.x + 34,
+      boss.y + 18,
+      boss.width - 68,
+      boss.height - 18,
+      18
+    );
+
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur = 24 + pulse * 10;
+    ctx.shadowColor = "#f1c40f";
+
+    const coreGradient = ctx.createRadialGradient(
+      centerX,
+      centerY,
+      4,
+      centerX,
+      centerY,
+      34 + pulse * 5
+    );
+
+    coreGradient.addColorStop(0, "#ffffff");
+    coreGradient.addColorStop(0.3, "#f1c40f");
+    coreGradient.addColorStop(0.72, "#ff4757");
+    coreGradient.addColorStop(1, "rgba(255, 71, 87, 0.08)");
+
+    ctx.fillStyle = coreGradient;
+    ctx.beginPath();
+    ctx.ellipse(centerX, centerY + 2, 28 + pulse * 3, 20, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.shadowBlur = 20;
+    ctx.shadowColor = "#ffffff";
+    ctx.fillStyle = "#ffffff";
+
+    ctx.beginPath();
+    ctx.arc(centerX - 38, centerY - 10, 8, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(centerX + 38, centerY - 10, 8, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "#101820";
+
+    ctx.beginPath();
+    ctx.arc(centerX - 38 + boss.direction * 2, centerY - 9, 3.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(centerX + 38 + boss.direction * 2, centerY - 9, 3.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.shadowBlur = 18;
+    ctx.shadowColor = "#4facfe";
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.82)";
+    ctx.lineWidth = 2;
+
+    for (let index = 0; index < 4; index++) {
+      const side = index < 2 ? -1 : 1;
+      const row = index % 2;
+      const cannonX = centerX + side * (58 + row * 18);
+      const cannonY = centerY + 18 + row * 12;
+
+      ctx.beginPath();
+      ctx.moveTo(cannonX, cannonY);
+      ctx.lineTo(cannonX + side * 22, cannonY + 12);
+      ctx.stroke();
+
+      ctx.fillStyle = row === 0 ? "#4facfe" : "#ff4757";
+      ctx.beginPath();
+      ctx.arc(cannonX + side * 24, cannonY + 13, 4.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.globalAlpha = 0.5 + pulse * 0.28;
+    ctx.strokeStyle = "#f1c40f";
+    ctx.lineWidth = 1.5;
+
+    ctx.beginPath();
+    ctx.ellipse(centerX, centerY + 2, boss.width * 0.35, boss.height * 0.34, 0, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
   function drawBoss(ctx: CanvasRenderingContext2D, boss: Boss) {
     if (!boss.active) {
+      return;
+    }
+
+    if (boss.tier === "overlord") {
+      drawOverlordBoss(ctx, boss);
       return;
     }
 

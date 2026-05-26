@@ -1,5 +1,4 @@
-import { Navigate, Route, Routes } from "react-router";
-import RequireAuth from "./components/RequireAuth";
+import { Route, Routes } from "react-router";
 import Home from "./Home";
 import LoginPage from "./pages/Auth/LoginPage";
 import RegisterPage from "./pages/Auth/RegisterPage";

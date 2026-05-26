@@ -3,6 +3,8 @@
 
 export type SpaceInvadersScreenState = "start" | "playing" | "game-over";
 
+export type BossTier = "scout" | "overlord";
+
 export type Player = {
   x: number;
   y: number;
@@ -27,12 +29,21 @@ export type Invader = {
 export type Boss = {
   active: boolean;
   defeated: boolean;
+  wave: number;
+  tier: BossTier;
   x: number;
   y: number;
   width: number;
   height: number;
   health: number;
   maxHealth: number;
+  points: number;
+  moveSpeed: number;
+  bulletSpeed: number;
+  attackIntervalMs: number;
+  attackRestTimeMs: number;
+  aimErrorRange: number;
+  rainBulletCount: number;
   direction: 1 | -1;
   spawnedAt: number;
   nextAttackAt: number;

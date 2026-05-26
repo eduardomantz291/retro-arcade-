@@ -165,7 +165,7 @@ function SpaceInvadersGamePage() {
 
                 <p>
                   Mova sua nave, atire nos invasores, complete ondas para ganhar
-                  vidas e prepare-se para enfrentar o boss na onda 5.
+                  vidas e prepare-se para enfrentar bosses nas ondas 5 e 10.
                 </p>
 
                 <div className="space-start-grid">
@@ -174,7 +174,7 @@ function SpaceInvadersGamePage() {
                   <span>Q ativa o Laser</span>
                   <span>E chama a nave de suporte</span>
                   <span>R ativa o Escudo</span>
-                  <span>Boss aparece na onda 5</span>
+                  <span>Bosses aparecem nas ondas 5 e 10</span>
                 </div>
 
                 {canStartGame ? (
