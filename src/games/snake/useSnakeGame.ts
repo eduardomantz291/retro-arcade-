@@ -182,6 +182,14 @@ export function useSnakeGame({ isAuthenticated }: UseSnakeGameParams) {
     gameMusicRef.current.currentTime = 0;
   }
 
+  function pauseGameMusic() {
+    gameMusicRef.current?.pause();
+  }
+
+  function resumeGameMusic() {
+    gameMusicRef.current?.play().catch(() => undefined);
+  }
+
   function stopGameTimers() {
     if (animationFrameRef.current !== null) {
       cancelAnimationFrame(animationFrameRef.current);
@@ -1051,6 +1059,27 @@ export function useSnakeGame({ isAuthenticated }: UseSnakeGameParams) {
     startTitleMusic();
   }
 
+  function pauseGame() {
+    if (screenStateRef.current !== "playing") {
+      return;
+    }
+
+    stopGameTimers();
+    pauseGameMusic();
+    setGameScreen("paused");
+  }
+
+  function resumeGame() {
+    if (screenStateRef.current !== "paused") {
+      return;
+    }
+
+    setGameScreen("playing");
+    resumeGameMusic();
+    gameLoop();
+    drawGame();
+  }
+
   function changeDirection(direction: string) {
     if (screenStateRef.current !== "playing") {
       return;
@@ -1131,6 +1160,8 @@ export function useSnakeGame({ isAuthenticated }: UseSnakeGameParams) {
     goldenPercent,
     magnetPercent,
     startGame,
+    pauseGame,
+    resumeGame,
     backToStartScreen,
     changeDirection,
   };

@@ -1,11 +1,14 @@
-import type { CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { Link } from "react-router";
+import { useAuth } from "../../contexts/AuthContext";
 import LevelProgressSummary from "../../features/playerProgress/levelProgressSummary";
 import { CANVAS_HEIGHT, CANVAS_WIDTH } from "./breakoutConfig";
 import { useBreakoutGame } from "./useBreakoutGame";
 import "./breakout-game-style.css";
 
 function BreakoutGamePage() {
+  const { isAuthenticated, isGuest } = useAuth();
+
   const {
     canvasRef,
     screenState,
@@ -30,6 +33,8 @@ function BreakoutGamePage() {
     ultimateTimeLabel,
     startGame,
     restartGame,
+    pauseGame,
+    resumeGame,
     backToStartScreen,
     handlePointerMove,
     handleArrowPowerAction,
@@ -37,6 +42,9 @@ function BreakoutGamePage() {
     handleShieldPowerAction,
     handleUltimatePowerAction,
   } = useBreakoutGame();
+
+  const [showGuestWarning, setShowGuestWarning] = useState(isGuest);
+  const [guestWarningAccepted, setGuestWarningAccepted] = useState(false);
 
   const arrowButtonStyle = {
     "--power-charge": arrowCooldownProgress,
@@ -55,6 +63,68 @@ function BreakoutGamePage() {
   } as CSSProperties;
 
   const xpAwardId = `breakout-${score}-${elapsedSeconds}-${screenState}`;
+  const canStartGame = isAuthenticated || isGuest;
+  const canPauseGame = screenState === "playing" || screenState === "paused";
+
+  useEffect(() => {
+    if (isGuest && !guestWarningAccepted) {
+      setShowGuestWarning(true);
+    }
+  }, [isGuest, guestWarningAccepted]);
+
+  useEffect(() => {
+    function handlePauseShortcut(event: KeyboardEvent) {
+      if (event.key !== "Escape") {
+        return;
+      }
+
+      if (screenState === "playing") {
+        pauseGame();
+        return;
+      }
+
+      if (screenState === "paused") {
+        resumeGame();
+      }
+    }
+
+    window.addEventListener("keydown", handlePauseShortcut);
+
+    return () => {
+      window.removeEventListener("keydown", handlePauseShortcut);
+    };
+  }, [pauseGame, resumeGame, screenState]);
+
+  function handleStartGame() {
+    if (!canStartGame) {
+      return;
+    }
+
+    if (isGuest && !guestWarningAccepted) {
+      setShowGuestWarning(true);
+      return;
+    }
+
+    startGame();
+  }
+
+  function handleRestartGame() {
+    if (!canStartGame) {
+      return;
+    }
+
+    if (isGuest && !guestWarningAccepted) {
+      setShowGuestWarning(true);
+      return;
+    }
+
+    restartGame();
+  }
+
+  function handleAcceptGuestWarning() {
+    setGuestWarningAccepted(true);
+    setShowGuestWarning(false);
+  }
 
   const arrowButtonClassName = [
     "breakout-power-button",
@@ -109,6 +179,16 @@ function BreakoutGamePage() {
           <Link to="/" className="breakout-back-link">
             ← Home
           </Link>
+
+          {canPauseGame && (
+            <button
+              className="breakout-pause-button"
+              type="button"
+              onClick={screenState === "paused" ? resumeGame : pauseGame}
+            >
+              {screenState === "paused" ? "Continuar" : "Pausar"}
+            </button>
+          )}
 
           <div className="breakout-title">
             <span>🧱</span>
@@ -179,13 +259,33 @@ function BreakoutGamePage() {
                   <span>☠️ 🔻 👻 Desvie dos perigos</span>
                 </div>
 
-                <button
-                  className="breakout-btn breakout-btn-primary"
-                  type="button"
-                  onClick={startGame}
-                >
-                  Iniciar jogo
-                </button>
+                {canStartGame ? (
+                  <button
+                    className="breakout-btn breakout-btn-primary"
+                    type="button"
+                    onClick={handleStartGame}
+                  >
+                    Iniciar jogo
+                  </button>
+                ) : (
+                  <div className="breakout-login-warning">
+                    <strong>Entre para jogar</strong>
+                    <p>
+                      Para jogar e salvar progresso, entre na sua conta ou
+                      continue como visitante pela Home.
+                    </p>
+
+                    <div className="breakout-modal-actions">
+                      <Link className="breakout-btn breakout-btn-primary" to="/login">
+                        Entrar
+                      </Link>
+
+                      <Link className="breakout-btn breakout-btn-secondary" to="/">
+                        Voltar para Home
+                      </Link>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -202,18 +302,26 @@ function BreakoutGamePage() {
                   <strong>{elapsedTimeLabel}</strong>.
                 </p>
 
-                <LevelProgressSummary
-                  gameId="breakout"
-                  score={score}
-                  elapsedSeconds={elapsedSeconds}
-                  awardId={xpAwardId}
-                />
+                {isAuthenticated && (
+                  <LevelProgressSummary
+                    gameId="breakout"
+                    score={score}
+                    elapsedSeconds={elapsedSeconds}
+                    awardId={xpAwardId}
+                  />
+                )}
+
+                {!isAuthenticated && (
+                  <p className="breakout-save-warning">
+                    Como visitante, essa pontuaÃ§Ã£o nÃ£o foi salva.
+                  </p>
+                )}
 
                 <div className="breakout-modal-actions">
                   <button
                     className="breakout-btn breakout-btn-primary"
                     type="button"
-                    onClick={restartGame}
+                    onClick={handleRestartGame}
                   >
                     Tentar novamente
                   </button>
@@ -225,6 +333,32 @@ function BreakoutGamePage() {
                   >
                     Voltar ao início
                   </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {screenState === "paused" && (
+            <div className="breakout-overlay">
+              <div className="breakout-modal breakout-glass-panel">
+                <span className="breakout-modal-icon">⏸️</span>
+
+                <h1>Pausa</h1>
+
+                <p>A partida ficou congelada. Volte quando estiver pronto.</p>
+
+                <div className="breakout-modal-actions">
+                  <button
+                    className="breakout-btn breakout-btn-primary"
+                    type="button"
+                    onClick={resumeGame}
+                  >
+                    Voltar a jogar
+                  </button>
+
+                  <Link className="breakout-btn breakout-btn-secondary" to="/">
+                    Voltar para Home
+                  </Link>
                 </div>
               </div>
             </div>
@@ -364,6 +498,35 @@ function BreakoutGamePage() {
           </div>
         </section>
       </section>
+
+      {showGuestWarning && (
+        <div className="breakout-page-modal-backdrop">
+          <div className="breakout-warning-modal breakout-glass-panel">
+            <span className="breakout-modal-icon">⚠️</span>
+
+            <h2>Modo visitante</h2>
+
+            <p>
+              Você pode jogar normalmente, mas seus pontos e progresso não serão
+              salvos enquanto estiver como visitante.
+            </p>
+
+            <div className="breakout-modal-actions">
+              <button
+                className="breakout-btn breakout-btn-primary"
+                type="button"
+                onClick={handleAcceptGuestWarning}
+              >
+                Entendi
+              </button>
+
+              <Link className="breakout-btn breakout-btn-secondary" to="/login">
+                Entrar na conta
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

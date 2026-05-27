@@ -1,4 +1,4 @@
-export type BreakoutScreenState = "start" | "playing" | "game-over";
+export type BreakoutScreenState = "start" | "playing" | "paused" | "game-over";
 
 export type BrickType = "normal" | "tnt" | "curse" | "ultimate";
 

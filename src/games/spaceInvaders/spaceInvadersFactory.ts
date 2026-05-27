@@ -12,6 +12,29 @@ import {
   BOSS_WAVE_INTERVAL,
   BOSS_WIDTH,
   CANVAS_WIDTH,
+  FINAL_BOSS_AIM_ERROR_RANGE,
+  FINAL_BOSS_ATTACK_INTERVAL_MS,
+  FINAL_BOSS_ATTACK_REST_TIME_MS,
+  FINAL_BOSS_BULLET_SPEED,
+  FINAL_BOSS_HEIGHT,
+  FINAL_BOSS_MAX_HEALTH,
+  FINAL_BOSS_MOVE_SPEED,
+  FINAL_BOSS_POINTS,
+  FINAL_BOSS_RAIN_BULLET_COUNT,
+  FINAL_BOSS_START_Y,
+  FINAL_BOSS_WIDTH,
+  FINAL_WAVE,
+  FOURTH_BOSS_AIM_ERROR_RANGE,
+  FOURTH_BOSS_ATTACK_INTERVAL_MS,
+  FOURTH_BOSS_ATTACK_REST_TIME_MS,
+  FOURTH_BOSS_BULLET_SPEED,
+  FOURTH_BOSS_HEIGHT,
+  FOURTH_BOSS_MAX_HEALTH,
+  FOURTH_BOSS_MOVE_SPEED,
+  FOURTH_BOSS_POINTS,
+  FOURTH_BOSS_RAIN_BULLET_COUNT,
+  FOURTH_BOSS_START_Y,
+  FOURTH_BOSS_WIDTH,
   INVADER_BASE_SPEED,
   INVADER_COLUMNS,
   INVADER_GAP_X,
@@ -41,6 +64,17 @@ import {
   SUPPORT_SHIP_COOLDOWN_MS,
   SUPPORT_SHIP_HEIGHT,
   SUPPORT_SHIP_WIDTH,
+  THIRD_BOSS_AIM_ERROR_RANGE,
+  THIRD_BOSS_ATTACK_INTERVAL_MS,
+  THIRD_BOSS_ATTACK_REST_TIME_MS,
+  THIRD_BOSS_BULLET_SPEED,
+  THIRD_BOSS_HEIGHT,
+  THIRD_BOSS_MAX_HEALTH,
+  THIRD_BOSS_MOVE_SPEED,
+  THIRD_BOSS_POINTS,
+  THIRD_BOSS_RAIN_BULLET_COUNT,
+  THIRD_BOSS_START_Y,
+  THIRD_BOSS_WIDTH,
 } from "./spaceInvadersConfig";
 import type {
   Boss,
@@ -51,6 +85,7 @@ import type {
 } from "./spaceInvadersTypes";
 
 type BossStats = {
+  name: string;
   tier: BossTier;
   width: number;
   height: number;
@@ -70,8 +105,63 @@ function getNormalWaveCycleStep(wave: number) {
 }
 
 function getBossStatsForWave(wave: number): BossStats {
+  if (wave >= FINAL_WAVE) {
+    return {
+      name: "Nucleo Omega",
+      tier: "omega",
+      width: FINAL_BOSS_WIDTH,
+      height: FINAL_BOSS_HEIGHT,
+      y: FINAL_BOSS_START_Y,
+      maxHealth: FINAL_BOSS_MAX_HEALTH,
+      points: FINAL_BOSS_POINTS,
+      moveSpeed: FINAL_BOSS_MOVE_SPEED,
+      bulletSpeed: FINAL_BOSS_BULLET_SPEED,
+      attackIntervalMs: FINAL_BOSS_ATTACK_INTERVAL_MS,
+      attackRestTimeMs: FINAL_BOSS_ATTACK_REST_TIME_MS,
+      aimErrorRange: FINAL_BOSS_AIM_ERROR_RANGE,
+      rainBulletCount: FINAL_BOSS_RAIN_BULLET_COUNT,
+    };
+  }
+
+  if (wave >= 20) {
+    return {
+      name: "Forja Estelar",
+      tier: "forge",
+      width: FOURTH_BOSS_WIDTH,
+      height: FOURTH_BOSS_HEIGHT,
+      y: FOURTH_BOSS_START_Y,
+      maxHealth: FOURTH_BOSS_MAX_HEALTH,
+      points: FOURTH_BOSS_POINTS,
+      moveSpeed: FOURTH_BOSS_MOVE_SPEED,
+      bulletSpeed: FOURTH_BOSS_BULLET_SPEED,
+      attackIntervalMs: FOURTH_BOSS_ATTACK_INTERVAL_MS,
+      attackRestTimeMs: FOURTH_BOSS_ATTACK_REST_TIME_MS,
+      aimErrorRange: FOURTH_BOSS_AIM_ERROR_RANGE,
+      rainBulletCount: FOURTH_BOSS_RAIN_BULLET_COUNT,
+    };
+  }
+
+  if (wave >= 15) {
+    return {
+      name: "Serafim Quasar",
+      tier: "quasar",
+      width: THIRD_BOSS_WIDTH,
+      height: THIRD_BOSS_HEIGHT,
+      y: THIRD_BOSS_START_Y,
+      maxHealth: THIRD_BOSS_MAX_HEALTH,
+      points: THIRD_BOSS_POINTS,
+      moveSpeed: THIRD_BOSS_MOVE_SPEED,
+      bulletSpeed: THIRD_BOSS_BULLET_SPEED,
+      attackIntervalMs: THIRD_BOSS_ATTACK_INTERVAL_MS,
+      attackRestTimeMs: THIRD_BOSS_ATTACK_REST_TIME_MS,
+      aimErrorRange: THIRD_BOSS_AIM_ERROR_RANGE,
+      rainBulletCount: THIRD_BOSS_RAIN_BULLET_COUNT,
+    };
+  }
+
   if (wave > 0 && wave % 10 === 0) {
     return {
+      name: "Arconte Prisma",
       tier: "overlord",
       width: SECOND_BOSS_WIDTH,
       height: SECOND_BOSS_HEIGHT,
@@ -88,6 +178,7 @@ function getBossStatsForWave(wave: number): BossStats {
   }
 
   return {
+    name: "Nebulume Slime",
     tier: "scout",
     width: BOSS_WIDTH,
     height: BOSS_HEIGHT,
@@ -169,6 +260,7 @@ export function createBoss(wave = BOSS_WAVE_INTERVAL): Boss {
     active: true,
     defeated: false,
     wave,
+    name: stats.name,
     tier: stats.tier,
     x: CANVAS_WIDTH / 2 - stats.width / 2,
     y: stats.y,
@@ -198,6 +290,7 @@ export function createInactiveBoss(): Boss {
     active: false,
     defeated: false,
     wave: 0,
+    name: stats.name,
     tier: stats.tier,
     x: CANVAS_WIDTH / 2 - stats.width / 2,
     y: stats.y,

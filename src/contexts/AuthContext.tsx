@@ -260,10 +260,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   function logout() {
     // Logout remove usuário real e também remove modo visitante.
     setUser(null);
-    setIsGuest(false);
+    setIsGuest(true);
 
     removeCurrentUser();
-    removeGuestMode();
+    saveGuestMode();
   }
 
   function continueAsGuest() {

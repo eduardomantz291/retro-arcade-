@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { Link } from "react-router";
 import { useAuth } from "../../contexts/AuthContext";
-import { CANVAS_HEIGHT, CANVAS_WIDTH } from "./spaceInvadersConfig";
+import { CANVAS_HEIGHT, CANVAS_WIDTH, FINAL_WAVE } from "./spaceInvadersConfig";
 import { useSpaceInvadersGame } from "./useSpaceInvadersGame";
 import "./space-invaders-style.css";
 
@@ -99,6 +99,8 @@ function SpaceInvadersGamePage() {
   const loadoutCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const [showLoadout, setShowLoadout] = useState(false);
+  const [showGuestWarning, setShowGuestWarning] = useState(isGuest);
+  const [guestWarningAccepted, setGuestWarningAccepted] = useState(false);
   const [selectedPowers, setSelectedPowers] = useState<Record<PowerSlot, string>>(
     {
       attack: "laser",
@@ -116,6 +118,7 @@ function SpaceInvadersGamePage() {
     isBossActive,
     bossHealth,
     bossMaxHealth,
+    bossName,
     isLaserReady,
     isLaserActive,
     laserCooldownProgress,
@@ -128,6 +131,8 @@ function SpaceInvadersGamePage() {
     shieldHitsLeft,
     startGame,
     restartGame,
+    pauseGame,
+    resumeGame,
     backToStartScreen,
     handlePointerMove,
     handleShootAction,
@@ -382,10 +387,25 @@ function SpaceInvadersGamePage() {
       return;
     }
 
+    if (isGuest && !guestWarningAccepted) {
+      setShowGuestWarning(true);
+      return;
+    }
+
     setShowLoadout(true);
   }
 
   function handleConfirmLoadout() {
+    if (!isAuthenticated && !isGuest) {
+      setShowLoadout(false);
+      return;
+    }
+
+    if (isGuest && !guestWarningAccepted) {
+      setShowGuestWarning(true);
+      return;
+    }
+
     setShowLoadout(false);
     startGame();
   }
@@ -393,6 +413,20 @@ function SpaceInvadersGamePage() {
   function handleBackToStartScreen() {
     setShowLoadout(false);
     backToStartScreen();
+  }
+
+  function handleRestartGame() {
+    if (!isAuthenticated && !isGuest) {
+      backToStartScreen();
+      return;
+    }
+
+    if (isGuest && !guestWarningAccepted) {
+      setShowGuestWarning(true);
+      return;
+    }
+
+    restartGame();
   }
 
   function handleSelectPower(slot: PowerSlot, option: PowerOption) {
@@ -407,6 +441,41 @@ function SpaceInvadersGamePage() {
   }
 
   const canStartGame = isAuthenticated || isGuest;
+  const canPauseGame = screenState === "playing" || screenState === "paused";
+
+  useEffect(() => {
+    if (isGuest && !guestWarningAccepted) {
+      setShowGuestWarning(true);
+    }
+  }, [isGuest, guestWarningAccepted]);
+
+  useEffect(() => {
+    function handlePauseShortcut(event: KeyboardEvent) {
+      if (event.key !== "Escape") {
+        return;
+      }
+
+      if (screenState === "playing") {
+        pauseGame();
+        return;
+      }
+
+      if (screenState === "paused") {
+        resumeGame();
+      }
+    }
+
+    window.addEventListener("keydown", handlePauseShortcut);
+
+    return () => {
+      window.removeEventListener("keydown", handlePauseShortcut);
+    };
+  }, [pauseGame, resumeGame, screenState]);
+
+  function handleAcceptGuestWarning() {
+    setGuestWarningAccepted(true);
+    setShowGuestWarning(false);
+  }
 
   return (
     <main className="space-page">
@@ -419,6 +488,16 @@ function SpaceInvadersGamePage() {
           <Link to="/" className="space-back-link">
             ← Home
           </Link>
+
+          {canPauseGame && (
+            <button
+              className="space-pause-button"
+              type="button"
+              onClick={screenState === "paused" ? resumeGame : pauseGame}
+            >
+              {screenState === "paused" ? "Continuar" : "Pausar"}
+            </button>
+          )}
 
           <div className="space-title">
             <span>👾</span>
@@ -448,7 +527,7 @@ function SpaceInvadersGamePage() {
           {isBossActive && (
             <div className="space-boss-panel space-glass-panel">
               <div>
-                <strong>👾 Boss Alienígena</strong>
+                <strong>👾 {bossName || "Boss Alienigena"}</strong>
                 <span>
                   {bossHealth}/{bossMaxHealth} HP
                 </span>
@@ -484,7 +563,8 @@ function SpaceInvadersGamePage() {
 
                 <p>
                   Mova sua nave, atire nos invasores, complete ondas para ganhar
-                  vidas e prepare-se para enfrentar bosses nas ondas 5 e 10.
+                  vidas e prepare-se para enfrentar bosses nas ondas 5, 10, 15,
+                  20 e 25.
                 </p>
 
                 <div className="space-start-grid">
@@ -493,7 +573,8 @@ function SpaceInvadersGamePage() {
                   <span>Q ativa o Laser</span>
                   <span>E chama a nave de suporte</span>
                   <span>R ativa o Escudo</span>
-                  <span>Bosses aparecem nas ondas 5 e 10</span>
+                  <span>Bosses nas ondas 5, 10, 15, 20 e 25</span>
+                  <span>Onda {FINAL_WAVE} encerra a missao</span>
                 </div>
 
                 {canStartGame ? (
@@ -671,7 +752,7 @@ function SpaceInvadersGamePage() {
                   <button
                     className="space-btn space-btn-primary"
                     type="button"
-                    onClick={restartGame}
+                    onClick={handleRestartGame}
                   >
                     Tentar novamente
                   </button>
@@ -686,6 +767,70 @@ function SpaceInvadersGamePage() {
 
                   <Link className="space-btn space-btn-ghost" to="/">
                     Home
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {screenState === "victory" && (
+            <div className="space-overlay">
+              <div className="space-modal space-victory-modal space-glass-panel">
+                <span className="space-modal-icon">✨</span>
+
+                <h1>Vitoria!</h1>
+
+                <p>
+                  Voce derrotou o <strong>Nucleo Omega</strong>, fechou a onda{" "}
+                  <strong>{FINAL_WAVE}</strong> e terminou a missao com{" "}
+                  <strong>{score}</strong> pontos.
+                </p>
+
+                <div className="space-modal-actions">
+                  <button
+                    className="space-btn space-btn-primary"
+                    type="button"
+                    onClick={handleRestartGame}
+                  >
+                    Jogar novamente
+                  </button>
+
+                  <button
+                    className="space-btn space-btn-secondary"
+                    type="button"
+                    onClick={handleBackToStartScreen}
+                  >
+                    Voltar ao inicio
+                  </button>
+
+                  <Link className="space-btn space-btn-ghost" to="/">
+                    Home
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {screenState === "paused" && (
+            <div className="space-overlay">
+              <div className="space-modal space-glass-panel">
+                <span className="space-modal-icon">⏸️</span>
+
+                <h1>Pausa</h1>
+
+                <p>A invasão ficou congelada. Volte quando estiver pronto.</p>
+
+                <div className="space-modal-actions">
+                  <button
+                    className="space-btn space-btn-primary"
+                    type="button"
+                    onClick={resumeGame}
+                  >
+                    Voltar a jogar
+                  </button>
+
+                  <Link className="space-btn space-btn-secondary" to="/">
+                    Voltar para Home
                   </Link>
                 </div>
               </div>
@@ -755,6 +900,35 @@ function SpaceInvadersGamePage() {
           </div>
         </section>
       </section>
+
+      {showGuestWarning && (
+        <div className="space-page-modal-backdrop">
+          <div className="space-warning-modal space-glass-panel">
+            <span className="space-modal-icon">⚠️</span>
+
+            <h2>Modo visitante</h2>
+
+            <p>
+              Você pode jogar normalmente, mas seus pontos e progresso não serão
+              salvos enquanto estiver como visitante.
+            </p>
+
+            <div className="space-modal-actions">
+              <button
+                className="space-btn space-btn-primary"
+                type="button"
+                onClick={handleAcceptGuestWarning}
+              >
+                Entendi
+              </button>
+
+              <Link className="space-btn space-btn-secondary" to="/login">
+                Entrar na conta
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

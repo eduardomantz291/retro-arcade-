@@ -100,6 +100,7 @@ export function useBreakoutGame() {
   const powerUpIdRef = useRef(0);
   const ultimateExtraBallIdRef = useRef(0);
   const gameStartedAtRef = useRef(0);
+  const pausedAtRef = useRef(0);
 
   const [screenState, setScreenState] =
     useState<BreakoutScreenState>("start");
@@ -973,6 +974,52 @@ export function useBreakoutGame() {
     audioRef.current?.startMenuTheme();
 
     setGameScreen("start");
+  }
+
+  function shiftRuntimeTimestamps(deltaMs: number) {
+    const runtime = runtimeRef.current;
+
+    gameStartedAtRef.current += deltaMs;
+    runtime.arrowPower.lastUsedAt += deltaMs;
+    runtime.homingPower.activatedAt += deltaMs;
+    runtime.homingPower.lastUsedAt += deltaMs;
+    runtime.shieldPower.activatedAt += deltaMs;
+    runtime.shieldPower.lastUsedAt += deltaMs;
+    runtime.ultimatePower.activatedAt += deltaMs;
+    runtime.paddle.ghostUntil += deltaMs;
+    runtime.rebuild.startedAt += deltaMs;
+    runtime.rebuild.releaseAt += deltaMs;
+    runtime.lastBombCollectedAt += deltaMs;
+  }
+
+  function pauseGame() {
+    if (screenStateRef.current !== "playing") {
+      return;
+    }
+
+    if (frameRef.current !== null) {
+      cancelAnimationFrame(frameRef.current);
+      frameRef.current = null;
+    }
+
+    pausedAtRef.current = performance.now();
+    audioRef.current?.stopAllThemes();
+    setGameScreen("paused");
+  }
+
+  function resumeGame() {
+    if (screenStateRef.current !== "paused") {
+      return;
+    }
+
+    if (pausedAtRef.current > 0) {
+      shiftRuntimeTimestamps(performance.now() - pausedAtRef.current);
+      pausedAtRef.current = 0;
+    }
+
+    audioRef.current?.startGameplayTheme();
+    setGameScreen("playing");
+    frameRef.current = requestAnimationFrame(gameLoop);
   }
 
   function handlePointerMove(clientX: number) {
@@ -2765,6 +2812,8 @@ export function useBreakoutGame() {
     ultimateTimeLabel,
     startGame,
     restartGame,
+    pauseGame,
+    resumeGame,
     backToStartScreen,
     handlePointerMove,
     handleArrowPowerAction,

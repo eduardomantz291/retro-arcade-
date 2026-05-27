@@ -93,6 +93,23 @@
   background: rgba(56, 239, 125, 0.18);
 }
 
+.space-pause-button {
+  color: #071016;
+  cursor: pointer;
+  font-weight: 900;
+  font-size: 0.82rem;
+  padding: 9px 13px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #38ef7d, #4facfe);
+  box-shadow: 0 0 20px rgba(56, 239, 125, 0.22);
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.space-pause-button:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.08);
+}
+
 .space-title {
   display: flex;
   align-items: center;
@@ -336,6 +353,18 @@
   grid-template-columns: minmax(260px, 0.82fr) minmax(0, 1.35fr);
   gap: 16px;
   animation: space-pop 0.35s ease both;
+}
+
+.space-victory-modal {
+  border-color: rgba(241, 196, 15, 0.42);
+  background:
+    radial-gradient(circle at top, rgba(241, 196, 15, 0.18), transparent 34%),
+    radial-gradient(circle at bottom, rgba(79, 172, 254, 0.14), transparent 42%),
+    rgba(18, 27, 36, 0.86);
+  box-shadow:
+    0 28px 70px rgba(0, 0, 0, 0.38),
+    0 0 34px rgba(241, 196, 15, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 .space-loadout-preview,
@@ -646,6 +675,37 @@
 
 .space-login-warning strong {
   color: #ff6b81;
+}
+
+.space-page-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(10, 16, 22, 0.68);
+  backdrop-filter: blur(8px);
+}
+
+.space-warning-modal {
+  width: min(460px, 100%);
+  border-radius: 24px;
+  padding: 22px;
+  text-align: center;
+  animation: space-pop 0.35s ease both;
+}
+
+.space-warning-modal h2 {
+  margin: 0;
+  font-size: 1.8rem;
+}
+
+.space-warning-modal p {
+  margin: 10px auto 0;
+  max-width: 360px;
+  color: rgba(255, 255, 255, 0.74);
+  line-height: 1.5;
 }
 
 .space-control-panel {

@@ -84,5 +84,10 @@ export type GameRuntime = {
 };
 
 // Telas possíveis do Snake.
-// start = tela inicial, countdown = contagem, playing = partida, game-over = derrota.
-export type SnakeScreenState = "start" | "countdown" | "playing" | "game-over";
+// start = tela inicial, countdown = contagem, playing = partida, paused = pausa, game-over = derrota.
+export type SnakeScreenState =
+  | "start"
+  | "countdown"
+  | "playing"
+  | "paused"
+  | "game-over";

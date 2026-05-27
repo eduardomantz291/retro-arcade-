@@ -53,6 +53,7 @@ export const WAVE_CLEAR_BONUS = 150;
 // O primeiro boss aparece na onda 5.
 // Ele precisa ser desafiador, mas ainda justo por ser o primeiro chefão.
 export const BOSS_WAVE_INTERVAL = 5;
+export const FINAL_WAVE = 25;
 export const BOSS_WIDTH = 154;
 export const BOSS_HEIGHT = 72;
 export const BOSS_START_Y = 42;
@@ -67,8 +68,6 @@ export const BOSS_AIM_ERROR_RANGE = 58;
 export const BOSS_RAIN_BULLET_COUNT = 6;
 
 // Segundo boss.
-// Aparece na onda 10 e funciona como uma versÃ£o mais agressiva,
-// com mais vida, ataques mais densos e visual prÃ³prio no canvas.
 export const SECOND_BOSS_WIDTH = 178;
 export const SECOND_BOSS_HEIGHT = 84;
 export const SECOND_BOSS_START_Y = 36;
@@ -80,6 +79,48 @@ export const SECOND_BOSS_ATTACK_INTERVAL_MS = 900;
 export const SECOND_BOSS_ATTACK_REST_TIME_MS = 280;
 export const SECOND_BOSS_AIM_ERROR_RANGE = 42;
 export const SECOND_BOSS_RAIN_BULLET_COUNT = 8;
+
+// Terceiro boss.
+// Onda 15: mais pressao lateral e ataques em espiral leve.
+export const THIRD_BOSS_WIDTH = 190;
+export const THIRD_BOSS_HEIGHT = 92;
+export const THIRD_BOSS_START_Y = 32;
+export const THIRD_BOSS_MAX_HEALTH = 1580;
+export const THIRD_BOSS_MOVE_SPEED = 1.72;
+export const THIRD_BOSS_POINTS = 2100;
+export const THIRD_BOSS_BULLET_SPEED = 4.32;
+export const THIRD_BOSS_ATTACK_INTERVAL_MS = 830;
+export const THIRD_BOSS_ATTACK_REST_TIME_MS = 250;
+export const THIRD_BOSS_AIM_ERROR_RANGE = 34;
+export const THIRD_BOSS_RAIN_BULLET_COUNT = 9;
+
+// Quarto boss.
+// Onda 20: boss pesado, com ataques em parede e chuva mais organizada.
+export const FOURTH_BOSS_WIDTH = 206;
+export const FOURTH_BOSS_HEIGHT = 98;
+export const FOURTH_BOSS_START_Y = 30;
+export const FOURTH_BOSS_MAX_HEALTH = 2200;
+export const FOURTH_BOSS_MOVE_SPEED = 1.88;
+export const FOURTH_BOSS_POINTS = 3000;
+export const FOURTH_BOSS_BULLET_SPEED = 4.58;
+export const FOURTH_BOSS_ATTACK_INTERVAL_MS = 760;
+export const FOURTH_BOSS_ATTACK_REST_TIME_MS = 220;
+export const FOURTH_BOSS_AIM_ERROR_RANGE = 28;
+export const FOURTH_BOSS_RAIN_BULLET_COUNT = 10;
+
+// Boss final.
+// Onda 25: encerra a partida, mais denso e variado sem virar bullet hell puro.
+export const FINAL_BOSS_WIDTH = 222;
+export const FINAL_BOSS_HEIGHT = 108;
+export const FINAL_BOSS_START_Y = 24;
+export const FINAL_BOSS_MAX_HEALTH = 3000;
+export const FINAL_BOSS_MOVE_SPEED = 2.02;
+export const FINAL_BOSS_POINTS = 4500;
+export const FINAL_BOSS_BULLET_SPEED = 4.85;
+export const FINAL_BOSS_ATTACK_INTERVAL_MS = 700;
+export const FINAL_BOSS_ATTACK_REST_TIME_MS = 180;
+export const FINAL_BOSS_AIM_ERROR_RANGE = 22;
+export const FINAL_BOSS_RAIN_BULLET_COUNT = 12;
 
 // Poder Laser.
 // O laser fica ativo por pouco tempo, mas destrói tudo dentro da largura dele.
@@ -106,13 +147,13 @@ export const SHIELD_POWER_MAX_HITS = 2;
 // Modo de teste.
 // Deixe true só enquanto estiver testando boss.
 // Antes de fazer commit final, volte para false.
-export const DEBUG_START_ON_BOSS_WAVE = false;
+export const DEBUG_START_ON_BOSS_WAVE = true;
 
 // Escolha qual boss você quer testar.
 // 5 = boss da onda 5.
 // 10 = boss da onda 10.
-// 15 = futuro boss da onda 15.
-export const DEBUG_BOSS_WAVE = 10;
+// 15, 20 e 25 testam os bosses finais.
+export const DEBUG_BOSS_WAVE = 25;
 
 // Caso queira forçar uma quantidade específica de vidas no debug,
 // coloque um número aqui.
@@ -127,4 +168,5 @@ export const DEBUG_PLAYER_LIVES_BY_BOSS_WAVE: Record<number, number> = {
   10: 10,
   15: 12,
   20: 14,
+  25: 16,
 };

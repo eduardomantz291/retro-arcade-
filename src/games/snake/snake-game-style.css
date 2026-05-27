@@ -101,6 +101,23 @@
   background: rgba(56, 239, 125, 0.18);
 }
 
+.snake-pause-button {
+  color: #071016;
+  cursor: pointer;
+  font-weight: 900;
+  font-size: 0.82rem;
+  padding: 9px 13px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #38ef7d, #4facfe);
+  box-shadow: 0 0 20px rgba(56, 239, 125, 0.22);
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.snake-pause-button:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.08);
+}
+
 .snake-title {
   display: flex;
   align-items: center;
@@ -406,6 +423,15 @@
   color: #ff4757;
   background: none !important;
   -webkit-text-fill-color: #ff4757 !important;
+}
+
+.snake-pause-modal h1 {
+  font-size: clamp(2.2rem, 8vw, 3.6rem);
+}
+
+.snake-pause-modal p {
+  max-width: 360px;
+  margin-inline: auto;
 }
 
 .snake-final-score {

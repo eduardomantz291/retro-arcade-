@@ -12,6 +12,7 @@ import {
   ENEMY_BULLET_SPEED_MAX,
   ENEMY_BULLET_SPEED_MAX_WAVE,
   ENEMY_BULLET_WIDTH,
+  FINAL_WAVE,
   INVADER_BASE_SPEED,
   INVADER_DROP_DISTANCE,
   INVADER_SHOOT_CHANCE,
@@ -64,7 +65,12 @@ type BossAttackType =
   | "wide"
   | "cross"
   | "sweep"
-  | "burstRain";
+  | "burstRain"
+  | "spiral"
+  | "pinch"
+  | "meteor"
+  | "lattice"
+  | "omegaBurst";
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
@@ -119,7 +125,7 @@ function getEnemyBulletSpeedForWave(wave: number) {
 }
 
 function isBossWave(wave: number) {
-  return wave > 0 && wave % BOSS_WAVE_INTERVAL === 0;
+  return wave > 0 && wave <= FINAL_WAVE && wave % BOSS_WAVE_INTERVAL === 0;
 }
 
 export function useSpaceInvadersGame() {
@@ -128,6 +134,7 @@ export function useSpaceInvadersGame() {
   const runtimeRef = useRef<SpaceInvadersRuntime>(
     createInitialSpaceInvadersRuntime()
   );
+  const pausedAtRef = useRef(0);
 
   const screenStateRef = useRef<SpaceInvadersScreenState>("start");
   const bulletIdRef = useRef(0);
@@ -140,6 +147,7 @@ export function useSpaceInvadersGame() {
   const [wave, setWave] = useState(1);
   const [bossHealth, setBossHealth] = useState(0);
   const [bossMaxHealth, setBossMaxHealth] = useState(0);
+  const [bossName, setBossName] = useState("");
   const [isBossActive, setIsBossActive] = useState(false);
 
   const [isLaserReady, setIsLaserReady] = useState(true);
@@ -161,6 +169,10 @@ export function useSpaceInvadersGame() {
     function handleKeyDown(event: KeyboardEvent) {
       const runtime = runtimeRef.current;
       const normalizedKey = event.key.toLowerCase();
+
+      if (screenStateRef.current !== "playing") {
+        return;
+      }
 
       if (event.key === "ArrowLeft" || normalizedKey === "a") {
         runtime.keys.left = true;
@@ -235,6 +247,7 @@ export function useSpaceInvadersGame() {
     setIsBossActive(runtime.boss.active);
     setBossHealth(runtime.boss.active ? runtime.boss.health : 0);
     setBossMaxHealth(runtime.boss.active ? runtime.boss.maxHealth : 0);
+    setBossName(runtime.boss.active ? runtime.boss.name : "");
   }
 
   function syncPowerState() {
@@ -341,6 +354,56 @@ export function useSpaceInvadersGame() {
     syncPowerState();
     setGameScreen("start");
     drawGame();
+  }
+
+  function shiftRuntimeTimestamps(deltaMs: number) {
+    const runtime = runtimeRef.current;
+
+    runtime.boss.spawnedAt += deltaMs;
+    runtime.boss.nextAttackAt += deltaMs;
+    runtime.boss.nextBurstShotAt += deltaMs;
+    runtime.laserPower.activatedAt += deltaMs;
+    runtime.laserPower.lastUsedAt += deltaMs;
+    runtime.laserPower.lastBossDamageAt += deltaMs;
+    runtime.supportPower.lastUsedAt += deltaMs;
+    runtime.supportPower.ship.spawnedAt += deltaMs;
+    runtime.supportPower.ship.expiresAt += deltaMs;
+    runtime.supportPower.ship.nextMoveAt += deltaMs;
+    runtime.supportPower.ship.nextShotAt += deltaMs;
+    runtime.shieldPower.activatedAt += deltaMs;
+    runtime.shieldPower.lastBrokenAt += deltaMs;
+    runtime.shieldPower.brokenAt += deltaMs;
+  }
+
+  function pauseGame() {
+    if (screenStateRef.current !== "playing") {
+      return;
+    }
+
+    if (frameRef.current !== null) {
+      cancelAnimationFrame(frameRef.current);
+      frameRef.current = null;
+    }
+
+    runtimeRef.current.keys.left = false;
+    runtimeRef.current.keys.right = false;
+    runtimeRef.current.keys.shooting = false;
+    pausedAtRef.current = performance.now();
+    setGameScreen("paused");
+  }
+
+  function resumeGame() {
+    if (screenStateRef.current !== "paused") {
+      return;
+    }
+
+    if (pausedAtRef.current > 0) {
+      shiftRuntimeTimestamps(performance.now() - pausedAtRef.current);
+      pausedAtRef.current = 0;
+    }
+
+    setGameScreen("playing");
+    frameRef.current = requestAnimationFrame(gameLoop);
   }
 
   function handlePointerMove(clientX: number) {
@@ -879,6 +942,82 @@ export function useSpaceInvadersGame() {
   function getRandomBossAttackType(boss: Boss): BossAttackType {
     const randomValue = Math.random();
 
+    if (boss.tier === "omega") {
+      if (randomValue < 0.16) {
+        return "omegaBurst";
+      }
+
+      if (randomValue < 0.32) {
+        return "lattice";
+      }
+
+      if (randomValue < 0.48) {
+        return "meteor";
+      }
+
+      if (randomValue < 0.62) {
+        return "pinch";
+      }
+
+      if (randomValue < 0.76) {
+        return "spiral";
+      }
+
+      if (randomValue < 0.9) {
+        return "focus";
+      }
+
+      return "burstRain";
+    }
+
+    if (boss.tier === "forge") {
+      if (randomValue < 0.2) {
+        return "lattice";
+      }
+
+      if (randomValue < 0.38) {
+        return "meteor";
+      }
+
+      if (randomValue < 0.56) {
+        return "sweep";
+      }
+
+      if (randomValue < 0.72) {
+        return "cross";
+      }
+
+      if (randomValue < 0.88) {
+        return "wide";
+      }
+
+      return "burstRain";
+    }
+
+    if (boss.tier === "quasar") {
+      if (randomValue < 0.2) {
+        return "spiral";
+      }
+
+      if (randomValue < 0.38) {
+        return "pinch";
+      }
+
+      if (randomValue < 0.56) {
+        return "focus";
+      }
+
+      if (randomValue < 0.72) {
+        return "rain";
+      }
+
+      if (randomValue < 0.88) {
+        return "sweep";
+      }
+
+      return "burstRain";
+    }
+
     if (boss.tier === "overlord") {
       if (randomValue < 0.2) {
         return "focus";
@@ -1061,6 +1200,123 @@ export function useSpaceInvadersGame() {
     );
   }
 
+  function shootBossSpiralAttack(boss: Boss) {
+    const bossCenterX = boss.x + boss.width / 2;
+    const bossCenterY = boss.y + boss.height / 2;
+    const rotation = (Date.now() / 220) % (Math.PI * 2);
+
+    for (let index = 0; index < 8; index++) {
+      const angle = rotation + (index / 8) * Math.PI * 2;
+      const vx = Math.cos(angle) * 1.15;
+      const vy = boss.bulletSpeed * (0.72 + Math.max(0, Math.sin(angle)) * 0.22);
+
+      if (vy <= 0.9) {
+        continue;
+      }
+
+      shootBossBullet(
+        bossCenterX - 3 + Math.cos(angle) * 22,
+        bossCenterY + 10 + Math.sin(angle) * 12,
+        vx,
+        vy
+      );
+    }
+  }
+
+  function shootBossPinchAttack(boss: Boss) {
+    const bulletY = boss.y + boss.height - 4;
+
+    for (let index = 0; index < 4; index++) {
+      const spread = index * 18;
+
+      shootBossBullet(
+        boss.x + 14 + spread,
+        bulletY,
+        0.72 + index * 0.13,
+        boss.bulletSpeed * (0.82 + index * 0.03)
+      );
+
+      shootBossBullet(
+        boss.x + boss.width - 20 - spread,
+        bulletY,
+        -0.72 - index * 0.13,
+        boss.bulletSpeed * (0.82 + index * 0.03)
+      );
+    }
+  }
+
+  function shootBossMeteorAttack(boss: Boss) {
+    const runtime = runtimeRef.current;
+    const playerCenterX = runtime.player.x + runtime.player.width / 2;
+
+    for (let index = 0; index < boss.rainBulletCount; index++) {
+      const laneGap = (CANVAS_WIDTH - 92) / Math.max(1, boss.rainBulletCount - 1);
+      const x = 46 + index * laneGap + (Math.random() - 0.5) * 14;
+      const isAimedMeteor = index === 2 || index === boss.rainBulletCount - 3;
+      const vx = isAimedMeteor
+        ? clamp((playerCenterX - x) / 230, -0.9, 0.9)
+        : (Math.random() - 0.5) * 0.28;
+
+      shootBossBullet(
+        x,
+        46 + Math.random() * 24,
+        vx,
+        boss.bulletSpeed * (isAimedMeteor ? 1.12 : 0.86)
+      );
+    }
+  }
+
+  function shootBossLatticeAttack(boss: Boss) {
+    const laneCount = boss.tier === "omega" ? 8 : 7;
+
+    for (let index = 0; index < laneCount; index++) {
+      const laneProgress = index / Math.max(1, laneCount - 1);
+      const x = 58 + laneProgress * (CANVAS_WIDTH - 116);
+      const direction = index % 2 === 0 ? 1 : -1;
+
+      shootBossBullet(
+        x,
+        boss.y + boss.height - 2,
+        direction * 0.42,
+        boss.bulletSpeed * 0.9
+      );
+    }
+
+    const centerX = boss.x + boss.width / 2;
+    shootBossBullet(centerX - 4, boss.y + boss.height, 0, boss.bulletSpeed);
+  }
+
+  function shootBossOmegaBurstAttack(boss: Boss) {
+    const runtime = runtimeRef.current;
+    const centerX = boss.x + boss.width / 2;
+    const playerCenterX = runtime.player.x + runtime.player.width / 2;
+    const targetOffset = clamp((playerCenterX - centerX) / 180, -1.05, 1.05);
+
+    shootBossBullet(centerX - 4, boss.y + boss.height, targetOffset, boss.bulletSpeed * 1.18);
+
+    for (let index = -3; index <= 3; index++) {
+      if (index === 0) {
+        continue;
+      }
+
+      shootBossBullet(
+        centerX + index * 18,
+        boss.y + boss.height - 8,
+        index * 0.32,
+        boss.bulletSpeed * (0.82 + Math.abs(index) * 0.03)
+      );
+    }
+
+    for (let index = 0; index < 5; index++) {
+      shootBossBullet(
+        70 + index * 115 + Math.sin(Date.now() / 180 + index) * 18,
+        44,
+        (Math.random() - 0.5) * 0.26,
+        boss.bulletSpeed * 0.82
+      );
+    }
+  }
+
   function updateBoss() {
     const runtime = runtimeRef.current;
     const boss = runtime.boss;
@@ -1115,6 +1371,26 @@ export function useSpaceInvadersGame() {
 
     if (attackType === "burstRain") {
       shootBossBurstRainAttack(boss);
+    }
+
+    if (attackType === "spiral") {
+      shootBossSpiralAttack(boss);
+    }
+
+    if (attackType === "pinch") {
+      shootBossPinchAttack(boss);
+    }
+
+    if (attackType === "meteor") {
+      shootBossMeteorAttack(boss);
+    }
+
+    if (attackType === "lattice") {
+      shootBossLatticeAttack(boss);
+    }
+
+    if (attackType === "omegaBurst") {
+      shootBossOmegaBurstAttack(boss);
     }
 
     boss.nextAttackAt =
@@ -1200,6 +1476,13 @@ export function useSpaceInvadersGame() {
       boss.y + boss.height / 2,
       "#4facfe"
     );
+
+    syncStateFromRuntime();
+
+    if (boss.wave >= FINAL_WAVE) {
+      showVictory();
+      return;
+    }
 
     const nextWave = runtime.wave + 1;
     advanceToNextNormalWave(nextWave);
@@ -1385,6 +1668,19 @@ export function useSpaceInvadersGame() {
 
   function showGameOver() {
     setGameScreen("game-over");
+
+    if (frameRef.current !== null) {
+      cancelAnimationFrame(frameRef.current);
+      frameRef.current = null;
+    }
+
+    syncStateFromRuntime();
+    syncPowerState();
+    drawGame();
+  }
+
+  function showVictory() {
+    setGameScreen("victory");
 
     if (frameRef.current !== null) {
       cancelAnimationFrame(frameRef.current);
@@ -2012,8 +2308,303 @@ export function useSpaceInvadersGame() {
     ctx.restore();
   }
 
+  function drawQuasarBoss(ctx: CanvasRenderingContext2D, boss: Boss) {
+    const centerX = boss.x + boss.width / 2;
+    const centerY = boss.y + boss.height / 2;
+    const pulse = Math.abs(Math.sin(Date.now() / 135));
+
+    ctx.save();
+
+    ctx.shadowBlur = 34 + pulse * 16;
+    ctx.shadowColor = "#00f2fe";
+
+    const wingGradient = ctx.createLinearGradient(
+      boss.x,
+      boss.y,
+      boss.x + boss.width,
+      boss.y + boss.height
+    );
+
+    wingGradient.addColorStop(0, "#38ef7d");
+    wingGradient.addColorStop(0.36, "#4facfe");
+    wingGradient.addColorStop(0.68, "#be2edd");
+    wingGradient.addColorStop(1, "#ffffff");
+
+    ctx.fillStyle = wingGradient;
+
+    ctx.beginPath();
+    ctx.moveTo(centerX, boss.y - 12);
+    ctx.lineTo(boss.x + boss.width + 22, centerY);
+    ctx.lineTo(centerX + 38, boss.y + boss.height + 16);
+    ctx.lineTo(centerX, boss.y + boss.height - 2);
+    ctx.lineTo(centerX - 38, boss.y + boss.height + 16);
+    ctx.lineTo(boss.x - 22, centerY);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.globalAlpha = 0.82;
+    ctx.fillStyle = "rgba(7, 16, 22, 0.82)";
+    ctx.beginPath();
+    ctx.moveTo(centerX, boss.y + 4);
+    ctx.lineTo(centerX + 46, centerY + 8);
+    ctx.lineTo(centerX, boss.y + boss.height - 4);
+    ctx.lineTo(centerX - 46, centerY + 8);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur = 24;
+    ctx.shadowColor = "#f1c40f";
+    ctx.strokeStyle = "#f1c40f";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(centerX, centerY, boss.width * 0.34, 18 + pulse * 4, 0.18, 0, Math.PI * 2);
+    ctx.stroke();
+
+    const coreGradient = ctx.createRadialGradient(
+      centerX,
+      centerY,
+      3,
+      centerX,
+      centerY,
+      34
+    );
+
+    coreGradient.addColorStop(0, "#ffffff");
+    coreGradient.addColorStop(0.36, "#4facfe");
+    coreGradient.addColorStop(1, "rgba(190, 46, 221, 0.18)");
+
+    ctx.fillStyle = coreGradient;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, 24 + pulse * 3, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "#ffffff";
+    ctx.shadowBlur = 18;
+    ctx.shadowColor = "#ffffff";
+    ctx.beginPath();
+    ctx.arc(centerX - 44, centerY - 7, 7, 0, Math.PI * 2);
+    ctx.arc(centerX + 44, centerY - 7, 7, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "#101820";
+    ctx.beginPath();
+    ctx.arc(centerX - 44 + boss.direction * 2, centerY - 6, 3, 0, Math.PI * 2);
+    ctx.arc(centerX + 44 + boss.direction * 2, centerY - 6, 3, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  function drawForgeBoss(ctx: CanvasRenderingContext2D, boss: Boss) {
+    const centerX = boss.x + boss.width / 2;
+    const centerY = boss.y + boss.height / 2;
+    const pulse = Math.abs(Math.sin(Date.now() / 120));
+
+    ctx.save();
+
+    ctx.shadowBlur = 30 + pulse * 14;
+    ctx.shadowColor = "#ff6b35";
+
+    const armorGradient = ctx.createLinearGradient(
+      boss.x,
+      boss.y,
+      boss.x + boss.width,
+      boss.y + boss.height
+    );
+
+    armorGradient.addColorStop(0, "#f1c40f");
+    armorGradient.addColorStop(0.28, "#ff4757");
+    armorGradient.addColorStop(0.62, "#be2edd");
+    armorGradient.addColorStop(1, "#4facfe");
+
+    ctx.fillStyle = armorGradient;
+    ctx.beginPath();
+    ctx.moveTo(boss.x + 20, boss.y + 16);
+    ctx.lineTo(centerX - 40, boss.y - 8);
+    ctx.lineTo(centerX, boss.y + 8);
+    ctx.lineTo(centerX + 40, boss.y - 8);
+    ctx.lineTo(boss.x + boss.width - 20, boss.y + 16);
+    ctx.lineTo(boss.x + boss.width + 10, centerY + 22);
+    ctx.lineTo(boss.x + boss.width - 32, boss.y + boss.height + 14);
+    ctx.lineTo(boss.x + 32, boss.y + boss.height + 14);
+    ctx.lineTo(boss.x - 10, centerY + 22);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.globalAlpha = 0.78;
+    ctx.fillStyle = "rgba(16, 24, 32, 0.84)";
+    drawRoundedRect(ctx, boss.x + 36, boss.y + 22, boss.width - 72, boss.height - 8, 16);
+
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur = 26;
+    ctx.shadowColor = "#ff4757";
+
+    const furnaceGradient = ctx.createRadialGradient(
+      centerX,
+      centerY + 8,
+      5,
+      centerX,
+      centerY + 8,
+      38
+    );
+
+    furnaceGradient.addColorStop(0, "#ffffff");
+    furnaceGradient.addColorStop(0.28, "#f1c40f");
+    furnaceGradient.addColorStop(0.72, "#ff4757");
+    furnaceGradient.addColorStop(1, "rgba(255, 71, 87, 0)");
+
+    ctx.fillStyle = furnaceGradient;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY + 8, 30 + pulse * 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.78)";
+    ctx.lineWidth = 2.5;
+
+    for (let index = 0; index < 3; index++) {
+      const side = index === 0 ? -1 : index === 1 ? 1 : 0;
+      const cannonX = centerX + side * 66;
+      const cannonY = centerY + 24;
+
+      ctx.beginPath();
+      ctx.moveTo(cannonX - 12, cannonY);
+      ctx.lineTo(cannonX + 12, cannonY);
+      ctx.lineTo(cannonX + side * 18, cannonY + 22);
+      ctx.stroke();
+    }
+
+    ctx.restore();
+  }
+
+  function drawOmegaBoss(ctx: CanvasRenderingContext2D, boss: Boss) {
+    const centerX = boss.x + boss.width / 2;
+    const centerY = boss.y + boss.height / 2;
+    const pulse = Math.abs(Math.sin(Date.now() / 110));
+
+    ctx.save();
+
+    ctx.shadowBlur = 42 + pulse * 18;
+    ctx.shadowColor = "#be2edd";
+
+    const auraGradient = ctx.createRadialGradient(
+      centerX,
+      centerY,
+      14,
+      centerX,
+      centerY,
+      boss.width * 0.72
+    );
+
+    auraGradient.addColorStop(0, "rgba(255, 255, 255, 0.28)");
+    auraGradient.addColorStop(0.34, "rgba(190, 46, 221, 0.28)");
+    auraGradient.addColorStop(1, "rgba(79, 172, 254, 0)");
+
+    ctx.fillStyle = auraGradient;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, boss.width * 0.62, 0, Math.PI * 2);
+    ctx.fill();
+
+    const crownGradient = ctx.createLinearGradient(
+      boss.x,
+      boss.y,
+      boss.x + boss.width,
+      boss.y + boss.height
+    );
+
+    crownGradient.addColorStop(0, "#f1c40f");
+    crownGradient.addColorStop(0.2, "#ffffff");
+    crownGradient.addColorStop(0.46, "#be2edd");
+    crownGradient.addColorStop(0.76, "#4facfe");
+    crownGradient.addColorStop(1, "#38ef7d");
+
+    ctx.fillStyle = crownGradient;
+    ctx.beginPath();
+    ctx.moveTo(centerX, boss.y - 18);
+    ctx.lineTo(centerX + 36, boss.y + 18);
+    ctx.lineTo(boss.x + boss.width + 28, centerY + 10);
+    ctx.lineTo(centerX + 54, boss.y + boss.height + 20);
+    ctx.lineTo(centerX, boss.y + boss.height - 2);
+    ctx.lineTo(centerX - 54, boss.y + boss.height + 20);
+    ctx.lineTo(boss.x - 28, centerY + 10);
+    ctx.lineTo(centerX - 36, boss.y + 18);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.globalAlpha = 0.84;
+    ctx.fillStyle = "rgba(7, 16, 22, 0.88)";
+    ctx.beginPath();
+    ctx.ellipse(centerX, centerY + 6, boss.width * 0.32, boss.height * 0.42, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur = 30 + pulse * 10;
+    ctx.shadowColor = "#f1c40f";
+    ctx.strokeStyle = "#f1c40f";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(centerX, centerY, boss.width * 0.38, 22 + pulse * 4, -0.24, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.ellipse(centerX, centerY, boss.width * 0.28, 18 + pulse * 3, 0.42, 0, Math.PI * 2);
+    ctx.stroke();
+
+    const coreGradient = ctx.createRadialGradient(
+      centerX,
+      centerY + 2,
+      4,
+      centerX,
+      centerY + 2,
+      42
+    );
+
+    coreGradient.addColorStop(0, "#ffffff");
+    coreGradient.addColorStop(0.24, "#f1c40f");
+    coreGradient.addColorStop(0.58, "#be2edd");
+    coreGradient.addColorStop(1, "rgba(190, 46, 221, 0.08)");
+
+    ctx.fillStyle = coreGradient;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY + 2, 34 + pulse * 3, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "#ffffff";
+    ctx.shadowBlur = 18;
+    ctx.shadowColor = "#ffffff";
+
+    for (let index = 0; index < 4; index++) {
+      const angle = -Math.PI * 0.75 + index * (Math.PI * 0.5);
+      ctx.beginPath();
+      ctx.arc(
+        centerX + Math.cos(angle) * 56,
+        centerY + Math.sin(angle) * 26,
+        6,
+        0,
+        Math.PI * 2
+      );
+      ctx.fill();
+    }
+
+    ctx.restore();
+  }
+
   function drawBoss(ctx: CanvasRenderingContext2D, boss: Boss) {
     if (!boss.active) {
+      return;
+    }
+
+    if (boss.tier === "omega") {
+      drawOmegaBoss(ctx, boss);
+      return;
+    }
+
+    if (boss.tier === "forge") {
+      drawForgeBoss(ctx, boss);
+      return;
+    }
+
+    if (boss.tier === "quasar") {
+      drawQuasarBoss(ctx, boss);
       return;
     }
 
@@ -2295,6 +2886,11 @@ export function useSpaceInvadersGame() {
     }
 
     updateGame();
+
+    if (screenStateRef.current !== "playing") {
+      return;
+    }
+
     drawGame();
 
     frameRef.current = requestAnimationFrame(gameLoop);
@@ -2309,6 +2905,7 @@ export function useSpaceInvadersGame() {
     isBossActive,
     bossHealth,
     bossMaxHealth,
+    bossName,
     isLaserReady,
     isLaserActive,
     laserCooldownProgress,
@@ -2321,6 +2918,8 @@ export function useSpaceInvadersGame() {
     shieldHitsLeft,
     startGame,
     restartGame,
+    pauseGame,
+    resumeGame,
     backToStartScreen,
     handlePointerMove,
     handleShootAction,

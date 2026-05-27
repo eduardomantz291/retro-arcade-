@@ -19,6 +19,8 @@ function SnakeGamePage() {
     goldenPercent,
     magnetPercent,
     startGame,
+    pauseGame,
+    resumeGame,
     backToStartScreen,
   } = useSnakeGame({ isAuthenticated });
 
@@ -29,6 +31,7 @@ function SnakeGamePage() {
   );
 
   const xpAwardId = `snake-${finalScore}-${screenState}`;
+  const canPauseGame = screenState === "playing" || screenState === "paused";
 
   useEffect(() => {
     if (isGuest && !guestWarningAccepted) {
@@ -37,8 +40,34 @@ function SnakeGamePage() {
 
     if (!isAuthenticated && !isGuest) {
       setShowLoginWarning(true);
+      return;
     }
+
+    setShowLoginWarning(false);
   }, [isAuthenticated, isGuest, guestWarningAccepted]);
+
+  useEffect(() => {
+    function handlePauseShortcut(event: KeyboardEvent) {
+      if (event.key !== "Escape") {
+        return;
+      }
+
+      if (screenState === "playing") {
+        pauseGame();
+        return;
+      }
+
+      if (screenState === "paused") {
+        resumeGame();
+      }
+    }
+
+    window.addEventListener("keydown", handlePauseShortcut);
+
+    return () => {
+      window.removeEventListener("keydown", handlePauseShortcut);
+    };
+  }, [pauseGame, resumeGame, screenState]);
 
   function handleStartGame() {
     if (!isAuthenticated && !isGuest) {
@@ -57,7 +86,6 @@ function SnakeGamePage() {
   function handleAcceptGuestWarning() {
     setGuestWarningAccepted(true);
     setShowGuestWarning(false);
-    startGame();
   }
 
   function handleBackToStartScreen() {
@@ -75,6 +103,16 @@ function SnakeGamePage() {
           <Link to="/" className="snake-back-link">
             ← Home
           </Link>
+
+          {canPauseGame && (
+            <button
+              className="snake-pause-button"
+              type="button"
+              onClick={screenState === "paused" ? resumeGame : pauseGame}
+            >
+              {screenState === "paused" ? "Continuar" : "Pausar"}
+            </button>
+          )}
 
           <div className="snake-title">
             <span>🐍</span>
@@ -181,6 +219,10 @@ function SnakeGamePage() {
                 Iniciar jogo
               </button>
 
+              <Link className="btn btn-secondary snake-start-button" to="/">
+                Voltar para Home
+              </Link>
+
               <small className="snake-start-tip">
                 Dica: pegue a fruta roxa antes de tentar alcançar a verde.
               </small>
@@ -197,6 +239,32 @@ function SnakeGamePage() {
         </div>
       )}
 
+      {screenState === "paused" && (
+        <div className="snake-screen-backdrop">
+          <div className="snake-screen-modal snake-pause-modal glass-panel">
+            <span className="snake-modal-icon">⏸️</span>
+
+            <h1>Pausa</h1>
+
+            <p>Respira, ajusta a mão e volta quando estiver pronto.</p>
+
+            <div className="snake-screen-actions">
+              <button
+                className="btn btn-primary"
+                type="button"
+                onClick={resumeGame}
+              >
+                Voltar a jogar
+              </button>
+
+              <Link className="btn btn-secondary" to="/">
+                Voltar para Home
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
       {screenState === "game-over" && (
         <div className="snake-screen-backdrop">
           <div className="snake-screen-modal snake-game-over-modal glass-panel">
@@ -207,11 +275,13 @@ function SnakeGamePage() {
               <strong>{finalScore}</strong>
             </div>
 
-            <LevelProgressSummary
-              gameId="snake"
-              score={finalScore}
-              awardId={xpAwardId}
-            />
+            {isAuthenticated && (
+              <LevelProgressSummary
+                gameId="snake"
+                score={finalScore}
+                awardId={xpAwardId}
+              />
+            )}
 
             {!isAuthenticated && (
               <p className="snake-save-warning">
@@ -258,7 +328,7 @@ function SnakeGamePage() {
                 type="button"
                 onClick={handleAcceptGuestWarning}
               >
-                Entendi, começar jogo
+                Entendi
               </button>
 
               <Link className="btn btn-secondary" to="/login">
