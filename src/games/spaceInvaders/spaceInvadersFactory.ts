@@ -255,6 +255,7 @@ export function createInvaders(wave = 1): Invader[] {
 
 export function createBoss(wave = BOSS_WAVE_INTERVAL): Boss {
   const stats = getBossStatsForWave(wave);
+  const now = performance.now();
 
   return {
     active: true,
@@ -276,14 +277,16 @@ export function createBoss(wave = BOSS_WAVE_INTERVAL): Boss {
     aimErrorRange: stats.aimErrorRange,
     rainBulletCount: stats.rainBulletCount,
     direction: 1,
-    spawnedAt: performance.now(),
-    nextAttackAt: performance.now() + 900,
+    spawnedAt: now,
+    nextAttackAt: now + 900,
     burstShotsLeft: 0,
     nextBurstShotAt: 0,
     shieldActive: false,
     shieldHitsLeft: 0,
     shieldLastActivatedAt: 0,
     shieldNextShotAt: 0,
+    shieldAvailableAt: stats.tier === "forge" ? now + 5000 : 0,
+    summonNextAt: 0,
   };
 }
 
@@ -318,6 +321,8 @@ export function createInactiveBoss(): Boss {
     shieldHitsLeft: 0,
     shieldLastActivatedAt: 0,
     shieldNextShotAt: 0,
+    shieldAvailableAt: 0,
+    summonNextAt: 0,
   };
 }
 

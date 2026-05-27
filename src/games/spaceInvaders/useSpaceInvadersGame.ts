@@ -81,6 +81,10 @@ type BossAttackType =
   | "omegaSummon";
 
 const FORGE_SHIELD_MAX_HITS = 4;
+const FORGE_SHIELD_COOLDOWN_MS = 15000;
+const OMEGA_SUMMON_COOLDOWN_MS = 5000;
+const OMEGA_SUMMON_COUNT = 3;
+const OMEGA_MAX_SUMMONS = 9;
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
@@ -589,7 +593,15 @@ export function useSpaceInvadersGame() {
     source: Bullet["source"],
     vx = 0,
     options: Partial<
-      Pick<Bullet, "damageActiveAt" | "expiresAt" | "color" | "glow">
+      Pick<
+        Bullet,
+        | "damageActiveAt"
+        | "expiresAt"
+        | "createdAt"
+        | "followBossCenter"
+        | "color"
+        | "glow"
+      >
     > = {}
   ): Bullet {
     bulletIdRef.current += 1;
@@ -995,8 +1007,21 @@ export function useSpaceInvadersGame() {
     }
   }
 
+  function getActiveBossSummonCount() {
+    return runtimeRef.current.invaders.filter((invader) => {
+      return invader.active && invader.row >= 90;
+    }).length;
+  }
+
+  function canBossSummonMinions(maxActive: number, now = performance.now()) {
+    const boss = runtimeRef.current.boss;
+
+    return now >= boss.summonNextAt && getActiveBossSummonCount() < maxActive;
+  }
+
   function getRandomBossAttackType(boss: Boss): BossAttackType {
     const randomValue = Math.random();
+    const now = performance.now();
 
     if (boss.tier === "omega") {
       if (randomValue < 0.36) {
@@ -1007,7 +1032,7 @@ export function useSpaceInvadersGame() {
         return "omegaHalo";
       }
 
-      if (randomValue < 0.74) {
+      if (randomValue < 0.74 && canBossSummonMinions(OMEGA_MAX_SUMMONS, now)) {
         return "omegaSummon";
       }
 
@@ -1015,7 +1040,11 @@ export function useSpaceInvadersGame() {
     }
 
     if (boss.tier === "forge") {
-      if (!boss.shieldActive && randomValue < 0.24) {
+      if (
+        !boss.shieldActive &&
+        now >= boss.shieldAvailableAt &&
+        randomValue < 0.24
+      ) {
         return "forgeShield";
       }
 
@@ -1337,7 +1366,8 @@ export function useSpaceInvadersGame() {
     glow: string,
     warningMs: number,
     durationMs: number,
-    vx = 0
+    vx = 0,
+    followBossCenter = false
   ) {
     const now = performance.now();
     const laserX = clamp(x - width / 2, 18, CANVAS_WIDTH - width - 18);
@@ -1354,8 +1384,10 @@ export function useSpaceInvadersGame() {
         {
           color,
           glow,
+          createdAt: now,
           damageActiveAt: now + warningMs,
           expiresAt: now + warningMs + durationMs,
+          followBossCenter,
         }
       )
     );
@@ -1365,18 +1397,18 @@ export function useSpaceInvadersGame() {
     const bossCenterX = boss.x + boss.width / 2;
     const laserY = boss.y + boss.height - 8;
     const laserHeight = CANVAS_HEIGHT - laserY;
-    const laserDrift = boss.direction * 0.72;
 
     shootBossLaserColumn(
       bossCenterX,
       laserY,
       laserHeight,
-      24,
+      30,
       "#4facfe",
       "#00f2fe",
-      560,
-      520,
-      laserDrift
+      820,
+      720,
+      0,
+      true
     );
 
     createParticleExplosion(bossCenterX, laserY, "#4facfe");
@@ -1451,18 +1483,19 @@ export function useSpaceInvadersGame() {
     count: number,
     variant: Invader["variant"],
     color: string,
-    glow: string
+    glow: string,
+    maxActive = OMEGA_MAX_SUMMONS
   ) {
     const runtime = runtimeRef.current;
     const activeSummons = runtime.invaders.filter((invader) => {
       return invader.active && invader.row >= 90;
     });
 
-    if (activeSummons.length >= 5) {
+    if (activeSummons.length >= maxActive) {
       return;
     }
 
-    const allowedCount = Math.min(count, 5 - activeSummons.length);
+    const allowedCount = Math.min(count, maxActive - activeSummons.length);
     const bossCenterX = boss.x + boss.width / 2;
 
     for (let index = 0; index < allowedCount; index++) {
@@ -1487,10 +1520,16 @@ export function useSpaceInvadersGame() {
   }
 
   function activateBossForgeShield(boss: Boss) {
+    const now = performance.now();
+
+    if (now < boss.shieldAvailableAt) {
+      return;
+    }
+
     boss.shieldActive = true;
     boss.shieldHitsLeft = FORGE_SHIELD_MAX_HITS;
-    boss.shieldLastActivatedAt = performance.now();
-    boss.shieldNextShotAt = boss.shieldLastActivatedAt + 120;
+    boss.shieldLastActivatedAt = now;
+    boss.shieldNextShotAt = now + 120;
     runtimeRef.current.shake = Math.max(runtimeRef.current.shake, 8);
 
     createParticleExplosion(
@@ -1549,7 +1588,22 @@ export function useSpaceInvadersGame() {
   }
 
   function shootBossOmegaSummonAttack(boss: Boss) {
-    summonBossMinions(boss, 1, "triangle", "#be2edd", "#4facfe");
+    const now = performance.now();
+
+    if (!canBossSummonMinions(OMEGA_MAX_SUMMONS, now)) {
+      shootBossOmegaBurstAttack(boss);
+      return;
+    }
+
+    summonBossMinions(
+      boss,
+      OMEGA_SUMMON_COUNT,
+      "triangle",
+      "#be2edd",
+      "#4facfe",
+      OMEGA_MAX_SUMMONS
+    );
+    boss.summonNextAt = now + OMEGA_SUMMON_COOLDOWN_MS;
     shootBossOmegaBurstAttack(boss);
   }
 
@@ -1570,6 +1624,7 @@ export function useSpaceInvadersGame() {
     if (boss.shieldHitsLeft <= 0) {
       boss.shieldActive = false;
       boss.shieldNextShotAt = 0;
+      boss.shieldAvailableAt = performance.now() + FORGE_SHIELD_COOLDOWN_MS;
       boss.nextAttackAt = performance.now() + 680;
       runtimeRef.current.shake = Math.max(runtimeRef.current.shake, 12);
     }
@@ -1731,6 +1786,20 @@ export function useSpaceInvadersGame() {
     }
 
     for (const bullet of runtime.enemyBullets) {
+      if (
+        bullet.source === "boss-laser" &&
+        bullet.followBossCenter &&
+        runtime.boss.active
+      ) {
+        bullet.x = clamp(
+          runtime.boss.x + runtime.boss.width / 2 - bullet.width / 2,
+          18,
+          CANVAS_WIDTH - bullet.width - 18
+        );
+        bullet.y = runtime.boss.y + runtime.boss.height - 8;
+        bullet.height = CANVAS_HEIGHT - bullet.y;
+      }
+
       bullet.x += bullet.vx;
       bullet.y += bullet.vy;
     }
@@ -3222,26 +3291,83 @@ export function useSpaceInvadersGame() {
       if (bullet.source === "boss-laser") {
         const now = performance.now();
         const isArmed = !bullet.damageActiveAt || now >= bullet.damageActiveAt;
+        const warningStartAt =
+          bullet.createdAt ??
+          (bullet.damageActiveAt ? bullet.damageActiveAt - 650 : now);
+        const warningDuration = Math.max(
+          1,
+          (bullet.damageActiveAt ?? now) - warningStartAt
+        );
+        const warningProgress = clamp(
+          (now - warningStartAt) / warningDuration,
+          0,
+          1
+        );
+        const activeProgress = bullet.damageActiveAt
+          ? clamp((now - bullet.damageActiveAt) / 180, 0, 1)
+          : 1;
         const color = bullet.color ?? "#f1c40f";
         const glow = bullet.glow ?? color;
+        const originX = bullet.x + bullet.width / 2;
+        const originY = bullet.y + 8;
+        const visualWidth = isArmed
+          ? bullet.width * (0.78 + activeProgress * 0.34)
+          : Math.max(4, bullet.width * (0.16 + warningProgress * 0.24));
+        const visualX = originX - visualWidth / 2;
 
         ctx.save();
-        ctx.globalAlpha = isArmed ? 0.76 : 0.26;
-        ctx.shadowBlur = isArmed ? 28 : 14;
+        ctx.globalAlpha = isArmed ? 0.82 : 0.22 + warningProgress * 0.24;
+        ctx.shadowBlur = isArmed ? 36 : 14 + warningProgress * 14;
         ctx.shadowColor = glow;
-        ctx.fillStyle = color;
-        drawRoundedRect(ctx, bullet.x, bullet.y, bullet.width, bullet.height, 999);
+
+        const beamGradient = ctx.createLinearGradient(
+          visualX,
+          0,
+          visualX + visualWidth,
+          0
+        );
+
+        beamGradient.addColorStop(0, "rgba(255, 255, 255, 0.08)");
+        beamGradient.addColorStop(0.2, color);
+        beamGradient.addColorStop(0.5, "#ffffff");
+        beamGradient.addColorStop(0.8, color);
+        beamGradient.addColorStop(1, "rgba(255, 255, 255, 0.08)");
+
+        ctx.fillStyle = beamGradient;
+        drawRoundedRect(ctx, visualX, bullet.y, visualWidth, bullet.height, 999);
 
         ctx.globalAlpha = isArmed ? 0.92 : 0.48;
         ctx.fillStyle = "#ffffff";
         drawRoundedRect(
           ctx,
-          bullet.x + bullet.width * 0.42,
+          originX - Math.max(2, visualWidth * 0.08),
           bullet.y,
-          Math.max(3, bullet.width * 0.16),
+          Math.max(3, visualWidth * 0.16),
           bullet.height,
           999
         );
+
+        if (!isArmed) {
+          ctx.globalAlpha = 0.34 + warningProgress * 0.38;
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(
+            originX,
+            originY,
+            8 + warningProgress * 24,
+            0,
+            Math.PI * 2
+          );
+          ctx.stroke();
+
+          ctx.globalAlpha = 0.72;
+          ctx.fillStyle = "#ffffff";
+          ctx.beginPath();
+          ctx.arc(originX, originY, 3 + warningProgress * 4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
         ctx.restore();
         continue;
       }

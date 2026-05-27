@@ -59,6 +59,8 @@ export type Boss = {
   shieldHitsLeft: number;
   shieldLastActivatedAt: number;
   shieldNextShotAt: number;
+  shieldAvailableAt: number;
+  summonNextAt: number;
 };
 
 export type BulletSource =
@@ -80,6 +82,8 @@ export type Bullet = {
   source: BulletSource;
   damageActiveAt?: number;
   expiresAt?: number;
+  createdAt?: number;
+  followBossCenter?: boolean;
   color?: string;
   glow?: string;
 };
