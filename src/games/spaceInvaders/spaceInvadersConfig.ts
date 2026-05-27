@@ -153,7 +153,7 @@ export const DEBUG_START_ON_BOSS_WAVE = true;
 // 5 = boss da onda 5.
 // 10 = boss da onda 10.
 // 15, 20 e 25 testam os bosses finais.
-export const DEBUG_BOSS_WAVE = 25;
+export const DEBUG_BOSS_WAVE = 20;
 
 // Caso queira forçar uma quantidade específica de vidas no debug,
 // coloque um número aqui.

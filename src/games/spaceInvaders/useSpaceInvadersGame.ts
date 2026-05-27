@@ -80,11 +80,14 @@ type BossAttackType =
   | "omegaHalo"
   | "omegaSummon";
 
-const FORGE_SHIELD_MAX_HITS = 4;
+const FORGE_SHIELD_MAX_HITS = 15;
 const FORGE_SHIELD_COOLDOWN_MS = 15000;
+const FORGE_SHIELD_BURST_SIZE = 3;
+const FORGE_SHIELD_BURST_INTERVAL_MS = 260;
+const FORGE_SHIELD_BURST_REST_MS = 860;
 const OMEGA_SUMMON_COOLDOWN_MS = 5000;
-const OMEGA_SUMMON_COUNT = 3;
-const OMEGA_MAX_SUMMONS = 9;
+const OMEGA_SUMMON_COUNT = 4;
+const OMEGA_MAX_SUMMONS = 12;
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
@@ -802,7 +805,7 @@ export function useSpaceInvadersGame() {
 
       if (isBossInsideLaser && runtime.boss.shieldActive) {
         if (canDamageShield) {
-          damageBoss(0, 2);
+          damageBoss(0, 8);
           runtime.laserPower.lastBossDamageAt = now;
         }
       } else if (isBossInsideLaser && canDamageBoss) {
@@ -1530,6 +1533,8 @@ export function useSpaceInvadersGame() {
     boss.shieldHitsLeft = FORGE_SHIELD_MAX_HITS;
     boss.shieldLastActivatedAt = now;
     boss.shieldNextShotAt = now + 120;
+    boss.burstShotsLeft = FORGE_SHIELD_BURST_SIZE;
+    boss.nextBurstShotAt = now + 120;
     runtimeRef.current.shake = Math.max(runtimeRef.current.shake, 8);
 
     createParticleExplosion(
@@ -1624,6 +1629,8 @@ export function useSpaceInvadersGame() {
     if (boss.shieldHitsLeft <= 0) {
       boss.shieldActive = false;
       boss.shieldNextShotAt = 0;
+      boss.burstShotsLeft = 0;
+      boss.nextBurstShotAt = 0;
       boss.shieldAvailableAt = performance.now() + FORGE_SHIELD_COOLDOWN_MS;
       boss.nextAttackAt = performance.now() + 680;
       runtimeRef.current.shake = Math.max(runtimeRef.current.shake, 12);
@@ -1636,27 +1643,40 @@ export function useSpaceInvadersGame() {
   function updateForgeShieldMode(boss: Boss, now: number) {
     boss.x += boss.direction * boss.moveSpeed * 0.72;
 
-    if (now < boss.shieldNextShotAt) {
+    if (now < boss.nextBurstShotAt) {
       return;
     }
 
     const bossCenterX = boss.x + boss.width / 2;
     const bulletY = boss.y + boss.height - 4;
 
-    for (let index = -2; index <= 2; index++) {
+    for (let index = 0; index < 4; index++) {
+      const offset = (index - 1.5) * 26;
+      const drift = (index - 1.5) * 0.2;
+
       shootBossBullet(
-        bossCenterX + index * 24,
-        bulletY + Math.abs(index) * 2,
-        index * 0.2,
-        boss.bulletSpeed * (0.72 + Math.abs(index) * 0.04),
+        bossCenterX + offset,
+        bulletY + Math.abs(index - 1.5) * 2,
+        drift,
+        boss.bulletSpeed * (0.72 + Math.abs(index - 1.5) * 0.04),
         {
-          color: index === 0 ? "#ffffff" : "#ff6b35",
+          color: index === 1 || index === 2 ? "#ffffff" : "#ff6b35",
           glow: "#f1c40f",
         }
       );
     }
 
-    boss.shieldNextShotAt = now + 310;
+    boss.burstShotsLeft -= 1;
+
+    if (boss.burstShotsLeft <= 0) {
+      boss.burstShotsLeft = FORGE_SHIELD_BURST_SIZE;
+      boss.nextBurstShotAt = now + FORGE_SHIELD_BURST_REST_MS;
+      boss.shieldNextShotAt = boss.nextBurstShotAt;
+      return;
+    }
+
+    boss.nextBurstShotAt = now + FORGE_SHIELD_BURST_INTERVAL_MS;
+    boss.shieldNextShotAt = boss.nextBurstShotAt;
   }
 
   function updateBoss() {
