@@ -70,7 +70,17 @@ type BossAttackType =
   | "pinch"
   | "meteor"
   | "lattice"
-  | "omegaBurst";
+  | "omegaBurst"
+  | "quasarLaser"
+  | "quasarComet"
+  | "forgeGate"
+  | "forgeCannon"
+  | "forgeShield"
+  | "omegaLaser"
+  | "omegaHalo"
+  | "omegaSummon";
+
+const FORGE_SHIELD_MAX_HITS = 4;
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
@@ -577,7 +587,10 @@ export function useSpaceInvadersGame() {
     height: number,
     vy: number,
     source: Bullet["source"],
-    vx = 0
+    vx = 0,
+    options: Partial<
+      Pick<Bullet, "damageActiveAt" | "expiresAt" | "color" | "glow">
+    > = {}
   ): Bullet {
     bulletIdRef.current += 1;
 
@@ -591,6 +604,7 @@ export function useSpaceInvadersGame() {
       vy,
       active: true,
       source,
+      ...options,
     };
   }
 
@@ -672,7 +686,13 @@ export function useSpaceInvadersGame() {
     );
   }
 
-  function shootBossBullet(x: number, y: number, vx: number, vy: number) {
+  function shootBossBullet(
+    x: number,
+    y: number,
+    vx: number,
+    vy: number,
+    options: Partial<Pick<Bullet, "color" | "glow">> = {}
+  ) {
     const runtime = runtimeRef.current;
 
     runtime.enemyBullets.push(
@@ -683,7 +703,8 @@ export function useSpaceInvadersGame() {
         ENEMY_BULLET_HEIGHT + 2,
         vy,
         "boss",
-        vx
+        vx,
+        options
       )
     );
   }
@@ -763,9 +784,17 @@ export function useSpaceInvadersGame() {
       const bossCenter = runtime.boss.x + runtime.boss.width / 2;
       const isBossInsideLaser =
         bossCenter >= laserLeft && bossCenter <= laserRight;
+      const canDamageBoss = now - runtime.laserPower.lastBossDamageAt > 45;
+      const canDamageShield =
+        now - runtime.laserPower.lastBossDamageAt > LASER_POWER_DURATION_MS;
 
-      if (isBossInsideLaser && now - runtime.laserPower.lastBossDamageAt > 45) {
-        damageBoss(LASER_BOSS_DAMAGE_PER_FRAME);
+      if (isBossInsideLaser && runtime.boss.shieldActive) {
+        if (canDamageShield) {
+          damageBoss(0, 2);
+          runtime.laserPower.lastBossDamageAt = now;
+        }
+      } else if (isBossInsideLaser && canDamageBoss) {
+        damageBoss(LASER_BOSS_DAMAGE_PER_FRAME, 0);
         runtime.laserPower.lastBossDamageAt = now;
       }
     }
@@ -939,107 +968,98 @@ export function useSpaceInvadersGame() {
     }
   }
 
+  function updateBossMinions() {
+    const runtime = runtimeRef.current;
+
+    if (!runtime.boss.active) {
+      return;
+    }
+
+    const activeSummons = runtime.invaders.filter((invader) => {
+      return invader.active && invader.row >= 90;
+    });
+
+    for (const summon of activeSummons) {
+      summon.y += runtime.boss.tier === "omega" ? 0.42 : 0.34;
+      summon.x += Math.sin(Date.now() / 260 + summon.id) * 0.42;
+      summon.x = clamp(summon.x, 18, CANVAS_WIDTH - summon.width - 18);
+
+      if (Math.random() < (runtime.boss.tier === "omega" ? 0.012 : 0.009)) {
+        shootEnemyBullet(summon);
+      }
+
+      if (summon.y + summon.height >= runtime.player.y - 10) {
+        showGameOver();
+        return;
+      }
+    }
+  }
+
   function getRandomBossAttackType(boss: Boss): BossAttackType {
     const randomValue = Math.random();
 
     if (boss.tier === "omega") {
-      if (randomValue < 0.16) {
-        return "omegaBurst";
-      }
-
-      if (randomValue < 0.32) {
-        return "lattice";
-      }
-
-      if (randomValue < 0.48) {
-        return "meteor";
-      }
-
-      if (randomValue < 0.62) {
-        return "pinch";
-      }
-
-      if (randomValue < 0.76) {
-        return "spiral";
-      }
-
-      if (randomValue < 0.9) {
-        return "focus";
-      }
-
-      return "burstRain";
-    }
-
-    if (boss.tier === "forge") {
-      if (randomValue < 0.2) {
-        return "lattice";
-      }
-
-      if (randomValue < 0.38) {
-        return "meteor";
+      if (randomValue < 0.36) {
+        return "omegaLaser";
       }
 
       if (randomValue < 0.56) {
-        return "sweep";
-      }
-
-      if (randomValue < 0.72) {
-        return "cross";
-      }
-
-      if (randomValue < 0.88) {
-        return "wide";
-      }
-
-      return "burstRain";
-    }
-
-    if (boss.tier === "quasar") {
-      if (randomValue < 0.2) {
-        return "spiral";
-      }
-
-      if (randomValue < 0.38) {
-        return "pinch";
-      }
-
-      if (randomValue < 0.56) {
-        return "focus";
-      }
-
-      if (randomValue < 0.72) {
-        return "rain";
-      }
-
-      if (randomValue < 0.88) {
-        return "sweep";
-      }
-
-      return "burstRain";
-    }
-
-    if (boss.tier === "overlord") {
-      if (randomValue < 0.2) {
-        return "focus";
-      }
-
-      if (randomValue < 0.38) {
-        return "rain";
-      }
-
-      if (randomValue < 0.56) {
-        return "cross";
+        return "omegaHalo";
       }
 
       if (randomValue < 0.74) {
+        return "omegaSummon";
+      }
+
+      return "omegaBurst";
+    }
+
+    if (boss.tier === "forge") {
+      if (!boss.shieldActive && randomValue < 0.24) {
+        return "forgeShield";
+      }
+
+      if (randomValue < 0.48) {
+        return "forgeGate";
+      }
+
+      if (randomValue < 0.72) {
+        return "meteor";
+      }
+
+      return "forgeCannon";
+    }
+
+    if (boss.tier === "quasar") {
+      if (randomValue < 0.26) {
+        return "spiral";
+      }
+
+      if (randomValue < 0.5) {
+        return "pinch";
+      }
+
+      if (randomValue < 0.74) {
+        return "quasarLaser";
+      }
+
+      return "quasarComet";
+    }
+
+    if (boss.tier === "overlord") {
+      if (randomValue < 0.34) {
+        return "rain";
+      }
+
+      if (randomValue < 0.58) {
+        return "burstRain";
+      }
+
+      if (randomValue < 0.8) {
         return "sweep";
       }
 
-      if (randomValue < 0.9) {
-        return "wide";
-      }
-
-      return "burstRain";
+      return "lattice";
     }
 
     // Ataque principal, aparece bastante.
@@ -1052,13 +1072,8 @@ export function useSpaceInvadersGame() {
       return "focus";
     }
 
-    // Chuva moderada para forçar movimento.
-    if (randomValue < 0.76) {
-      return "rain";
-    }
-
     // Ataque aberto, mais raro.
-    if (randomValue < 0.9) {
+    if (randomValue < 0.78) {
       return "wide";
     }
 
@@ -1290,31 +1305,303 @@ export function useSpaceInvadersGame() {
     const runtime = runtimeRef.current;
     const centerX = boss.x + boss.width / 2;
     const playerCenterX = runtime.player.x + runtime.player.width / 2;
-    const targetOffset = clamp((playerCenterX - centerX) / 180, -1.05, 1.05);
+    const targetOffset = clamp((playerCenterX - centerX) / 220, -0.82, 0.82);
 
-    shootBossBullet(centerX - 4, boss.y + boss.height, targetOffset, boss.bulletSpeed * 1.18);
+    shootBossBullet(
+      centerX - 4,
+      boss.y + boss.height,
+      targetOffset,
+      boss.bulletSpeed * 1.02
+    );
 
-    for (let index = -3; index <= 3; index++) {
+    for (let index = -2; index <= 2; index++) {
       if (index === 0) {
         continue;
       }
 
       shootBossBullet(
-        centerX + index * 18,
+        centerX + index * 26,
         boss.y + boss.height - 8,
-        index * 0.32,
-        boss.bulletSpeed * (0.82 + Math.abs(index) * 0.03)
+        index * 0.26,
+        boss.bulletSpeed * (0.74 + Math.abs(index) * 0.03)
+      );
+    }
+  }
+
+  function shootBossLaserColumn(
+    x: number,
+    y: number,
+    height: number,
+    width: number,
+    color: string,
+    glow: string,
+    warningMs: number,
+    durationMs: number,
+    vx = 0
+  ) {
+    const now = performance.now();
+    const laserX = clamp(x - width / 2, 18, CANVAS_WIDTH - width - 18);
+
+    runtimeRef.current.enemyBullets.push(
+      createBullet(
+        laserX,
+        y,
+        width,
+        height,
+        0,
+        "boss-laser",
+        vx,
+        {
+          color,
+          glow,
+          damageActiveAt: now + warningMs,
+          expiresAt: now + warningMs + durationMs,
+        }
+      )
+    );
+  }
+
+  function shootBossQuasarLaserAttack(boss: Boss) {
+    const bossCenterX = boss.x + boss.width / 2;
+    const laserY = boss.y + boss.height - 8;
+    const laserHeight = CANVAS_HEIGHT - laserY;
+    const laserDrift = boss.direction * 0.72;
+
+    shootBossLaserColumn(
+      bossCenterX,
+      laserY,
+      laserHeight,
+      24,
+      "#4facfe",
+      "#00f2fe",
+      560,
+      520,
+      laserDrift
+    );
+
+    createParticleExplosion(bossCenterX, laserY, "#4facfe");
+    createParticleExplosion(bossCenterX, laserY, "#be2edd");
+  }
+
+  function shootBossQuasarCometAttack(boss: Boss) {
+    const bossCenterX = boss.x + boss.width / 2;
+    const bulletY = boss.y + boss.height - 4;
+
+    for (let index = -2; index <= 2; index++) {
+      const sideDrift = index * 0.36;
+
+      shootBossBullet(
+        bossCenterX + index * 22,
+        bulletY + Math.abs(index) * 3,
+        sideDrift,
+        boss.bulletSpeed * (0.82 + Math.abs(index) * 0.035),
+        {
+          color: index === 0 ? "#ffffff" : "#4facfe",
+          glow: index === 0 ? "#f1c40f" : "#00f2fe",
+        }
+      );
+    }
+  }
+
+  function shootBossForgeGateAttack(boss: Boss) {
+    const runtime = runtimeRef.current;
+    const playerCenterX = runtime.player.x + runtime.player.width / 2;
+    const laneCount = 9;
+    const laneWidth = CANVAS_WIDTH / laneCount;
+    const safeLane = clamp(Math.floor(playerCenterX / laneWidth), 1, laneCount - 2);
+
+    for (let index = 0; index < laneCount; index++) {
+      if (Math.abs(index - safeLane) <= 1) {
+        continue;
+      }
+
+      shootBossBullet(
+        index * laneWidth + laneWidth / 2 - ENEMY_BULLET_WIDTH / 2,
+        boss.y + boss.height,
+        index < safeLane ? 0.16 : -0.16,
+        boss.bulletSpeed * 0.88,
+        {
+          color: "#ff6b35",
+          glow: "#f1c40f",
+        }
+      );
+    }
+  }
+
+  function shootBossForgeCannonAttack(boss: Boss) {
+    const cannonOffsets = [-76, -34, 34, 76];
+    const bossCenterX = boss.x + boss.width / 2;
+
+    for (const offset of cannonOffsets) {
+      shootBossBullet(
+        bossCenterX + offset,
+        boss.y + boss.height - 4,
+        offset > 0 ? -0.28 : 0.28,
+        boss.bulletSpeed * 0.98,
+        {
+          color: "#f1c40f",
+          glow: "#ff4757",
+        }
+      );
+    }
+  }
+
+  function summonBossMinions(
+    boss: Boss,
+    count: number,
+    variant: Invader["variant"],
+    color: string,
+    glow: string
+  ) {
+    const runtime = runtimeRef.current;
+    const activeSummons = runtime.invaders.filter((invader) => {
+      return invader.active && invader.row >= 90;
+    });
+
+    if (activeSummons.length >= 5) {
+      return;
+    }
+
+    const allowedCount = Math.min(count, 5 - activeSummons.length);
+    const bossCenterX = boss.x + boss.width / 2;
+
+    for (let index = 0; index < allowedCount; index++) {
+      bulletIdRef.current += 1;
+      const offset = (index - (allowedCount - 1) / 2) * 48;
+
+      runtime.invaders.push({
+        id: 9000 + bulletIdRef.current,
+        row: 90 + index,
+        x: clamp(bossCenterX + offset - 15, 22, CANVAS_WIDTH - 52),
+        y: boss.y + boss.height + 12,
+        width: 30,
+        height: 22,
+        active: true,
+        variant,
+        color,
+        glow,
+      });
+    }
+
+    createParticleExplosion(bossCenterX, boss.y + boss.height, glow);
+  }
+
+  function activateBossForgeShield(boss: Boss) {
+    boss.shieldActive = true;
+    boss.shieldHitsLeft = FORGE_SHIELD_MAX_HITS;
+    boss.shieldLastActivatedAt = performance.now();
+    boss.shieldNextShotAt = boss.shieldLastActivatedAt + 120;
+    runtimeRef.current.shake = Math.max(runtimeRef.current.shake, 8);
+
+    createParticleExplosion(
+      boss.x + boss.width / 2,
+      boss.y + boss.height / 2,
+      "#f1c40f"
+    );
+  }
+
+  function shootBossOmegaLaserAttack(boss: Boss) {
+    const runtime = runtimeRef.current;
+    const playerCenterX = runtime.player.x + runtime.player.width / 2;
+    const offset = Math.random() > 0.5 ? -86 : 86;
+    const laserX = playerCenterX + offset;
+
+    shootBossLaserColumn(
+      laserX,
+      0,
+      CANVAS_HEIGHT,
+      28,
+      "#f1c40f",
+      "#ff4757",
+      620,
+      360
+    );
+    createParticleExplosion(laserX, boss.y + boss.height, "#f1c40f");
+  }
+
+  function shootBossOmegaHaloAttack(boss: Boss) {
+    const centerX = boss.x + boss.width / 2;
+    const bulletY = boss.y + boss.height - 6;
+
+    for (let index = -3; index <= 3; index++) {
+      if (index === 0 || Math.abs(index) === 2) {
+        continue;
+      }
+
+      shootBossBullet(
+        centerX + index * 24,
+        bulletY,
+        index * 0.24,
+        boss.bulletSpeed * (0.76 + Math.abs(index) * 0.035)
       );
     }
 
-    for (let index = 0; index < 5; index++) {
+    shootBossLaserColumn(
+      centerX,
+      0,
+      CANVAS_HEIGHT,
+      18,
+      "#be2edd",
+      "#f1c40f",
+      700,
+      260
+    );
+  }
+
+  function shootBossOmegaSummonAttack(boss: Boss) {
+    summonBossMinions(boss, 1, "triangle", "#be2edd", "#4facfe");
+    shootBossOmegaBurstAttack(boss);
+  }
+
+  function damageForgeShield(boss: Boss, damage: number) {
+    if (!boss.shieldActive || damage <= 0) {
+      return false;
+    }
+
+    boss.shieldHitsLeft = Math.max(0, boss.shieldHitsLeft - damage);
+    runtimeRef.current.shake = Math.max(runtimeRef.current.shake, 5);
+
+    createParticleExplosion(
+      boss.x + boss.width / 2,
+      boss.y + boss.height / 2,
+      boss.shieldHitsLeft > 0 ? "#f1c40f" : "#ffffff"
+    );
+
+    if (boss.shieldHitsLeft <= 0) {
+      boss.shieldActive = false;
+      boss.shieldNextShotAt = 0;
+      boss.nextAttackAt = performance.now() + 680;
+      runtimeRef.current.shake = Math.max(runtimeRef.current.shake, 12);
+    }
+
+    syncStateFromRuntime();
+    return true;
+  }
+
+  function updateForgeShieldMode(boss: Boss, now: number) {
+    boss.x += boss.direction * boss.moveSpeed * 0.72;
+
+    if (now < boss.shieldNextShotAt) {
+      return;
+    }
+
+    const bossCenterX = boss.x + boss.width / 2;
+    const bulletY = boss.y + boss.height - 4;
+
+    for (let index = -2; index <= 2; index++) {
       shootBossBullet(
-        70 + index * 115 + Math.sin(Date.now() / 180 + index) * 18,
-        44,
-        (Math.random() - 0.5) * 0.26,
-        boss.bulletSpeed * 0.82
+        bossCenterX + index * 24,
+        bulletY + Math.abs(index) * 2,
+        index * 0.2,
+        boss.bulletSpeed * (0.72 + Math.abs(index) * 0.04),
+        {
+          color: index === 0 ? "#ffffff" : "#ff6b35",
+          glow: "#f1c40f",
+        }
       );
     }
+
+    boss.shieldNextShotAt = now + 310;
   }
 
   function updateBoss() {
@@ -1337,6 +1624,11 @@ export function useSpaceInvadersGame() {
     if (boss.x + boss.width >= CANVAS_WIDTH - 28) {
       boss.x = CANVAS_WIDTH - boss.width - 28;
       boss.direction = -1;
+    }
+
+    if (boss.tier === "forge" && boss.shieldActive) {
+      updateForgeShieldMode(boss, now);
+      return;
     }
 
     if (now < boss.nextAttackAt) {
@@ -1393,12 +1685,45 @@ export function useSpaceInvadersGame() {
       shootBossOmegaBurstAttack(boss);
     }
 
+    if (attackType === "quasarLaser") {
+      shootBossQuasarLaserAttack(boss);
+    }
+
+    if (attackType === "quasarComet") {
+      shootBossQuasarCometAttack(boss);
+    }
+
+    if (attackType === "forgeGate") {
+      shootBossForgeGateAttack(boss);
+    }
+
+    if (attackType === "forgeCannon") {
+      shootBossForgeCannonAttack(boss);
+    }
+
+    if (attackType === "forgeShield") {
+      activateBossForgeShield(boss);
+    }
+
+    if (attackType === "omegaLaser") {
+      shootBossOmegaLaserAttack(boss);
+    }
+
+    if (attackType === "omegaHalo") {
+      shootBossOmegaHaloAttack(boss);
+    }
+
+    if (attackType === "omegaSummon") {
+      shootBossOmegaSummonAttack(boss);
+    }
+
     boss.nextAttackAt =
       now + boss.attackIntervalMs + Math.random() * boss.attackRestTimeMs;
   }
 
   function updateBullets() {
     const runtime = runtimeRef.current;
+    const now = performance.now();
 
     for (const bullet of runtime.playerBullets) {
       bullet.x += bullet.vx;
@@ -1422,6 +1747,7 @@ export function useSpaceInvadersGame() {
     runtime.enemyBullets = runtime.enemyBullets.filter((bullet) => {
       return (
         bullet.active &&
+        (!bullet.expiresAt || now < bullet.expiresAt) &&
         bullet.y < CANVAS_HEIGHT + bullet.height &&
         bullet.x + bullet.width > -20 &&
         bullet.x < CANVAS_WIDTH + 20
@@ -1429,10 +1755,15 @@ export function useSpaceInvadersGame() {
     });
   }
 
-  function damageBoss(amount: number) {
+  function damageBoss(amount: number, shieldDamage = 1) {
     const runtime = runtimeRef.current;
 
     if (!runtime.boss.active) {
+      return;
+    }
+
+    if (runtime.boss.shieldActive) {
+      damageForgeShield(runtime.boss, shieldDamage);
       return;
     }
 
@@ -1457,6 +1788,7 @@ export function useSpaceInvadersGame() {
     runtime.score += boss.points;
     runtime.lives = Math.min(PLAYER_MAX_LIVES, runtime.lives + 1);
     runtime.enemyBullets = [];
+    runtime.invaders = [];
     runtime.boss.active = false;
     runtime.boss.defeated = true;
     runtime.shake = 18;
@@ -1498,7 +1830,7 @@ export function useSpaceInvadersGame() {
 
       if (runtime.boss.active && isColliding(bullet, runtime.boss)) {
         bullet.active = false;
-        damageBoss(bullet.source === "support" ? 12 : 18);
+        damageBoss(bullet.source === "support" ? 12 : 18, 1);
 
         createParticleExplosion(
           bullet.x + bullet.width / 2,
@@ -1603,9 +1935,14 @@ export function useSpaceInvadersGame() {
 
   function handleEnemyBulletCollisions() {
     const runtime = runtimeRef.current;
+    const now = performance.now();
 
     for (const bullet of runtime.enemyBullets) {
       if (!bullet.active) {
+        continue;
+      }
+
+      if (bullet.damageActiveAt && now < bullet.damageActiveAt) {
         continue;
       }
 
@@ -1652,6 +1989,7 @@ export function useSpaceInvadersGame() {
     updateLaserPower();
     updateShieldPower();
     updateBoss();
+    updateBossMinions();
     updateInvaders();
     updateBullets();
     handlePlayerBulletCollisions();
@@ -2109,6 +2447,36 @@ export function useSpaceInvadersGame() {
 
     ctx.save();
 
+    if (invader.row >= 90) {
+      const centerX = invader.x + invader.width / 2;
+      const centerY = invader.y + invader.height / 2;
+
+      ctx.shadowBlur = 18 + pulse;
+      ctx.shadowColor = invader.glow;
+      ctx.fillStyle = invader.color;
+
+      ctx.beginPath();
+      ctx.moveTo(centerX, invader.y - 4);
+      ctx.lineTo(invader.x + invader.width + 4, centerY);
+      ctx.lineTo(centerX, invader.y + invader.height + 4);
+      ctx.lineTo(invader.x - 4, centerY);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = "rgba(7, 16, 22, 0.78)";
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, 7, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, 3.2, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+      return;
+    }
+
     ctx.shadowBlur = 14 + pulse;
     ctx.shadowColor = invader.glow;
     ctx.fillStyle = invader.color;
@@ -2474,6 +2842,73 @@ export function useSpaceInvadersGame() {
       ctx.stroke();
     }
 
+    if (boss.shieldActive) {
+      const shieldPulse = Math.abs(Math.sin(Date.now() / 95));
+      const shieldRatio = boss.shieldHitsLeft / FORGE_SHIELD_MAX_HITS;
+
+      ctx.globalAlpha = 0.46 + shieldPulse * 0.2;
+      ctx.shadowBlur = 30;
+      ctx.shadowColor = "#f1c40f";
+      ctx.strokeStyle = "#f1c40f";
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.ellipse(
+        centerX,
+        centerY + 4,
+        boss.width * 0.58,
+        boss.height * 0.62,
+        0,
+        0,
+        Math.PI * 2
+      );
+      ctx.stroke();
+
+      ctx.globalAlpha = 0.18 + shieldPulse * 0.08;
+      ctx.fillStyle = "#f1c40f";
+      ctx.beginPath();
+      ctx.ellipse(
+        centerX,
+        centerY + 4,
+        boss.width * 0.58,
+        boss.height * 0.62,
+        0,
+        0,
+        Math.PI * 2
+      );
+      ctx.fill();
+
+      ctx.globalAlpha = 0.86;
+      ctx.shadowBlur = 12;
+      ctx.fillStyle = "#ff6b35";
+
+      for (let index = 0; index < FORGE_SHIELD_MAX_HITS; index++) {
+        ctx.globalAlpha = index < boss.shieldHitsLeft ? 0.92 : 0.22;
+        drawRoundedRect(
+          ctx,
+          centerX - 38 + index * 20,
+          boss.y - 11,
+          13,
+          6,
+          999
+        );
+      }
+
+      ctx.globalAlpha = 0.34 + shieldRatio * 0.26;
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.ellipse(
+        centerX,
+        centerY + 4,
+        boss.width * 0.43,
+        boss.height * 0.46,
+        0,
+        0,
+        Math.PI * 2
+      );
+      ctx.stroke();
+    }
+
     ctx.restore();
   }
 
@@ -2784,9 +3219,39 @@ export function useSpaceInvadersGame() {
     for (const bullet of runtime.enemyBullets) {
       const isBossBullet = bullet.source === "boss";
 
+      if (bullet.source === "boss-laser") {
+        const now = performance.now();
+        const isArmed = !bullet.damageActiveAt || now >= bullet.damageActiveAt;
+        const color = bullet.color ?? "#f1c40f";
+        const glow = bullet.glow ?? color;
+
+        ctx.save();
+        ctx.globalAlpha = isArmed ? 0.76 : 0.26;
+        ctx.shadowBlur = isArmed ? 28 : 14;
+        ctx.shadowColor = glow;
+        ctx.fillStyle = color;
+        drawRoundedRect(ctx, bullet.x, bullet.y, bullet.width, bullet.height, 999);
+
+        ctx.globalAlpha = isArmed ? 0.92 : 0.48;
+        ctx.fillStyle = "#ffffff";
+        drawRoundedRect(
+          ctx,
+          bullet.x + bullet.width * 0.42,
+          bullet.y,
+          Math.max(3, bullet.width * 0.16),
+          bullet.height,
+          999
+        );
+        ctx.restore();
+        continue;
+      }
+
+      const bulletColor = bullet.color ?? (isBossBullet ? "#be2edd" : "#ff4757");
+      const bulletGlow = bullet.glow ?? bulletColor;
+
       ctx.shadowBlur = isBossBullet ? 20 : 14;
-      ctx.shadowColor = isBossBullet ? "#be2edd" : "#ff4757";
-      ctx.fillStyle = isBossBullet ? "#be2edd" : "#ff4757";
+      ctx.shadowColor = bulletGlow;
+      ctx.fillStyle = bulletColor;
 
       drawRoundedRect(ctx, bullet.x, bullet.y, bullet.width, bullet.height, 999);
     }

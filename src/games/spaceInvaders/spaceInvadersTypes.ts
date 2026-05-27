@@ -55,9 +55,18 @@ export type Boss = {
   nextAttackAt: number;
   burstShotsLeft: number;
   nextBurstShotAt: number;
+  shieldActive: boolean;
+  shieldHitsLeft: number;
+  shieldLastActivatedAt: number;
+  shieldNextShotAt: number;
 };
 
-export type BulletSource = "player" | "support" | "enemy" | "boss";
+export type BulletSource =
+  | "player"
+  | "support"
+  | "enemy"
+  | "boss"
+  | "boss-laser";
 
 export type Bullet = {
   id: number;
@@ -69,6 +78,10 @@ export type Bullet = {
   vy: number;
   active: boolean;
   source: BulletSource;
+  damageActiveAt?: number;
+  expiresAt?: number;
+  color?: string;
+  glow?: string;
 };
 
 export type Particle = {

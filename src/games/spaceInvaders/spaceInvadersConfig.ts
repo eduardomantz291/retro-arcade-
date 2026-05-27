@@ -116,11 +116,11 @@ export const FINAL_BOSS_START_Y = 24;
 export const FINAL_BOSS_MAX_HEALTH = 3000;
 export const FINAL_BOSS_MOVE_SPEED = 2.02;
 export const FINAL_BOSS_POINTS = 4500;
-export const FINAL_BOSS_BULLET_SPEED = 4.85;
-export const FINAL_BOSS_ATTACK_INTERVAL_MS = 700;
-export const FINAL_BOSS_ATTACK_REST_TIME_MS = 180;
-export const FINAL_BOSS_AIM_ERROR_RANGE = 22;
-export const FINAL_BOSS_RAIN_BULLET_COUNT = 12;
+export const FINAL_BOSS_BULLET_SPEED = 4.42;
+export const FINAL_BOSS_ATTACK_INTERVAL_MS = 880;
+export const FINAL_BOSS_ATTACK_REST_TIME_MS = 260;
+export const FINAL_BOSS_AIM_ERROR_RANGE = 36;
+export const FINAL_BOSS_RAIN_BULLET_COUNT = 8;
 
 // Poder Laser.
 // O laser fica ativo por pouco tempo, mas destrói tudo dentro da largura dele.

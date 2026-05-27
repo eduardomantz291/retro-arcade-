@@ -280,6 +280,10 @@ export function createBoss(wave = BOSS_WAVE_INTERVAL): Boss {
     nextAttackAt: performance.now() + 900,
     burstShotsLeft: 0,
     nextBurstShotAt: 0,
+    shieldActive: false,
+    shieldHitsLeft: 0,
+    shieldLastActivatedAt: 0,
+    shieldNextShotAt: 0,
   };
 }
 
@@ -310,6 +314,10 @@ export function createInactiveBoss(): Boss {
     nextAttackAt: 0,
     burstShotsLeft: 0,
     nextBurstShotAt: 0,
+    shieldActive: false,
+    shieldHitsLeft: 0,
+    shieldLastActivatedAt: 0,
+    shieldNextShotAt: 0,
   };
 }
 
