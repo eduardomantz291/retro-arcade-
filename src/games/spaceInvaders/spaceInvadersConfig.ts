@@ -53,7 +53,7 @@ export const WAVE_CLEAR_BONUS = 150;
 // O primeiro boss aparece na onda 5.
 // Ele precisa ser desafiador, mas ainda justo por ser o primeiro chefão.
 export const BOSS_WAVE_INTERVAL = 5;
-export const FINAL_WAVE = 25;
+export const FINAL_WAVE = 30;
 export const BOSS_WIDTH = 154;
 export const BOSS_HEIGHT = 72;
 export const BOSS_START_Y = 42;
@@ -109,7 +109,21 @@ export const FOURTH_BOSS_AIM_ERROR_RANGE = 28;
 export const FOURTH_BOSS_RAIN_BULLET_COUNT = 10;
 
 // Boss final.
-// Onda 25: encerra a partida, mais denso e variado sem virar bullet hell puro.
+// Onda 25: boss invocador, focado em bichinhos, protecao e cura.
+export const SUMMONER_BOSS_WIDTH = 214;
+export const SUMMONER_BOSS_HEIGHT = 102;
+export const SUMMONER_BOSS_START_Y = 28;
+export const SUMMONER_BOSS_MAX_HEALTH = 2600;
+export const SUMMONER_BOSS_MOVE_SPEED = 1.78;
+export const SUMMONER_BOSS_POINTS = 3700;
+export const SUMMONER_BOSS_BULLET_SPEED = 4.35;
+export const SUMMONER_BOSS_ATTACK_INTERVAL_MS = 1220;
+export const SUMMONER_BOSS_ATTACK_REST_TIME_MS = 420;
+export const SUMMONER_BOSS_AIM_ERROR_RANGE = 32;
+export const SUMMONER_BOSS_RAIN_BULLET_COUNT = 8;
+
+// Boss final.
+// Onda 30: encerra a partida, mais denso e variado sem virar bullet hell puro.
 export const FINAL_BOSS_WIDTH = 222;
 export const FINAL_BOSS_HEIGHT = 108;
 export const FINAL_BOSS_START_Y = 24;
@@ -152,8 +166,8 @@ export const DEBUG_START_ON_BOSS_WAVE = true;
 // Escolha qual boss você quer testar.
 // 5 = boss da onda 5.
 // 10 = boss da onda 10.
-// 15, 20 e 25 testam os bosses finais.
-export const DEBUG_BOSS_WAVE = 20;
+// 15, 20, 25 e 30 testam os bosses finais.
+export const DEBUG_BOSS_WAVE = 25;
 
 // Caso queira forçar uma quantidade específica de vidas no debug,
 // coloque um número aqui.
@@ -169,4 +183,5 @@ export const DEBUG_PLAYER_LIVES_BY_BOSS_WAVE: Record<number, number> = {
   15: 12,
   20: 14,
   25: 16,
+  30: 16,
 };

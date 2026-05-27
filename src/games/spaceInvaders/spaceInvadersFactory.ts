@@ -64,6 +64,17 @@ import {
   SUPPORT_SHIP_COOLDOWN_MS,
   SUPPORT_SHIP_HEIGHT,
   SUPPORT_SHIP_WIDTH,
+  SUMMONER_BOSS_AIM_ERROR_RANGE,
+  SUMMONER_BOSS_ATTACK_INTERVAL_MS,
+  SUMMONER_BOSS_ATTACK_REST_TIME_MS,
+  SUMMONER_BOSS_BULLET_SPEED,
+  SUMMONER_BOSS_HEIGHT,
+  SUMMONER_BOSS_MAX_HEALTH,
+  SUMMONER_BOSS_MOVE_SPEED,
+  SUMMONER_BOSS_POINTS,
+  SUMMONER_BOSS_RAIN_BULLET_COUNT,
+  SUMMONER_BOSS_START_Y,
+  SUMMONER_BOSS_WIDTH,
   THIRD_BOSS_AIM_ERROR_RANGE,
   THIRD_BOSS_ATTACK_INTERVAL_MS,
   THIRD_BOSS_ATTACK_REST_TIME_MS,
@@ -120,6 +131,24 @@ function getBossStatsForWave(wave: number): BossStats {
       attackRestTimeMs: FINAL_BOSS_ATTACK_REST_TIME_MS,
       aimErrorRange: FINAL_BOSS_AIM_ERROR_RANGE,
       rainBulletCount: FINAL_BOSS_RAIN_BULLET_COUNT,
+    };
+  }
+
+  if (wave >= 25) {
+    return {
+      name: "Regente do Enxame",
+      tier: "summoner",
+      width: SUMMONER_BOSS_WIDTH,
+      height: SUMMONER_BOSS_HEIGHT,
+      y: SUMMONER_BOSS_START_Y,
+      maxHealth: SUMMONER_BOSS_MAX_HEALTH,
+      points: SUMMONER_BOSS_POINTS,
+      moveSpeed: SUMMONER_BOSS_MOVE_SPEED,
+      bulletSpeed: SUMMONER_BOSS_BULLET_SPEED,
+      attackIntervalMs: SUMMONER_BOSS_ATTACK_INTERVAL_MS,
+      attackRestTimeMs: SUMMONER_BOSS_ATTACK_REST_TIME_MS,
+      aimErrorRange: SUMMONER_BOSS_AIM_ERROR_RANGE,
+      rainBulletCount: SUMMONER_BOSS_RAIN_BULLET_COUNT,
     };
   }
 
@@ -287,6 +316,9 @@ export function createBoss(wave = BOSS_WAVE_INTERVAL): Boss {
     shieldNextShotAt: 0,
     shieldAvailableAt: stats.tier === "forge" ? now + 5000 : 0,
     summonNextAt: 0,
+    summonAttackerNextAt: 0,
+    summonGuardianNextAt: 0,
+    summonHealerNextAt: 0,
   };
 }
 
@@ -323,6 +355,9 @@ export function createInactiveBoss(): Boss {
     shieldNextShotAt: 0,
     shieldAvailableAt: 0,
     summonNextAt: 0,
+    summonAttackerNextAt: 0,
+    summonGuardianNextAt: 0,
+    summonHealerNextAt: 0,
   };
 }
 

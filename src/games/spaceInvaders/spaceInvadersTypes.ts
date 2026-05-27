@@ -8,7 +8,13 @@ export type SpaceInvadersScreenState =
   | "game-over"
   | "victory";
 
-export type BossTier = "scout" | "overlord" | "quasar" | "forge" | "omega";
+export type BossTier =
+  | "scout"
+  | "overlord"
+  | "quasar"
+  | "forge"
+  | "summoner"
+  | "omega";
 
 export type Player = {
   x: number;
@@ -29,6 +35,10 @@ export type Invader = {
   variant: "square" | "circle" | "triangle";
   color: string;
   glow: string;
+  summonRole?: "attacker" | "guardian" | "healer";
+  orbitAngle?: number;
+  orbitRadius?: number;
+  formationIndex?: number;
 };
 
 export type Boss = {
@@ -61,6 +71,9 @@ export type Boss = {
   shieldNextShotAt: number;
   shieldAvailableAt: number;
   summonNextAt: number;
+  summonAttackerNextAt: number;
+  summonGuardianNextAt: number;
+  summonHealerNextAt: number;
 };
 
 export type BulletSource =

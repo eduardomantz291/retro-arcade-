@@ -76,9 +76,15 @@ type BossAttackType =
   | "forgeGate"
   | "forgeCannon"
   | "forgeShield"
+  | "summonerSwarm"
+  | "summonerGuard"
+  | "summonerHealers"
+  | "summonerNeedles"
   | "omegaLaser"
   | "omegaHalo"
   | "omegaSummon";
+
+type BossSummonRole = NonNullable<Invader["summonRole"]>;
 
 const FORGE_SHIELD_MAX_HITS = 15;
 const FORGE_SHIELD_COOLDOWN_MS = 15000;
@@ -88,6 +94,24 @@ const FORGE_SHIELD_BURST_REST_MS = 860;
 const OMEGA_SUMMON_COOLDOWN_MS = 5000;
 const OMEGA_SUMMON_COUNT = 4;
 const OMEGA_MAX_SUMMONS = 12;
+const SUMMONER_ATTACKER_COUNT = 5;
+const SUMMONER_MAX_ATTACKERS = 12;
+const SUMMONER_GUARDIAN_COUNT = 6;
+const SUMMONER_MAX_GUARDIANS = 6;
+const SUMMONER_MAX_HEALERS = 2;
+const SUMMONER_SUMMON_COOLDOWN_MS = 5200;
+const SUMMONER_ATTACKER_COOLDOWN_MS = 10500;
+const SUMMONER_GUARDIAN_COOLDOWN_MS = 17000;
+const SUMMONER_HEALER_COOLDOWN_MS = 19000;
+const SUMMONER_MAX_ACTIVE_ROLE_TYPES = 2;
+const SUMMONER_HEALER_HEALTH_THRESHOLD = 0.52;
+const SUMMONER_GUARDIAN_SIDE_OFFSET_X = 144;
+const SUMMONER_GUARDIAN_ROW_SPACING = 36;
+const SUMMONER_GUARDIAN_START_Y_OFFSET = 34;
+const SUMMONER_HEALER_SIDE_OFFSET_X = 190;
+const SUMMONER_HEALER_Y_OFFSET = 128;
+const SUMMONER_ATTACKER_FALL_SPEED = 0.16;
+const SUMMONER_ATTACKER_DRIFT_SPEED = 0.28;
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
@@ -809,7 +833,12 @@ export function useSpaceInvadersGame() {
           runtime.laserPower.lastBossDamageAt = now;
         }
       } else if (isBossInsideLaser && canDamageBoss) {
-        damageBoss(LASER_BOSS_DAMAGE_PER_FRAME, 0);
+        if (hasActiveSummonerGuardians()) {
+          createParticleExplosion(bossCenter, runtime.boss.y + runtime.boss.height / 2, "#4facfe");
+        } else {
+          damageBoss(LASER_BOSS_DAMAGE_PER_FRAME, 0);
+        }
+
         runtime.laserPower.lastBossDamageAt = now;
       }
     }
@@ -995,11 +1024,78 @@ export function useSpaceInvadersGame() {
     });
 
     for (const summon of activeSummons) {
-      summon.y += runtime.boss.tier === "omega" ? 0.42 : 0.34;
-      summon.x += Math.sin(Date.now() / 260 + summon.id) * 0.42;
+      if (summon.summonRole === "guardian") {
+        const boss = runtime.boss;
+        const centerX = boss.x + boss.width / 2;
+        const guardians = activeSummons.filter((invader) => {
+          return invader.summonRole === "guardian";
+        });
+        const guardianIndex = guardians.findIndex((invader) => {
+          return invader.id === summon.id;
+        });
+        const safeGuardianIndex =
+          summon.formationIndex ?? Math.max(0, guardianIndex);
+        const side = safeGuardianIndex < 3 ? -1 : 1;
+        const rowIndex = safeGuardianIndex % 3;
+
+        summon.x =
+          centerX + side * SUMMONER_GUARDIAN_SIDE_OFFSET_X - summon.width / 2;
+        summon.y =
+          boss.y +
+          boss.height +
+          SUMMONER_GUARDIAN_START_Y_OFFSET +
+          rowIndex * SUMMONER_GUARDIAN_ROW_SPACING;
+        summon.x = clamp(summon.x, 12, CANVAS_WIDTH - summon.width - 12);
+        summon.y = clamp(summon.y, 8, CANVAS_HEIGHT - summon.height - 150);
+
+        if (Math.random() < 0.0035) {
+          shootEnemyBullet(summon);
+        }
+
+        continue;
+      }
+
+      if (summon.summonRole === "healer") {
+        const boss = runtime.boss;
+        const healerIndex = activeSummons
+          .filter((invader) => invader.summonRole === "healer")
+          .findIndex((invader) => invader.id === summon.id);
+        const side = healerIndex === 0 ? -1 : 1;
+
+        summon.x =
+          boss.x +
+          boss.width / 2 +
+          side * SUMMONER_HEALER_SIDE_OFFSET_X -
+          summon.width / 2;
+        summon.y =
+          boss.y +
+          boss.height +
+          SUMMONER_HEALER_Y_OFFSET +
+          Math.sin(Date.now() / 260 + summon.id) * 7;
+        summon.x = clamp(summon.x, 16, CANVAS_WIDTH - summon.width - 16);
+        summon.y = clamp(summon.y, 8, CANVAS_HEIGHT - summon.height - 150);
+
+        if (boss.active && boss.health < boss.maxHealth && Math.random() < 0.075) {
+          boss.health = Math.min(boss.maxHealth, boss.health + 6);
+          createParticleExplosion(summon.x + summon.width / 2, summon.y, summon.glow);
+          syncStateFromRuntime();
+        }
+
+        if (Math.random() < 0.0035) {
+          shootEnemyBullet(summon);
+        }
+
+        continue;
+      }
+
+      summon.y +=
+        runtime.boss.tier === "omega" ? 0.42 : SUMMONER_ATTACKER_FALL_SPEED;
+      summon.x +=
+        Math.sin(Date.now() / 260 + summon.id) *
+        (runtime.boss.tier === "omega" ? 0.46 : SUMMONER_ATTACKER_DRIFT_SPEED);
       summon.x = clamp(summon.x, 18, CANVAS_WIDTH - summon.width - 18);
 
-      if (Math.random() < (runtime.boss.tier === "omega" ? 0.012 : 0.009)) {
+      if (Math.random() < (runtime.boss.tier === "omega" ? 0.012 : 0.008)) {
         shootEnemyBullet(summon);
       }
 
@@ -1010,10 +1106,90 @@ export function useSpaceInvadersGame() {
     }
   }
 
-  function getActiveBossSummonCount() {
+  function getActiveBossSummonCount(role?: Invader["summonRole"]) {
     return runtimeRef.current.invaders.filter((invader) => {
-      return invader.active && invader.row >= 90;
+      return (
+        invader.active &&
+        invader.row >= 90 &&
+        (!role || invader.summonRole === role)
+      );
     }).length;
+  }
+
+  function hasActiveSummonerGuardians() {
+    const runtime = runtimeRef.current;
+
+    return (
+      runtime.boss.tier === "summoner" &&
+      getActiveBossSummonCount("guardian") > 0
+    );
+  }
+
+  function getActiveSummonerRoleTypes() {
+    const roles: BossSummonRole[] = ["attacker", "guardian", "healer"];
+
+    return roles.filter((role) => getActiveBossSummonCount(role) > 0);
+  }
+
+  function canSummonerUseRole(role: BossSummonRole) {
+    const activeRoleTypes = getActiveSummonerRoleTypes();
+
+    return (
+      activeRoleTypes.includes(role) ||
+      activeRoleTypes.length < SUMMONER_MAX_ACTIVE_ROLE_TYPES
+    );
+  }
+
+  function getSummonerRoleNextAt(boss: Boss, role: BossSummonRole) {
+    if (role === "guardian") {
+      return boss.summonGuardianNextAt;
+    }
+
+    if (role === "healer") {
+      return boss.summonHealerNextAt;
+    }
+
+    return boss.summonAttackerNextAt;
+  }
+
+  function setSummonerRoleCooldown(
+    boss: Boss,
+    role: BossSummonRole,
+    now = performance.now()
+  ) {
+    if (role === "guardian") {
+      boss.summonGuardianNextAt = now + SUMMONER_GUARDIAN_COOLDOWN_MS;
+      return;
+    }
+
+    if (role === "healer") {
+      boss.summonHealerNextAt = now + SUMMONER_HEALER_COOLDOWN_MS;
+      return;
+    }
+
+    boss.summonAttackerNextAt = now + SUMMONER_ATTACKER_COOLDOWN_MS;
+  }
+
+  function canSummonerSummonRole(
+    role: BossSummonRole,
+    maxActive: number,
+    now = performance.now()
+  ) {
+    const boss = runtimeRef.current.boss;
+
+    if (
+      role === "healer" &&
+      boss.health > boss.maxHealth * SUMMONER_HEALER_HEALTH_THRESHOLD
+    ) {
+      return false;
+    }
+
+    return (
+      now >= boss.summonNextAt &&
+      now >= getSummonerRoleNextAt(boss, role) &&
+      canSummonerUseRole(role) &&
+      getActiveBossSummonCount(role) < maxActive
+    );
   }
 
   function canBossSummonMinions(maxActive: number, now = performance.now()) {
@@ -1060,6 +1236,48 @@ export function useSpaceInvadersGame() {
       }
 
       return "forgeCannon";
+    }
+
+    if (boss.tier === "summoner") {
+      const canCallGuardians =
+        getActiveBossSummonCount("guardian") === 0 &&
+        canSummonerSummonRole("guardian", SUMMONER_MAX_GUARDIANS, now);
+      const canCallHealers = canSummonerSummonRole(
+        "healer",
+        SUMMONER_MAX_HEALERS,
+        now
+      );
+      const canCallAttackers = canSummonerSummonRole(
+        "attacker",
+        SUMMONER_MAX_ATTACKERS,
+        now
+      );
+
+      if (canCallGuardians && randomValue < 0.22) {
+        return "summonerGuard";
+      }
+
+      if (canCallHealers && randomValue < 0.44) {
+        return "summonerHealers";
+      }
+
+      if (canCallAttackers && randomValue < 0.78) {
+        return "summonerSwarm";
+      }
+
+      if (canCallAttackers && randomValue < 0.88) {
+        return "summonerSwarm";
+      }
+
+      if (canCallHealers && randomValue < 0.94) {
+        return "summonerHealers";
+      }
+
+      if (canCallGuardians) {
+        return "summonerGuard";
+      }
+
+      return "summonerNeedles";
     }
 
     if (boss.tier === "quasar") {
@@ -1487,15 +1705,16 @@ export function useSpaceInvadersGame() {
     variant: Invader["variant"],
     color: string,
     glow: string,
-    maxActive = OMEGA_MAX_SUMMONS
+    maxActive = OMEGA_MAX_SUMMONS,
+    role: Invader["summonRole"] = "attacker"
   ) {
     const runtime = runtimeRef.current;
     const activeSummons = runtime.invaders.filter((invader) => {
-      return invader.active && invader.row >= 90;
+      return invader.active && invader.row >= 90 && invader.summonRole === role;
     });
 
     if (activeSummons.length >= maxActive) {
-      return;
+      return false;
     }
 
     const allowedCount = Math.min(count, maxActive - activeSummons.length);
@@ -1516,10 +1735,18 @@ export function useSpaceInvadersGame() {
         variant,
         color,
         glow,
+        summonRole: role,
+        orbitAngle:
+          role === "guardian" ? (Math.PI * 2 * index) / allowedCount : undefined,
+        orbitRadius:
+          role === "guardian" ? SUMMONER_GUARDIAN_SIDE_OFFSET_X : undefined,
+        formationIndex: role === "guardian" ? activeSummons.length + index : index,
       });
     }
 
     createParticleExplosion(bossCenterX, boss.y + boss.height, glow);
+
+    return allowedCount > 0;
   }
 
   function activateBossForgeShield(boss: Boss) {
@@ -1606,10 +1833,107 @@ export function useSpaceInvadersGame() {
       "triangle",
       "#be2edd",
       "#4facfe",
-      OMEGA_MAX_SUMMONS
+      OMEGA_MAX_SUMMONS,
+      "attacker"
     );
     boss.summonNextAt = now + OMEGA_SUMMON_COOLDOWN_MS;
     shootBossOmegaBurstAttack(boss);
+  }
+
+  function shootBossSummonerSwarmAttack(boss: Boss) {
+    if (!canSummonerSummonRole("attacker", SUMMONER_MAX_ATTACKERS)) {
+      shootBossSummonerNeedlesAttack(boss);
+      return;
+    }
+
+    const summoned = summonBossMinions(
+      boss,
+      SUMMONER_ATTACKER_COUNT,
+      "triangle",
+      "#38ef7d",
+      "#26de81",
+      SUMMONER_MAX_ATTACKERS,
+      "attacker"
+    );
+
+    if (!summoned) {
+      shootBossSummonerNeedlesAttack(boss);
+      return;
+    }
+
+    const now = performance.now();
+    boss.summonNextAt = now + SUMMONER_SUMMON_COOLDOWN_MS;
+    setSummonerRoleCooldown(boss, "attacker", now);
+  }
+
+  function shootBossSummonerGuardAttack(boss: Boss) {
+    if (!canSummonerSummonRole("guardian", SUMMONER_MAX_GUARDIANS)) {
+      shootBossSummonerNeedlesAttack(boss);
+      return;
+    }
+
+    const summoned = summonBossMinions(
+      boss,
+      SUMMONER_GUARDIAN_COUNT,
+      "circle",
+      "#4facfe",
+      "#00f2fe",
+      SUMMONER_MAX_GUARDIANS,
+      "guardian"
+    );
+
+    if (!summoned) {
+      shootBossSummonerNeedlesAttack(boss);
+      return;
+    }
+
+    const now = performance.now();
+    boss.summonNextAt = now + SUMMONER_SUMMON_COOLDOWN_MS;
+    setSummonerRoleCooldown(boss, "guardian", now);
+  }
+
+  function shootBossSummonerHealerAttack(boss: Boss) {
+    if (!canSummonerSummonRole("healer", SUMMONER_MAX_HEALERS)) {
+      shootBossSummonerNeedlesAttack(boss);
+      return;
+    }
+
+    const summoned = summonBossMinions(
+      boss,
+      SUMMONER_MAX_HEALERS,
+      "square",
+      "#f1c40f",
+      "#38ef7d",
+      SUMMONER_MAX_HEALERS,
+      "healer"
+    );
+
+    if (!summoned) {
+      shootBossSummonerNeedlesAttack(boss);
+      return;
+    }
+
+    const now = performance.now();
+    boss.summonNextAt = now + SUMMONER_SUMMON_COOLDOWN_MS;
+    setSummonerRoleCooldown(boss, "healer", now);
+  }
+
+  function shootBossSummonerNeedlesAttack(boss: Boss) {
+    const bossCenterX = boss.x + boss.width / 2;
+    const bulletY = boss.y + boss.height - 4;
+
+    for (let index = -2; index <= 2; index++) {
+      shootBossBullet(
+        bossCenterX + index * 24,
+        bulletY,
+        index * 0.22,
+        boss.bulletSpeed * (0.7 + Math.abs(index) * 0.05),
+        {
+          color: index === 0 ? "#ffffff" : "#38ef7d",
+          glow: "#26de81",
+        }
+      );
+    }
   }
 
   function damageForgeShield(boss: Boss, damage: number) {
@@ -1780,6 +2104,22 @@ export function useSpaceInvadersGame() {
       activateBossForgeShield(boss);
     }
 
+    if (attackType === "summonerSwarm") {
+      shootBossSummonerSwarmAttack(boss);
+    }
+
+    if (attackType === "summonerGuard") {
+      shootBossSummonerGuardAttack(boss);
+    }
+
+    if (attackType === "summonerHealers") {
+      shootBossSummonerHealerAttack(boss);
+    }
+
+    if (attackType === "summonerNeedles") {
+      shootBossSummonerNeedlesAttack(boss);
+    }
+
     if (attackType === "omegaLaser") {
       shootBossOmegaLaserAttack(boss);
     }
@@ -1919,6 +2259,16 @@ export function useSpaceInvadersGame() {
 
       if (runtime.boss.active && isColliding(bullet, runtime.boss)) {
         bullet.active = false;
+
+        if (hasActiveSummonerGuardians()) {
+          createParticleExplosion(
+            bullet.x + bullet.width / 2,
+            bullet.y + bullet.height / 2,
+            "#4facfe"
+          );
+          continue;
+        }
+
         damageBoss(bullet.source === "support" ? 12 : 18, 1);
 
         createParticleExplosion(
@@ -2536,6 +2886,57 @@ export function useSpaceInvadersGame() {
 
     ctx.save();
 
+    if (invader.summonRole === "guardian") {
+      const centerX = invader.x + invader.width / 2;
+      const centerY = invader.y + invader.height / 2;
+
+      ctx.shadowBlur = 20 + pulse;
+      ctx.shadowColor = invader.glow;
+      ctx.fillStyle = invader.color;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, 14, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.globalAlpha = 0.72;
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, 20, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = "#071016";
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, 6, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+      return;
+    }
+
+    if (invader.summonRole === "healer") {
+      const centerX = invader.x + invader.width / 2;
+      const centerY = invader.y + invader.height / 2;
+
+      ctx.shadowBlur = 20 + pulse;
+      ctx.shadowColor = invader.glow;
+      ctx.fillStyle = invader.color;
+      drawRoundedRect(ctx, invader.x, invader.y, invader.width, invader.height, 9);
+
+      ctx.fillStyle = "#071016";
+      drawRoundedRect(ctx, centerX - 3, centerY - 10, 6, 20, 999);
+      drawRoundedRect(ctx, centerX - 10, centerY - 3, 20, 6, 999);
+
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, 14, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.restore();
+      return;
+    }
+
     if (invader.row >= 90) {
       const centerX = invader.x + invader.width / 2;
       const centerY = invader.y + invader.height / 2;
@@ -3001,6 +3402,111 @@ export function useSpaceInvadersGame() {
     ctx.restore();
   }
 
+  function drawSummonerBoss(ctx: CanvasRenderingContext2D, boss: Boss) {
+    const centerX = boss.x + boss.width / 2;
+    const centerY = boss.y + boss.height / 2;
+    const pulse = Math.abs(Math.sin(Date.now() / 130));
+    const isProtected = hasActiveSummonerGuardians();
+
+    ctx.save();
+
+    ctx.shadowBlur = 34 + pulse * 18;
+    ctx.shadowColor = "#38ef7d";
+
+    const mantleGradient = ctx.createLinearGradient(
+      boss.x,
+      boss.y,
+      boss.x + boss.width,
+      boss.y + boss.height
+    );
+
+    mantleGradient.addColorStop(0, "#071016");
+    mantleGradient.addColorStop(0.24, "#38ef7d");
+    mantleGradient.addColorStop(0.52, "#4facfe");
+    mantleGradient.addColorStop(0.78, "#be2edd");
+    mantleGradient.addColorStop(1, "#f1c40f");
+
+    ctx.fillStyle = mantleGradient;
+    ctx.beginPath();
+    ctx.moveTo(centerX, boss.y - 10);
+    ctx.lineTo(boss.x + boss.width + 16, centerY + 8);
+    ctx.lineTo(centerX + 58, boss.y + boss.height + 20);
+    ctx.lineTo(centerX + 18, boss.y + boss.height - 4);
+    ctx.lineTo(centerX, boss.y + boss.height + 28);
+    ctx.lineTo(centerX - 18, boss.y + boss.height - 4);
+    ctx.lineTo(centerX - 58, boss.y + boss.height + 20);
+    ctx.lineTo(boss.x - 16, centerY + 8);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.globalAlpha = 0.82;
+    ctx.fillStyle = "rgba(7, 16, 22, 0.88)";
+    ctx.beginPath();
+    ctx.ellipse(centerX, centerY + 4, boss.width * 0.31, boss.height * 0.42, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur = 26 + pulse * 10;
+    ctx.shadowColor = "#38ef7d";
+
+    const portalGradient = ctx.createRadialGradient(
+      centerX,
+      centerY + 2,
+      4,
+      centerX,
+      centerY + 2,
+      42
+    );
+
+    portalGradient.addColorStop(0, "#ffffff");
+    portalGradient.addColorStop(0.25, "#38ef7d");
+    portalGradient.addColorStop(0.62, "#4facfe");
+    portalGradient.addColorStop(1, "rgba(56, 239, 125, 0.05)");
+
+    ctx.fillStyle = portalGradient;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY + 2, 30 + pulse * 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = "#f1c40f";
+    ctx.lineWidth = 2;
+    ctx.globalAlpha = 0.48 + pulse * 0.24;
+
+    for (let index = 0; index < 3; index++) {
+      ctx.beginPath();
+      ctx.ellipse(
+        centerX,
+        centerY + 2,
+        42 + index * 15 + pulse * 4,
+        16 + index * 7,
+        index * 0.55 + Date.now() / 900,
+        0,
+        Math.PI * 2
+      );
+      ctx.stroke();
+    }
+
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath();
+    ctx.arc(centerX - 42, centerY - 10, 7, 0, Math.PI * 2);
+    ctx.arc(centerX + 42, centerY - 10, 7, 0, Math.PI * 2);
+    ctx.fill();
+
+    if (isProtected) {
+      ctx.globalAlpha = 0.3 + pulse * 0.18;
+      ctx.shadowBlur = 30;
+      ctx.shadowColor = "#4facfe";
+      ctx.strokeStyle = "#4facfe";
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.ellipse(centerX, centerY + 4, boss.width * 0.34, boss.height * 0.38, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    ctx.restore();
+  }
+
   function drawOmegaBoss(ctx: CanvasRenderingContext2D, boss: Boss) {
     const centerX = boss.x + boss.width / 2;
     const centerY = boss.y + boss.height / 2;
@@ -3124,6 +3630,11 @@ export function useSpaceInvadersGame() {
 
     if (boss.tier === "forge") {
       drawForgeBoss(ctx, boss);
+      return;
+    }
+
+    if (boss.tier === "summoner") {
+      drawSummonerBoss(ctx, boss);
       return;
     }
 
