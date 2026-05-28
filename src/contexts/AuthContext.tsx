@@ -1,3 +1,6 @@
+// Contexto de autenticação simulada.
+// Controla usuário logado, modo visitante e persistência temporária no localStorage.
+
 import { createContext, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 

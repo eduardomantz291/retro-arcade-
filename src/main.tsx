@@ -1,3 +1,6 @@
+// Ponto de entrada do React.
+// Renderiza o App principal dentro do DOM criado pelo Vite.
+
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router";

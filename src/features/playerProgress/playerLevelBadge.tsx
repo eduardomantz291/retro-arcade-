@@ -1,3 +1,6 @@
+// Badge pequeno de nível/XP usado em cabeçalhos e resumos do jogador.
+// Ele lê o progresso salvo e reage ao evento local de atualização de XP.
+
 import { useEffect, useState } from "react";
 import {
   getPlayerProgress,

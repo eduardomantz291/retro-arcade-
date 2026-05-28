@@ -1,3 +1,6 @@
+// Componente de proteção para rotas privadas.
+// Bloqueia páginas como perfil quando o jogador está apenas como visitante.
+
 import { Link } from "react-router";
 import { useAuth } from "../contexts/AuthContext";
 

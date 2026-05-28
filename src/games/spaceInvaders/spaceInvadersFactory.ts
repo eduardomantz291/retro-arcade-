@@ -1,3 +1,6 @@
+// Fábricas de estado do Space Invaders.
+// Criam formações, bosses, poderes inativos e o runtime inicial da partida.
+
 import {
   BOSS_AIM_ERROR_RANGE,
   BOSS_ATTACK_INTERVAL_MS,

@@ -1,3 +1,6 @@
+// Regras simuladas de progresso do jogador.
+// Centraliza XP, nível, pontuação por jogo e persistência temporária no localStorage.
+
 export type GameId = "snake" | "breakout";
 
 export type PlayerProgress = {

@@ -1,3 +1,6 @@
+// Página de login simulado.
+// Direciona o usuário para uma conta local ou para o fluxo visitante.
+
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { useAuth } from "../../contexts/AuthContext";

@@ -1,3 +1,6 @@
+// Página de perfil do jogador.
+// Exibe dados da conta, progresso, nível e histórico local dos jogos.
+
 import { useEffect, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { Link, useNavigate } from "react-router";

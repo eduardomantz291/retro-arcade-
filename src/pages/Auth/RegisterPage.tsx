@@ -1,3 +1,6 @@
+// Página de cadastro simulado.
+// Cria uma conta local para permitir salvar XP e progresso no navegador.
+
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { useAuth } from "../../contexts/AuthContext";

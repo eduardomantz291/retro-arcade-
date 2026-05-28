@@ -1,3 +1,6 @@
+// Página do Space Invaders.
+// Renderiza canvas, HUD, seleção de poderes, pause, game over e integração de XP.
+
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { Link } from "react-router";
 import { useAuth } from "../../contexts/AuthContext";

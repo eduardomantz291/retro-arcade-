@@ -1,3 +1,6 @@
+// Página inicial do arcade.
+// Mostra o resumo do jogador, cards dos jogos e atalhos de navegação.
+
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import PlayerLevelBadge from "./features/playerProgress/playerLevelBadge";

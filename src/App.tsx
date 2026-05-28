@@ -1,3 +1,6 @@
+// Configuração principal de rotas da aplicação arcade.
+// Cada rota aponta para uma página do site ou para um jogo específico.
+
 import { Route, Routes } from "react-router";
 import Home from "./Home";
 import LoginPage from "./pages/Auth/LoginPage";

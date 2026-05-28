@@ -1,3 +1,6 @@
+// Resumo animado de XP ao fim da partida.
+// Mostra XP ganho, progresso da barra e efeito de level up.
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   awardGameXp,

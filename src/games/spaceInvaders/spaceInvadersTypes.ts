@@ -1,3 +1,6 @@
+// Tipos do Space Invaders.
+// Descrevem entidades do jogo, runtime, poderes, bosses e estado de tela.
+
 // Tipos usados pelo Space Invaders.
 // Eles ajudam o TypeScript a entender a estrutura dos dados do jogo.
 

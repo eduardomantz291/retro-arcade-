@@ -1,3 +1,6 @@
+// Configurações fixas do Breakout.
+// Ajusta canvas, blocos, poderes, quedas, cooldowns, pontos e balanceamento.
+
 export const CANVAS_WIDTH = 600;
 export const CANVAS_HEIGHT = 420;
 

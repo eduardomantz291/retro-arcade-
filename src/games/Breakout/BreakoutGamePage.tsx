@@ -1,3 +1,6 @@
+// Página do Breakout.
+// Renderiza HUD, canvas, overlays, pause, game over e integração de progresso.
+
 import { useEffect, useState, type CSSProperties } from "react";
 import { Link } from "react-router";
 import { useAuth } from "../../contexts/AuthContext";

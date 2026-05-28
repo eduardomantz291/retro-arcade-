@@ -85,6 +85,9 @@ export type GameRuntime = {
 
 // Telas possíveis do Snake.
 // start = tela inicial, countdown = contagem, playing = partida, paused = pausa, game-over = derrota.
+// Tipos do Snake.
+// Descrevem entidades do jogo, telas, power-ups e runtime usado pelo hook.
+
 export type SnakeScreenState =
   | "start"
   | "countdown"

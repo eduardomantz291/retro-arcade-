@@ -1,3 +1,6 @@
+// Controlador de áudio do Breakout.
+// Isola músicas e efeitos para o hook não lidar diretamente com elementos Audio.
+
 type BreakoutSoundName =
   | "bombExplosion"
   | "heartPickup"

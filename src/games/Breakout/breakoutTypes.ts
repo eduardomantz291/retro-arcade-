@@ -1,3 +1,6 @@
+// Tipos do Breakout.
+// Descrevem runtime, blocos, poderes, bolinhas e telas possíveis da partida.
+
 export type BreakoutScreenState = "start" | "playing" | "paused" | "game-over";
 
 export type BrickType = "normal" | "tnt" | "curse" | "ultimate";

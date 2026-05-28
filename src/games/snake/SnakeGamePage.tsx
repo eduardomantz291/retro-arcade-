@@ -1,3 +1,6 @@
+// Página do Snake.
+// Cuida da interface, autenticação/visitante, pause, game over e integração de XP.
+
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import LevelProgressSummary from "../../features/playerProgress/levelProgressSummary";

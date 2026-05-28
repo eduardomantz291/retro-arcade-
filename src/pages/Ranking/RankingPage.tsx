@@ -1,3 +1,6 @@
+// Página de ranking local.
+// Mostra uma lista simulada de jogadores e destaca o usuário atual quando existir.
+
 import { Link } from "react-router";
 import { useAuth } from "../../contexts/AuthContext";
 import "./ranking-style.css";

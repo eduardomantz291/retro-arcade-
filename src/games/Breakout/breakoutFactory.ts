@@ -1,3 +1,6 @@
+// Fábricas de estado do Breakout.
+// Montam blocos, poderes e runtime inicial usados pelo hook principal.
+
 import {
   BALL_RADIUS,
   BRICK_COLUMNS,
