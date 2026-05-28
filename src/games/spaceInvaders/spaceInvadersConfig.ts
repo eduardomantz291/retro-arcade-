@@ -44,7 +44,6 @@ export const INVADER_SHOOT_CHANCE_MAX = 0.023;
 export const INVADER_SHOOT_CHANCE_MAX_WAVE = 10;
 
 export const PLAYER_LIVES = 3;
-export const PLAYER_MAX_LIVES = 6;
 
 export const POINTS_PER_INVADER = 25;
 export const WAVE_CLEAR_BONUS = 150;

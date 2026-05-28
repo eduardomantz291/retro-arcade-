@@ -20,7 +20,6 @@ import {
   PLAYER_BULLET_SPEED,
   PLAYER_BULLET_WIDTH,
   PLAYER_LIVES,
-  PLAYER_MAX_LIVES,
   PLAYER_SPEED,
   POINTS_PER_INVADER,
   SHIELD_POWER_COOLDOWN_MS,
@@ -827,7 +826,7 @@ export function useSpaceInvadersGame() {
       const nextWave = runtime.wave + 1;
 
       runtime.score += WAVE_CLEAR_BONUS;
-      runtime.lives = Math.min(PLAYER_MAX_LIVES, runtime.lives + 1);
+      runtime.lives += 1;
 
       if (isBossWave(nextWave)) {
         startBossWave(nextWave);

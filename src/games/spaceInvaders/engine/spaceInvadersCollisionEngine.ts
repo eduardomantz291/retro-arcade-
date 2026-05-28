@@ -6,7 +6,6 @@ import {
   CANVAS_HEIGHT,
   CANVAS_WIDTH,
   FINAL_WAVE,
-  PLAYER_MAX_LIVES,
   POINTS_PER_INVADER,
   SHIELD_POWER_MAX_HITS,
 } from "../spaceInvadersConfig";
@@ -114,7 +113,7 @@ export function createSpaceInvadersCollisionEngine({
     }
 
     runtime.score += boss.points;
-    runtime.lives = Math.min(PLAYER_MAX_LIVES, runtime.lives + 1);
+    runtime.lives += 1;
     runtime.enemyBullets = [];
     runtime.invaders = [];
     runtime.boss.active = false;
