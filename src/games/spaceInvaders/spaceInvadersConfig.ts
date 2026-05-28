@@ -161,7 +161,7 @@ export const SHIELD_POWER_MAX_HITS = 2;
 // Modo de teste.
 // Deixe true só enquanto estiver testando boss.
 // Antes de fazer commit final, volte para false.
-export const DEBUG_START_ON_BOSS_WAVE = true;
+export const DEBUG_START_ON_BOSS_WAVE = false;
 
 // Escolha qual boss você quer testar.
 // 5 = boss da onda 5.
